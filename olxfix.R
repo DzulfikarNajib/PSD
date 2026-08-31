@@ -3,7 +3,7 @@ library(jsonlite)
 library(dplyr)
 library(writexl)
 
-scrape_olx_mobil <- function(target_data = 1000) {
+scrape_olx_mobil <- function(target_data = 1200) {
   all_data <- list()
   total_terambil <- 0
   page <- 0
