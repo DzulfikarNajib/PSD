@@ -31,7 +31,6 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
       page <- 0
       
       while (page < 25) {
-        # API URL Wajib membawa location=2000007 (DKI Jakarta) & filter_price_between
         url <- paste0(
           "https://www.olx.co.id/api/relevance/v2/search?",
           "category=198&",
@@ -65,7 +64,7 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
           warna           <- NA_character_
           tipe_bodi       <- NA_character_
           
-          # 1. Parsing dari item$parameters API
+      
           if (!is.null(item$parameters)) {
             for (p in item$parameters) {
               key_str <- tolower(paste(p$key, p$formatted_key, p$key_name, p$id, collapse = " "))
@@ -86,7 +85,6 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
             }
           }
           
-          # 2. Fallback ekstraksi dari Judul jika parameter API Kosong/NA (Mencegah 100% NA)
           if (!is.na(judul_str)) {
             words <- unlist(strsplit(trimws(judul_str), "\\s+"))
             if (is.na(merk)) merk <- words[1]
@@ -99,7 +97,6 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
             }
           }
           
-          # 3. Nama Bursa / Showroom / Penjual
           bursa_mobil <- "Penjual Perorangan"
           if (!is.null(item$store$name) && item$store$name != "") {
             bursa_mobil <- as.character(item$store$name)
@@ -107,7 +104,6 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
             bursa_mobil <- as.character(item$user$name)
           }
           
-          # 4. Lokasi Wilayah Jakarta
           prov <- ifelse(!is.null(item$locations_resolved$ADMIN_LEVEL_1_name), 
                          item$locations_resolved$ADMIN_LEVEL_1_name, "Jakarta D.K.I.")
           kota <- ifelse(!is.null(item$locations_resolved$ADMIN_LEVEL_2_name), 
@@ -117,7 +113,6 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
           kecamatan <- ifelse(!is.null(item$locations_resolved$ADMIN_LEVEL_3_name),
                               item$locations_resolved$ADMIN_LEVEL_3_name, NA_character_)
           
-          # 5. Harga
           harga_str <- item$price$value$display
           if (is.null(harga_str)) harga_str <- item$price$value$raw
           harga_num <- ifelse(!is.null(harga_str), as.numeric(gsub("[^0-9]", "", as.character(harga_str))), NA_real_)
@@ -140,7 +135,7 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
             Nama_Bursa_Mobil = bursa_mobil,
             Kapasitas_Mesin  = kapasitas_mesin,
             Warna            = warna,
-            Tipe_Bodi        = tipe_bodi, # Fixed variable bug (tipe_bodi)
+            Tipe_Bodi        = tipe_bodi, 
             URL_Detail       = ifelse(is.null(item$id), NA_character_, paste0("https://www.olx.co.id/item/", item$id)),
             stringsAsFactors = FALSE
           )
@@ -169,8 +164,6 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
   return(final_df)
 }
 
-# EKSEKUSI SCRAPING DATA JAKARTA
 df_jakarta_full <- scrape_olx_jakarta_full(target_data = 43000)
 
-# Simpan ke file Excel / CSV
 write_xlsx(df_jakarta_full, "PSD_DATA_MOBIL_JAKARTA_FULL.xlsx")
