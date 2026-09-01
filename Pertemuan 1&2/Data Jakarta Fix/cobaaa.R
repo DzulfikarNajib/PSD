@@ -8,7 +8,6 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
   all_data <- list()
   headers <- c(`User-Agent` = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
   
-  # Rentang harga untuk membobol limit 1.000 data OLX (Total 18 Chunk)
   price_brackets <- c(
     0, 30000000, 50000000, 75000000, 100000000, 125000000, 150000000, 
     175000000, 200000000, 250000000, 300000000, 400000000, 500000000, 
