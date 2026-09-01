@@ -30,7 +30,6 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
       page <- 0
       
       while (page < 25) {
-
         url <- paste0(
           "https://www.olx.co.id/api/relevance/v2/search?",
           "category=198&",
@@ -64,6 +63,7 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
           warna           <- NA_character_
           tipe_bodi       <- NA_character_
           
+      
           if (!is.null(item$parameters)) {
             for (p in item$parameters) {
               key_str <- tolower(paste(p$key, p$formatted_key, p$key_name, p$id, collapse = " "))
@@ -134,7 +134,7 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
             Nama_Bursa_Mobil = bursa_mobil,
             Kapasitas_Mesin  = kapasitas_mesin,
             Warna            = warna,
-            Tipe_Bodi        = tipe_bodi, # Fixed variable bug (tipe_bodi)
+            Tipe_Bodi        = tipe_bodi, 
             URL_Detail       = ifelse(is.null(item$id), NA_character_, paste0("https://www.olx.co.id/item/", item$id)),
             stringsAsFactors = FALSE
           )

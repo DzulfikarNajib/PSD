@@ -30,7 +30,7 @@ scrape_olx_jakarta_full <- function(target_data = 43000) {
       page <- 0
       
       while (page < 25) {
-
+        
         url <- paste0(
           "https://www.olx.co.id/api/relevance/v2/search?",
           "category=198&",
