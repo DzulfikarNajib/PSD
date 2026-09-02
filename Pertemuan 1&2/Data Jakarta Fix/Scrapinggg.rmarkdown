@@ -174,3 +174,4 @@ df_jakarta_full <- scrape_olx_jakarta_full(target_data = 43000)
 write_xlsx(df_jakarta_full, "PSD_DATA_MOBIL_JAKARTA_FULL.xlsx")
 
 ```
+
