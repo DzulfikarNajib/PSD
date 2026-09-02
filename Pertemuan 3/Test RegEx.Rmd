@@ -1,0 +1,22 @@
+---
+title: "Test RegEx"
+output: html_document
+---
+
+```{r}
+##ilustrasi regex
+library(stringr)
+perusahaan <- c("Roti Bangsawan", "08128712", "RB@email.id",
+ "roti_bang29@gmail.com","F3823KSB")
+str_subset(perusahaan, 'a')
+str_detect(perusahaan, '[0-9]')
+str_extract_all(perusahaan, '[0-9]')
+str_extract_all(perusahaan, '[0-9]+')
+str_extract(perusahaan, '[a-z]+')
+str_extract_all(perusahaan, '[a-z]+')
+str_extract_all(perusahaan, '[A-Za-z]+')
+str_replace(perusahaan, 'com|id', 'net')
+str_replace_all(perusahaan, '[^a-z0-9]', '#')
+str_remove_all(perusahaan,'[._@]+')
+```
+

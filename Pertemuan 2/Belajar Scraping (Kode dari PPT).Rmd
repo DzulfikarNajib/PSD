@@ -1,0 +1,105 @@
+---
+title: "Belajar Scraping (Kode dari PPT)"
+output: html_document
+---
+
+# Scraping Carsome
+
+```{r}
+library(rvest)
+url <- "https://www.carsome.id/beli-mobil-bekas"
+card <- read_html(url) %>% html_elements('.mod-b-card__footer')
+card %>%
+ html_element('.mod-b-card__car-other') %>%
+ html_elements('span') %>%
+ html_text() %>%
+ paste(collapse = ',')
+
+```
+
+
+```{r}
+sapply(card,
+ function(card){
+ card %>%
+ html_element('.mod-b-card__car-other') %>%
+ html_elements('span') %>%
+ html_text() %>%
+ paste(collapse = ',')
+ })
+
+```
+
+Pindahkan ke CSV
+
+```{r}
+library(rvest)
+
+url <- "https://www.carsome.id/beli-mobil-bekas"
+page <- read_html(url)
+card <- page %>% html_elements('.mod-b-card__footer')
+
+# Memakai logika sapply asli kamu
+hasil <- sapply(card, function(card){
+  card %>%
+    html_element('.mod-b-card__car-other') %>%
+    html_elements('span') %>%
+    html_text() %>%
+    paste(collapse = ',')
+})
+
+# Konversi vektor hasil ke data frame
+df_hasil <- data.frame(Detail_Mobil = hasil, stringsAsFactors = FALSE)
+
+# Simpan langsung ke file CSV
+write.csv(df_hasil, "data1.csv", row.names = FALSE)
+```
+
+
+```{r}
+dt1 <- read.csv("data1.csv")
+str(dt1)
+
+library(stringr)
+
+# FIX: Ambil kolom 'Detail_Mobil', bukan 'x'
+x <- dt1$Detail_Mobil 
+
+# Gunakan as.character untuk memastikan tipe data berupa teks
+split_words <- strsplit(as.character(x), ",\\s*")
+
+max_length <- max(sapply(split_words, length))
+
+split_words_df <- data.frame(t(sapply(split_words, function(x) {
+  length(x) <- max_length
+  return(x)
+})), stringsAsFactors = FALSE)
+
+# Sesuaikan nama kolom hasil split
+colnames(split_words_df) <- c("Jarak_Tempuh", "Tipe", "Asal")
+
+print(split_words_df)
+
+```
+
+
+```{r}
+library(stringr)
+#remove dot
+w1 <-
+str_remove_all(split_words_df[,1],"[.]")
+#ekstrak angka
+w2 <- str_extract_all(w1,"[0-9]+")
+#dibuat format numerik
+w3 <- as.numeric(w2) #sudah ok
+#data ok
+df_oke <- split_words_df
+df_oke$Jarak_Tempuh <- w3
+df_oke$Tipe <- as.factor(df_oke$Tipe)
+df_oke$Asal <- as.factor(df_oke$Asal)
+df_oke
+str(df_oke)
+```
+
+
+
