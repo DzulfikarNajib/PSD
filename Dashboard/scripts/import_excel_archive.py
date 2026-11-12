@@ -1,5 +1,14 @@
 """Idempotently import the project's cleaned Excel archive into Supabase."""
 
+from pathlib import Path
+import sys
+
+# Running ``python scripts/import_excel_archive.py`` puts only scripts/ on
+# sys.path. Add the project root so imports from src/ work from any directory.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from src.data_loader import load_historical_data
 from src.supabase_store import import_excel_seed, is_configured
 
