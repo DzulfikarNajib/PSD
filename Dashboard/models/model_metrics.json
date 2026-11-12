@@ -1,0 +1,27 @@
+{
+  "status": "ready",
+  "validation_version": 2,
+  "best_model": "Random Forest Regressor",
+  "best_model_path": "C:\\Users\\Hype AMD\\OneDrive - apps.ipb.ac.id\\A UP MY HARD SKILL\\IPB\\Matakuliaih\\Semester 5\\PSD\\Dashboard\\models\\best_model.joblib",
+  "models": {
+    "Linear Regression": {
+      "MAE": 636070695.8907728,
+      "RMSE": 1024787647.9210204,
+      "R2": 0.6363287213000794
+    },
+    "Decision Tree Regressor": {
+      "MAE": 271983036.4454398,
+      "RMSE": 860536375.0161523,
+      "R2": 0.7435635802043099
+    },
+    "Random Forest Regressor": {
+      "MAE": 216144505.46730828,
+      "RMSE": 685924960.4953631,
+      "R2": 0.8370724776372895
+    }
+  },
+  "training_unique_listings": 4381,
+  "minimum_unique_listings": 100,
+  "selection_metric": "lowest holdout MAE",
+  "target": "asking price"
+}

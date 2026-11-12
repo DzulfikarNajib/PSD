@@ -1,0 +1,1442 @@
+---
+title: "Pengantar Sains Data - Data Mobil Bekas Jakarta"
+subtitle: "Pipeline K2 Scraping | K3 Data Management | K4 Eksplorasi & Visualisasi | K5 Filtering/Variable Selection"
+author: "Dzulfikar Najib"
+date: "24 September 2026"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    theme: cosmo
+---
+
+# Pendahuluan
+
+Analisis ini menggunakan data iklan mobil bekas di Jakarta yang **dikumpulkan melalui scraping menggunakan Python pada tahap K2**. Oleh karena proses scraping dilakukan di luar R Markdown, pada dokumen ini tahap K2 didokumentasikan sebagai sumber dan struktur data hasil scraping, sedangkan proses pengolahan menggunakan R dimulai pada K3.
+
+Alur yang digunakan:
+
+**K2 Python Scraping**
+→ `PSD_DATA_MOBIL_JAKARTA_FULL.xlsx`
+→ **K3 Data Management**
+→ `PSD_DATA_MANAGED.xlsx`
+→ **K4 EDA & Visualisasi**
+→ **K5 Filtering / Variable Selection**
+
+> **Catatan:** `PSD_DATA_MOBIL_JAKARTA_FULL.xlsx` adalah data hasil scraping dan belum dianggap sebagai data analisis siap pakai. `PSD_DATA_MANAGED.xlsx` adalah keluaran K3 yang telah melalui proses data management dan digunakan sebagai input K4 dan K5.
+
+# 1. K2 — Scraping / Data Gathering
+
+## 1.1 Sumber dan tujuan scraping
+
+Pada tahap K2, data iklan mobil bekas dikumpulkan menggunakan **Python**. Hasil proses scraping disimpan dalam:
+
+`PSD_DATA_MOBIL_JAKARTA_FULL.xlsx`
+
+R Markdown ini **tidak mengulang proses scraping Python**. File hasil scraping langsung dipanggil sebagai input K3.
+
+Tujuan scraping adalah memperoleh informasi yang tersedia pada iklan mobil bekas, terutama:
+
+- identitas iklan;
+- lokasi kendaraan;
+- harga;
+- merek dan model;
+- tahun kendaraan;
+- jarak tempuh;
+- bahan bakar;
+- transmisi;
+- tipe penjual;
+- kapasitas mesin;
+- warna;
+- tipe bodi; dan
+- URL detail iklan.
+
+## 1.2 Struktur data hasil scraping
+
+Dataset hasil scraping terdiri dari **4.441 baris dan 19 kolom**.
+
+Kolom yang diperoleh:
+
+| No | Variabel | Keterangan |
+|---:|---|---|
+| 1 | `Judul` | Judul iklan |
+| 2 | `Kategori` | Kategori iklan |
+| 3 | `Provinsi` | Provinsi lokasi kendaraan |
+| 4 | `Kota_Kabupaten` | Kota/kabupaten |
+| 5 | `Kecamatan` | Kecamatan |
+| 6 | `Harga_Teks` | Harga dalam format teks hasil scraping |
+| 7 | `Harga_IDR` | Harga dalam bentuk numerik jika tersedia |
+| 8 | `Merk` | Merek kendaraan |
+| 9 | `Model` | Model kendaraan |
+| 10 | `Tahun` | Tahun kendaraan |
+| 11 | `Jarak_Tempuh` | Jarak tempuh dalam format teks/range |
+| 12 | `Tipe_Bahan_Bakar` | Jenis bahan bakar |
+| 13 | `Transmisi` | Jenis transmisi |
+| 14 | `Tipe_Penjual` | Individu/diler |
+| 15 | `Nama_Bursa_Mobil` | Nama bursa/sumber penjual |
+| 16 | `Kapasitas_Mesin` | Kapasitas mesin dalam format kategori/range |
+| 17 | `Warna` | Warna kendaraan |
+| 18 | `Tipe_Bodi` | Tipe bodi kendaraan |
+| 19 | `URL_Detail` | URL detail iklan |
+
+## 1.3 Memanggil hasil K2
+
+```{r setup}
+# Paket yang digunakan
+pkgs <- c(
+  "readxl", "writexl", "dplyr", "tidyr", "ggplot2",
+  "scales", "knitr", "stringr", "gridExtra", "wordcloud",
+  "RColorBrewer"
+)
+
+# Instalasi otomatis jika diperlukan
+missing_pkgs <- setdiff(pkgs, rownames(installed.packages()))
+if (length(missing_pkgs) > 0) {
+  install.packages(missing_pkgs, repos = "https://cloud.r-project.org")
+}
+
+invisible(lapply(pkgs, library, character.only = TRUE))
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 9,
+  fig.height = 5.5
+)
+
+options(scipen = 999)
+
+f2 <- function(x) sprintf("%.2f", x)
+pct <- function(x) round(100 * x, 1)
+
+warna_utama <- "#2c3e50"
+warna_sorot <- "#e74c3c"
+
+file_full <- "PSD_DATA_MOBIL_JAKARTA_FULL.xlsx"
+
+if (!file.exists(file_full)) {
+  stop("File PSD_DATA_MOBIL_JAKARTA_FULL.xlsx tidak ditemukan di working directory.")
+}
+
+df_raw <- read_excel(file_full)
+```
+
+## 1.4 Pemeriksaan awal data hasil scraping
+
+```{r k2-dimensi}
+kable(
+  data.frame(
+    Metrik = c(
+      "Jumlah baris / observasi",
+      "Jumlah kolom / peubah"
+    ),
+    Nilai = c(nrow(df_raw), ncol(df_raw))
+  ),
+  caption = "Dimensi dataset hasil scraping K2"
+)
+```
+
+```{r k2-struktur}
+glimpse(df_raw)
+```
+
+```{r k2-missing}
+health_raw <- data.frame(
+  Kolom = names(df_raw),
+  Tipe_Data = sapply(df_raw, function(x) paste(class(x), collapse = ", ")),
+  Jumlah_NA = sapply(df_raw, function(x) sum(is.na(x)))
+)
+
+kable(
+  health_raw,
+  row.names = FALSE,
+  caption = "Pemeriksaan awal struktur dan missing value hasil scraping"
+)
+```
+
+### Interpretasi K2
+
+Tahap K2 menghasilkan **4.441 observasi dengan 19 peubah**. Data pada tahap ini masih dipertahankan sedekat mungkin dengan hasil scraping sehingga belum dilakukan pembersihan besar-besaran.
+
+Beberapa variabel masih berupa teks atau kategori/range. Contohnya, harga dapat tersedia dalam format teks, jarak tempuh dapat berupa rentang, dan kapasitas mesin dapat berbentuk rentang kategori. Karena itu, data belum langsung digunakan untuk analisis statistik dan visualisasi.
+
+---
+
+# 2. K3 — Data Management
+
+## 2.1 Tujuan data management
+
+Tahap K3 bertujuan mengubah data hasil scraping menjadi data yang lebih terstruktur dan konsisten untuk analisis.
+
+Perlakuan utama:
+
+1. menghapus iklan duplikat berdasarkan `URL_Detail`;
+2. mengubah harga teks menjadi numerik;
+3. mengubah jarak tempuh menjadi numerik;
+4. mengekstraksi kapasitas mesin dari judul;
+5. mengubah kapasitas mesin berbentuk range menjadi nilai representatif;
+6. membentuk kapasitas mesin final;
+7. membentuk variabel indikator dari judul;
+8. mengubah tahun menjadi numerik;
+9. menghitung usia mobil;
+10. membentuk kategori `Brand_Tier`;
+11. membentuk kelompok odometer;
+12. membatasi harga pada rentang yang masuk akal untuk analisis;
+13. memastikan data hanya untuk DKI Jakarta;
+14. menangani missing value pada variabel analisis;
+15. mengubah tipe data sesuai kebutuhan analisis.
+
+Dengan demikian, K3 bukan hanya "menghapus NA", tetapi merupakan proses **transformasi + validasi + pembersihan data**.
+
+## 2.2 Fungsi pembersihan
+
+```{r helper-k3}
+clean_harga_regex <- function(x) {
+  if (is.na(x)) return(NA_real_)
+
+  x <- as.character(x)
+  x <- str_remove_all(x, "\\.")
+  digits <- str_extract_all(x, "[0-9]+")[[1]]
+
+  if (length(digits) > 0) {
+    return(as.numeric(paste0(digits, collapse = "")))
+  }
+
+  return(NA_real_)
+}
+
+clean_mileage_regex <- function(x) {
+  if (is.na(x)) return(NA_real_)
+
+  x <- as.character(x)
+  x <- str_remove_all(x, "\\.")
+  nums <- as.numeric(str_extract_all(x, "\\d+")[[1]])
+
+  if (length(nums) >= 2) {
+    return(mean(nums[1:2]))
+  }
+
+  if (length(nums) == 1) {
+    return(nums[1])
+  }
+
+  return(NA_real_)
+}
+```
+
+## 2.3 Deduplicasi dan transformasi variabel
+
+```{r k3-management}
+df_managed <- df_raw %>%
+
+  # 1. Deduplicasi berdasarkan URL detail iklan
+  distinct(URL_Detail, .keep_all = TRUE) %>%
+
+  mutate(
+
+    # 2. Harga teks -> numerik
+    Harga_Clean = sapply(Harga_Teks, clean_harga_regex),
+
+    # 3. Jarak tempuh teks/range -> numerik
+    Odometer_KM = sapply(Jarak_Tempuh, clean_mileage_regex),
+
+    # 4. Ekstraksi angka liter mesin dari judul
+    Liter_Mesin = as.numeric(
+      str_extract(Judul, "\\b(\\d\\.\\d)\\b")
+    ),
+
+    # 5. Kapasitas mesin berbentuk range -> titik tengah
+    CC_Mesin = case_when(
+      str_detect(Kapasitas_Mesin, "<1\\.000") ~ 850,
+      str_detect(Kapasitas_Mesin, "1\\.000 - 1\\.500") ~ 1250,
+      str_detect(Kapasitas_Mesin, "1\\.500 - 2\\.000") ~ 1750,
+      str_detect(Kapasitas_Mesin, "2\\.000 - 3\\.000") ~ 2500,
+      str_detect(Kapasitas_Mesin, ">3\\.000") ~ 3500,
+      TRUE ~ NA_real_
+    ),
+
+    # 6. Kapasitas mesin final
+    # Jika liter mesin ditemukan, digunakan nilai liter x 1000.
+    # Jika tidak, digunakan nilai titik tengah dari range.
+    CC_Final = ifelse(
+      !is.na(Liter_Mesin),
+      Liter_Mesin * 1000,
+      CC_Mesin
+    ),
+
+    # 7. Feature engineering dari judul
+    Is_Garansi = str_detect(Judul, "(?i)GARANSI"),
+    Is_KM_Low = str_detect(Judul, "(?i)KM\\s*LOW|LOW\\s*KM|ANTIK"),
+    Is_Facelift = str_detect(Judul, "(?i)FACELIFT|FL|LCI"),
+    Is_Sport_Trim = str_detect(Judul, "(?i)AMG|TRD|RS|SPORT|M-SPORT"),
+    Is_Promo_DP = str_detect(Judul, "(?i)TDP|DP\\s*\\d+|DP\\s*MURAH"),
+
+    # 8. Tahun dan usia kendaraan
+    Tahun_Num = as.numeric(Tahun),
+    Usia_Mobil = 2026 - Tahun_Num,
+
+    # 9. Klasifikasi brand
+    Brand_Tier = case_when(
+      toupper(Merk) %in% c(
+        "MERCEDES-BENZ", "BMW", "LEXUS", "AUDI",
+        "PORSCHE", "MINI", "LAND ROVER"
+      ) ~ "Luxury",
+
+      toupper(Merk) %in% c(
+        "TOYOTA", "HONDA", "MITSUBISHI", "SUZUKI",
+        "DAIHATSU", "NISSAN", "MAZDA", "HYUNDAI"
+      ) ~ "Mass Market",
+
+      toupper(Merk) %in% c(
+        "WULING", "CHERY", "BYD", "MG"
+      ) ~ "Chinese EV",
+
+      TRUE ~ "Other"
+    ),
+
+    # 10. Kelompok jarak tempuh
+    Odometer_Group = cut(
+      Odometer_KM,
+      breaks = c(-1, 20000, 50000, 100000, Inf),
+      labels = c(
+        "<20k (Sangat Low)",
+        "20k-50k (Low)",
+        "50k-100k (Sedang)",
+        ">100k (Tinggi)"
+      ),
+      ordered_result = TRUE
+    )
+  ) %>%
+
+  # 11. Filter nilai harga dan odometer yang tidak layak digunakan
+  filter(
+    Harga_Clean >= 30000000,
+    Harga_Clean <= 5000000000,
+    !is.na(Odometer_KM)
+  )
+```
+
+## 2.4 Pemeriksaan perubahan jumlah observasi
+
+```{r k3-dimensi-intermediate}
+tahap_k3 <- data.frame(
+  Tahap = c(
+    "Hasil scraping K2",
+    "Setelah deduplikasi + transformasi + filter awal"
+  ),
+  Baris = c(
+    nrow(df_raw),
+    nrow(df_managed)
+  ),
+  Kolom = c(
+    ncol(df_raw),
+    ncol(df_managed)
+  )
+)
+
+kable(
+  tahap_k3,
+  caption = "Perubahan dimensi selama data management"
+)
+```
+
+## 2.5 Membatasi wilayah analisis dan memilih variabel analisis
+
+Karena fokus penelitian adalah **mobil bekas di Jakarta**, observasi yang digunakan untuk analisis harus berada pada Provinsi DKI Jakarta.
+
+Variabel mentah yang masih diperlukan sebagai dokumentasi tetap dipertahankan pada data intermediate, sedangkan `df_managed` final hanya berisi variabel yang relevan untuk analisis.
+
+```{r k3-final-management}
+df_managed <- df_managed %>%
+  filter(Provinsi == "Jakarta D.K.I.") %>%
+  select(
+    Judul,
+    URL_Detail,
+    Provinsi,
+    Kota_Kabupaten,
+    Merk,
+    Model,
+    Brand_Tier,
+    Tahun = Tahun_Num,
+    Usia_Mobil,
+    Harga_IDR = Harga_Clean,
+    Jarak_Tempuh_KM = Odometer_KM,
+    Odometer_Group,
+    Kapasitas_Mesin_CC = CC_Final,
+    Tipe_Bahan_Bakar,
+    Transmisi,
+    Tipe_Bodi,
+    Warna,
+    Tipe_Penjual,
+    Is_Garansi,
+    Is_KM_Low,
+    Is_Facelift,
+    Is_Sport_Trim,
+    Is_Promo_DP
+  ) %>%
+
+  # Data yang digunakan K4/K5 harus lengkap
+  drop_na()
+```
+
+## 2.6 Penetapan tipe data
+
+```{r k3-tipe-data}
+df_managed <- df_managed %>%
+  mutate(
+    across(
+      where(is.character),
+      ~ str_squish(str_replace_all(., "\u00A0", " "))
+    ),
+
+    across(
+      starts_with("Is_"),
+      as.logical
+    ),
+
+    across(
+      c(
+        Provinsi,
+        Kota_Kabupaten,
+        Merk,
+        Model,
+        Brand_Tier,
+        Tipe_Bahan_Bakar,
+        Transmisi,
+        Tipe_Bodi,
+        Warna,
+        Tipe_Penjual
+      ),
+      as.factor
+    ),
+
+    Harga_Juta = Harga_IDR / 1e6,
+
+    Kapasitas_CC_valid = if_else(
+      Tipe_Bahan_Bakar == "Listrik",
+      NA_real_,
+      as.numeric(Kapasitas_Mesin_CC)
+    )
+  )
+```
+
+## 2.7 Pemeriksaan akhir K3
+
+```{r k3-quality}
+kualitas_k3 <- data.frame(
+  Pemeriksaan = c(
+    "Jumlah baris",
+    "Jumlah kolom",
+    "Total missing value",
+    "Duplikasi URL",
+    "Observasi di luar DKI"
+  ),
+  Jumlah = c(
+    nrow(df_managed),
+    ncol(df_managed),
+    sum(is.na(df_managed)),
+    sum(duplicated(df_managed$URL_Detail)),
+    sum(df_managed$Provinsi != "Jakarta D.K.I.")
+  )
+)
+
+kable(
+  kualitas_k3,
+  caption = "Pemeriksaan kualitas data setelah K3"
+)
+
+glimpse(df_managed)
+```
+
+## 2.8 Export hasil K3
+
+```{r k3-export}
+file_managed <- "PSD_DATA_MANAGED.xlsx"
+
+write_xlsx(
+  df_managed,
+  file_managed
+)
+
+cat(
+  "File", file_managed,
+  "berhasil dibuat dengan",
+  nrow(df_managed),
+  "baris dan",
+  ncol(df_managed),
+  "kolom."
+)
+```
+
+### Output K3
+
+Output utama K3 adalah:
+
+**`PSD_DATA_MANAGED.xlsx`**
+
+File tersebut merupakan **dataset analisis** yang digunakan sebagai input K4 dan K5.
+
+Perbedaan konseptual beberapa file:
+
+| File | Posisi dalam pipeline | Status |
+|---|---|---|
+| `PSD_DATA_MOBIL_JAKARTA_FULL.xlsx` | Hasil K2 | Data hasil scraping, belum siap analisis |
+| `PSD_DATA_MOBIL_JAKARTA_MANAGED2.xlsx` | Intermediate K3 versi sebelumnya | Hasil transformasi awal, belum menjadi output final K3 |
+| `PSD_DATA_MANAGED.xlsx` | Output K3 | Dataset analysis-ready untuk K4/K5 |
+| `PSD_DATA_FINAL_CLEAN.xlsx` | Versi final-clean sebelumnya | Dapat menjadi referensi/hasil cleaning sebelumnya, bukan input utama pipeline baru |
+| `PSD_DATA_MOBIL_JAKARTA_CLEANED_V2.xlsx` | Versi cleaning lain | Referensi pembanding; tidak digunakan sebagai sumber utama pipeline ini |
+
+> **Penting:** `PSD_DATA_MANAGED.xlsx` pada pipeline ini sengaja menjadi satu titik output K3. Jadi K4 tidak lagi mengambil `FINAL_CLEAN` atau `CLEANED_V2`.
+
+---
+
+# 3. K4 — Eksplorasi Data dan Visualisasi
+
+Pada K4, data **tidak lagi mengalami cleaning besar-besaran**. Fokusnya berpindah dari "memperbaiki data" menjadi "memahami data".
+
+Data K4 berasal dari:
+
+`PSD_DATA_MANAGED.xlsx`
+
+## 3.1 Memanggil data hasil K3
+
+```{r k4-load}
+if (!file.exists(file_managed)) {
+  stop("PSD_DATA_MANAGED.xlsx belum tersedia. Jalankan seluruh bagian K3 terlebih dahulu.")
+}
+
+df_clean <- read_excel(file_managed)
+
+df_clean <- df_clean %>%
+  mutate(
+    across(
+      c(
+        Provinsi,
+        Kota_Kabupaten,
+        Merk,
+        Model,
+        Brand_Tier,
+        Tipe_Bahan_Bakar,
+        Transmisi,
+        Tipe_Bodi,
+        Warna,
+        Tipe_Penjual
+      ),
+      as.factor
+    )
+  )
+```
+
+## 3.2 Statistik deskriptif
+
+```{r k4-statistik}
+skew <- function(x) {
+  x <- x[is.finite(x)]
+  mean((x - mean(x))^3) /
+    mean((x - mean(x))^2)^1.5
+}
+
+iqr_out <- function(x) {
+  q <- quantile(x, c(.25, .75), na.rm = TRUE)
+  i <- q[2] - q[1]
+  sum(
+    x < q[1] - 1.5 * i |
+    x > q[2] + 1.5 * i,
+    na.rm = TRUE
+  )
+}
+
+num_vars <- c(
+  "Harga_IDR",
+  "Usia_Mobil",
+  "Jarak_Tempuh_KM",
+  "Kapasitas_Mesin_CC"
+)
+
+num_summary <- df_clean %>%
+  select(all_of(num_vars)) %>%
+  pivot_longer(
+    everything(),
+    names_to = "Variabel",
+    values_to = "nilai"
+  ) %>%
+  group_by(Variabel) %>%
+  summarise(
+    Mean = mean(nilai, na.rm = TRUE),
+    SD = sd(nilai, na.rm = TRUE),
+    Median = median(nilai, na.rm = TRUE),
+    IQR = IQR(nilai, na.rm = TRUE),
+    Min = min(nilai, na.rm = TRUE),
+    Max = max(nilai, na.rm = TRUE),
+    Skewness = skew(nilai),
+    Pencilan_IQR = iqr_out(nilai),
+    .groups = "drop"
+  )
+
+kable(
+  num_summary,
+  digits = 2,
+  caption = "Statistik deskriptif peubah numerik"
+)
+```
+
+## 3.3 Distribusi harga
+
+```{r k4-harga}
+med_h <- median(df_clean$Harga_Juta, na.rm = TRUE)
+mean_h <- mean(df_clean$Harga_Juta, na.rm = TRUE)
+
+v1a <- ggplot(df_clean, aes(x = Harga_Juta)) +
+  geom_histogram(
+    bins = 40,
+    fill = warna_utama,
+    color = "white"
+  ) +
+  geom_vline(
+    xintercept = med_h,
+    linetype = "dashed",
+    color = warna_sorot
+  ) +
+  scale_x_continuous(labels = comma) +
+  labs(
+    title = "Distribusi Harga Mobil Bekas",
+    x = "Harga (juta Rp)",
+    y = "Jumlah Iklan"
+  ) +
+  theme_minimal()
+
+v1b <- ggplot(df_clean, aes(x = Harga_Juta)) +
+  geom_histogram(
+    bins = 40,
+    fill = warna_utama,
+    color = "white"
+  ) +
+  scale_x_log10(labels = comma) +
+  labs(
+    title = "Distribusi Harga pada Skala Log10",
+    x = "Harga (juta Rp, log10)",
+    y = "Jumlah Iklan"
+  ) +
+  theme_minimal()
+
+grid.arrange(v1a, v1b, ncol = 2)
+```
+
+## 3.4 Merek paling banyak
+
+```{r k4-merk}
+top_merk <- df_clean %>%
+  count(Merk, sort = TRUE) %>%
+  slice_max(n, n = 10, with_ties = FALSE) %>%
+  mutate(
+    Merk = reorder(as.character(Merk), n)
+  )
+
+ggplot(top_merk, aes(x = Merk, y = n)) +
+  geom_segment(
+    aes(xend = Merk, y = 0, yend = n),
+    linewidth = 1
+  ) +
+  geom_point(size = 4) +
+  geom_text(
+    aes(label = n),
+    hjust = -0.5,
+    size = 3.5
+  ) +
+  coord_flip() +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, .15))
+  ) +
+  labs(
+    title = "10 Merek Paling Banyak Diiklankan",
+    x = NULL,
+    y = "Jumlah Iklan"
+  ) +
+  theme_minimal()
+```
+
+## 3.5 Komposisi Brand Tier
+
+```{r k4-tier}
+tier_prop <- df_clean %>%
+  count(Brand_Tier) %>%
+  mutate(
+    p = n / sum(n),
+    label = paste0(round(100 * p, 1), "%")
+  )
+
+ggplot(
+  tier_prop,
+  aes(x = 2, y = p, fill = Brand_Tier)
+) +
+  geom_col(width = 1, color = "white") +
+  geom_text(
+    aes(label = label),
+    position = position_stack(vjust = 0.5),
+    color = "white",
+    size = 4
+  ) +
+  coord_polar(theta = "y") +
+  xlim(.5, 2.5) +
+  labs(
+    title = "Komposisi Iklan menurut Brand Tier",
+    fill = "Brand Tier"
+  ) +
+  theme_void()
+```
+
+## 3.6 Harga menurut Brand Tier
+
+```{r k4-tier-harga}
+ggplot(
+  df_clean,
+  aes(x = Brand_Tier, y = Harga_Juta, fill = Brand_Tier)
+) +
+  geom_boxplot(
+    outlier.alpha = .25,
+    show.legend = FALSE
+  ) +
+  scale_y_log10(labels = comma) +
+  labs(
+    title = "Sebaran Harga menurut Brand Tier",
+    x = NULL,
+    y = "Harga (juta Rp, skala log10)"
+  ) +
+  theme_minimal()
+```
+
+## 3.7 Kata yang sering muncul pada judul iklan
+
+```{r k4-text-mining}
+teks_bersih <- df_clean$Judul %>%
+  str_to_lower() %>%
+  str_remove_all("https?://\\S+|www\\.\\S+") %>%
+  str_replace_all("[^a-z0-9 ]", " ") %>%
+  str_squish()
+
+tokens_all <- tibble(
+  id = seq_along(teks_bersih),
+  teks = teks_bersih
+) %>%
+  mutate(token = str_split(teks, " ")) %>%
+  select(id, token) %>%
+  unnest(token) %>%
+  filter(token != "")
+
+stop_id <- c(
+  "dan", "atau", "yang", "yg", "di", "ke", "dari",
+  "untuk", "dengan", "dgn", "dg", "the", "and",
+  "of", "for", "new", "jual", "dijual", "mobil",
+  "bekas", "second", "murah", "siap", "pakai",
+  "bisa", "bs", "nego", "km", "rb", "ribu",
+  "jt", "juta", "tahun", "thn", "th", "tgn",
+  "tangan", "pajak", "pjk", "plat", "ori",
+  "original", "istimewa", "terawat", "kondisi",
+  "mulus", "sangat", "asli", "harga", "cash",
+  "kredit", "unit", "type", "tipe", "series",
+  "edition", "stok", "ready", "free", "hub",
+  "wa", "info", "cek", "only", "best", "deal",
+  "no", "sd", "s", "sk"
+)
+
+kamus_norm <- c(
+  mercy = "mercedes",
+  benz = "mercedes",
+  bergaransi = "garansi",
+  automatik = "matic",
+  automatic = "matic",
+  at = "matic",
+  mt = "manual"
+)
+
+tokens <- tokens_all %>%
+  mutate(
+    token = coalesce(
+      unname(kamus_norm[token]),
+      token
+    )
+  ) %>%
+  filter(
+    nchar(token) >= 2,
+    !str_detect(
+      token,
+      "^[0-9]+(rb|ribu|jt|juta|k|th|thn|tahun)?$"
+    ),
+    !token %in% stop_id
+  ) %>%
+  distinct(id, token)
+
+freq_kata <- tokens %>%
+  count(token, sort = TRUE, name = "n_judul")
+
+set.seed(2026)
+
+wordcloud(
+  words = head(freq_kata, 100)$token,
+  freq = head(freq_kata, 100)$n_judul,
+  scale = c(4, .6),
+  random.order = FALSE,
+  colors = brewer.pal(8, "Dark2")
+)
+```
+
+## 3.8 Hubungan numerik
+
+```{r k4-korelasi}
+num_data <- df_clean %>%
+  transmute(
+    Harga = Harga_IDR,
+    Usia = Usia_Mobil,
+    Jarak = Jarak_Tempuh_KM,
+    CC = Kapasitas_CC_valid
+  )
+
+pasangan <- combn(names(num_data), 2, simplify = FALSE)
+
+tab_kor <- do.call(
+  rbind,
+  lapply(pasangan, function(p) {
+    x <- num_data[[p[1]]]
+    y <- num_data[[p[2]]]
+
+    data.frame(
+      Pasangan = paste(p, collapse = " ~ "),
+      n = sum(complete.cases(x, y)),
+      Pearson = cor(
+        x, y,
+        use = "complete.obs",
+        method = "pearson"
+      ),
+      Spearman = cor(
+        x, y,
+        use = "complete.obs",
+        method = "spearman"
+      )
+    )
+  })
+)
+
+kable(
+  tab_kor,
+  digits = 3,
+  row.names = FALSE,
+  caption = "Korelasi antar peubah numerik"
+)
+```
+
+```{r k4-usia-harga}
+ggplot(
+  df_clean,
+  aes(
+    x = Usia_Mobil,
+    y = Harga_Juta,
+    color = Brand_Tier
+  )
+) +
+  geom_point(alpha = .4) +
+  geom_smooth(
+    method = "lm",
+    se = FALSE
+  ) +
+  scale_y_log10(labels = comma) +
+  labs(
+    title = "Hubungan Usia Mobil dan Harga",
+    x = "Usia Mobil (tahun)",
+    y = "Harga (juta Rp, log10)",
+    color = "Brand Tier"
+  ) +
+  theme_minimal()
+```
+
+## 3.9 Hubungan peubah kategorik dengan harga
+
+```{r k4-kategorik}
+fitur_kategorik <- c(
+  "Merk",
+  "Brand_Tier",
+  "Tipe_Bahan_Bakar",
+  "Transmisi",
+  "Tipe_Bodi",
+  "Warna",
+  "Tipe_Penjual"
+)
+
+rel_kategorik <- do.call(
+  rbind,
+  lapply(fitur_kategorik, function(v) {
+
+    if (length(unique(df_clean[[v]])) < 2) {
+      return(NULL)
+    }
+
+    k <- kruskal.test(
+      df_clean$Harga_IDR,
+      as.factor(df_clean[[v]])
+    )
+
+    n <- nrow(df_clean)
+    kgrp <- length(unique(df_clean[[v]]))
+
+    eta2 <- unname(
+      (k$statistic - kgrp + 1) /
+        (n - kgrp)
+    )
+
+    data.frame(
+      Fitur = v,
+      N_kategori = kgrp,
+      Eta_squared = eta2
+    )
+  })
+) %>%
+  arrange(desc(Eta_squared))
+
+kable(
+  rel_kategorik,
+  digits = 3,
+  row.names = FALSE,
+  caption = "Relevansi peubah kategorik terhadap harga"
+)
+```
+
+---
+
+# 4. K5 — Embedded Method: Elastic Net
+
+## 4.1 Tujuan Variable Selection
+
+Pada tahap K5, pendekatan variable selection diubah dari **filter-based method** menjadi **embedded method**.
+
+Metode utama yang digunakan adalah **Elastic Net**, yaitu metode regularisasi yang menggabungkan penalti LASSO dan Ridge. Elastic Net melakukan seleksi variabel sebagai bagian dari proses pembentukan model.
+
+Variabel target:
+
+```text
+Harga_IDR
+```
+
+Kandidat fitur menggunakan variabel yang telah dibentuk pada K3 dan tidak menjadikan variabel target sebagai prediktor.
+
+## 4.2 Kandidat Fitur
+
+```{r k5-candidate}
+semua_fitur <- c(
+  "Usia_Mobil",
+  "Odometer_KM",
+  "CC_Final",
+  "Merk",
+  "Tipe_Bahan_Bakar",
+  "Transmisi",
+  "Tipe_Bodi",
+  "Warna",
+  "Tipe_Penjual",
+  "Is_Garansi",
+  "Is_KM_Low",
+  "Is_Facelift",
+  "Is_Sport_Trim",
+  "Is_Promo_DP"
+)
+
+kable(
+  data.frame(
+    No = seq_along(semua_fitur),
+    Kandidat_Fitur = semua_fitur
+  ),
+  row.names = FALSE,
+  caption = "Kandidat fitur untuk Embedded Method"
+)
+```
+
+`Harga_IDR` digunakan sebagai target sehingga tidak dimasukkan sebagai prediktor. `Judul` tidak digunakan langsung karena merupakan teks mentah; informasi tertentu dari judul telah direpresentasikan melalui fitur biner pada K3.
+
+`Brand_Tier` tidak dimasukkan bersama `Merk` untuk menghindari redundansi karena `Brand_Tier` dibentuk dari `Merk`.
+
+## 4.3 Menyiapkan Data untuk Elastic Net
+
+Elastic Net membutuhkan matriks numerik. Oleh karena terdapat variabel kategorik, variabel tersebut diubah menjadi **dummy variables** menggunakan `model.matrix()`.
+
+Target harga menggunakan transformasi `log1p()` untuk mengurangi pengaruh kemencengan distribusi harga. Transformasi ini hanya digunakan dalam pemodelan; `Harga_IDR` asli tetap digunakan pada K4.
+
+```{r k5-model-data}
+df_clean <- df_managed %>%
+  select(
+    Harga_IDR,
+    all_of(semua_fitur)
+  ) %>%
+  filter(
+    is.finite(Harga_IDR),
+    Harga_IDR > 0
+  ) %>%
+  drop_na()
+
+cat("Observasi untuk modeling:", nrow(df_clean), "\n")
+```
+
+```{r k5-dummy}
+# Pastikan tipe fitur kategorik sesuai untuk dummy encoding
+df_model <- df_clean %>%
+  mutate(
+    across(
+      c(
+        Merk,
+        Tipe_Bahan_Bakar,
+        Transmisi,
+        Tipe_Bodi,
+        Warna,
+        Tipe_Penjual
+      ),
+      as.factor
+    )
+  )
+
+x <- model.matrix(
+  ~ . - Harga_IDR - 1,
+  data = df_model
+)
+
+y <- log1p(df_model$Harga_IDR)
+
+cat("Jumlah fitur kandidat sebelum dummy:", length(semua_fitur), "\n")
+cat("Jumlah kolom setelah dummy encoding:", ncol(x), "\n")
+```
+
+## 4.4 Elastic Net dan 10-Fold Cross Validation
+
+Elastic Net memiliki dua parameter utama:
+
+- **alpha**: mengatur kombinasi LASSO dan Ridge;
+- **lambda**: mengatur kekuatan regularisasi.
+
+Nilai `alpha` dan `lambda` dipilih berdasarkan **10-fold cross-validation**.
+
+```{r k5-elastic-net, message=FALSE, warning=FALSE}
+if (!requireNamespace("glmnet", quietly = TRUE)) {
+  install.packages("glmnet", repos = "https://cloud.r-project.org")
+}
+
+library(glmnet)
+
+set.seed(123)
+
+alpha_grid <- seq(0.1, 0.9, by = 0.1)
+
+cv_models <- lapply(
+  alpha_grid,
+  function(a) {
+    cv.glmnet(
+      x,
+      y,
+      alpha = a,
+      nfolds = 10,
+      standardize = TRUE,
+      type.measure = "mse"
+    )
+  }
+)
+
+cv_summary <- data.frame(
+  Alpha = alpha_grid,
+  CV_MSE = sapply(
+    cv_models,
+    function(m) min(m$cvm)
+  ),
+  Lambda_Min = sapply(
+    cv_models,
+    function(m) m$lambda.min
+  )
+)
+
+best_index <- which.min(cv_summary$CV_MSE)
+
+best_alpha <- cv_summary$Alpha[best_index]
+best_lambda <- cv_summary$Lambda_Min[best_index]
+elastic_model <- cv_models[[best_index]]
+
+kable(
+  cv_summary,
+  digits = 5,
+  caption = "Hasil 10-fold cross-validation untuk berbagai nilai alpha"
+)
+```
+
+## 4.5 Parameter Model Terbaik
+
+```{r k5-best-parameter}
+data.frame(
+  Parameter = c(
+    "Alpha terbaik",
+    "Lambda terbaik",
+    "Jumlah fold cross-validation"
+  ),
+  Nilai = c(
+    best_alpha,
+    best_lambda,
+    10
+  )
+) %>%
+  kable(
+    digits = 5,
+    caption = "Parameter Elastic Net terbaik"
+  )
+```
+
+Interpretasi parameter:
+
+- `alpha = 1` mendekati LASSO;
+- `alpha = 0` mendekati Ridge;
+- nilai di antara keduanya merupakan kombinasi LASSO dan Ridge;
+- `lambda` menentukan seberapa kuat koefisien diperkecil.
+
+## 4.6 Koefisien Elastic Net
+
+```{r k5-coefficients}
+coef_matrix <- as.matrix(
+  coef(
+    elastic_model,
+    s = "lambda.min"
+  )
+)
+
+coef_df <- data.frame(
+  Feature = rownames(coef_matrix),
+  Coefficient = as.numeric(coef_matrix[, 1])
+) %>%
+  filter(
+    Feature != "(Intercept)"
+  ) %>%
+  mutate(
+    Selected = Coefficient != 0
+  )
+
+selected_dummy <- coef_df %>%
+  filter(Selected) %>%
+  arrange(desc(abs(Coefficient)))
+
+cat(
+  "Jumlah dummy feature:",
+  nrow(coef_df),
+  "\n"
+)
+
+cat(
+  "Jumlah dummy feature terpilih:",
+  nrow(selected_dummy),
+  "\n"
+)
+
+kable(
+  selected_dummy,
+  digits = 5,
+  row.names = FALSE,
+  caption = "Dummy feature dengan koefisien non-zero"
+)
+```
+
+Dalam Elastic Net, koefisien yang menjadi **0** tidak dipilih oleh model pada nilai lambda yang digunakan. Koefisien yang **non-zero** merupakan fitur yang dipertahankan model.
+
+## 4.7 Visualisasi Koefisien Fitur Terpilih
+
+```{r k5-coef-plot}
+if (nrow(selected_dummy) > 0) {
+
+  coef_plot <- selected_dummy %>%
+    slice_max(
+      order_by = abs(Coefficient),
+      n = min(20, n())
+    )
+
+  ggplot(
+    coef_plot,
+    aes(
+      x = reorder(Feature, Coefficient),
+      y = Coefficient
+    )
+  ) +
+    geom_col() +
+    coord_flip() +
+    labs(
+      title = "Fitur Terpilih oleh Elastic Net",
+      subtitle = paste0(
+        "Alpha = ", round(best_alpha, 2),
+        " | Lambda = ", signif(best_lambda, 4)
+      ),
+      x = "Feature",
+      y = "Koefisien"
+    ) +
+    theme_minimal()
+
+} else {
+
+  plot.new()
+  title("Tidak ada fitur dengan koefisien non-zero")
+
+}
+```
+
+## 4.8 Mengembalikan Dummy ke Variabel Asli
+
+Karena variabel kategorik berubah menjadi beberapa dummy, hasil seleksi perlu diringkas kembali ke level variabel asli.
+
+```{r k5-original-variable}
+kategori_fitur <- c(
+  "Merk",
+  "Tipe_Bahan_Bakar",
+  "Transmisi",
+  "Tipe_Bodi",
+  "Warna",
+  "Tipe_Penjual"
+)
+
+selected_original <- sapply(
+  semua_fitur,
+  function(v) {
+
+    if (v %in% kategori_fitur) {
+
+      any(
+        str_detect(
+          selected_dummy$Feature,
+          paste0("^", v)
+        )
+      )
+
+    } else {
+
+      v %in% selected_dummy$Feature
+
+    }
+  }
+)
+
+selected_original_table <- data.frame(
+  Fitur = semua_fitur,
+  Terpilih_Elastic_Net = as.logical(selected_original)
+)
+
+kable(
+  selected_original_table,
+  row.names = FALSE,
+  caption = "Keputusan seleksi pada level variabel asli"
+)
+```
+
+```{r k5-selected-list}
+fitur_terpilih <- selected_original_table %>%
+  filter(Terpilih_Elastic_Net) %>%
+  pull(Fitur)
+
+cat(
+  "Jumlah kandidat fitur asli:",
+  length(semua_fitur),
+  "\n"
+)
+
+cat(
+  "Jumlah fitur asli terpilih:",
+  length(fitur_terpilih),
+  "\n"
+)
+
+fitur_terpilih
+```
+
+> Catatan: Elastic Net melakukan seleksi pada level dummy. Untuk pelaporan, variabel kategorik dianggap terpilih apabila minimal satu dummy dari variabel tersebut memiliki koefisien non-zero.
+
+## 4.9 Ringkasan Hasil K5
+
+```{r k5-summary}
+ringkasan_k5 <- data.frame(
+  Komponen = c(
+    "Metode",
+    "Jumlah kandidat fitur asli",
+    "Jumlah fitur setelah dummy encoding",
+    "Jumlah dummy feature terpilih",
+    "Jumlah fitur asli terpilih",
+    "Alpha terbaik",
+    "Lambda terbaik",
+    "Cross-validation"
+  ),
+  Nilai = c(
+    "Elastic Net",
+    length(semua_fitur),
+    ncol(x),
+    nrow(selected_dummy),
+    length(fitur_terpilih),
+    round(best_alpha, 4),
+    signif(best_lambda, 5),
+    "10-fold"
+  )
+)
+
+kable(
+  ringkasan_k5,
+  row.names = FALSE,
+  caption = "Ringkasan Embedded Method — Elastic Net"
+)
+```
+
+## 4.10 Dataset Hasil Variable Selection
+
+```{r k5-filtered-data}
+df_filtered <- df_clean %>%
+  select(
+    Harga_IDR,
+    all_of(fitur_terpilih)
+  )
+
+kable(
+  data.frame(
+    Komponen = c(
+      "Target",
+      "Jumlah fitur awal",
+      "Jumlah fitur setelah Elastic Net"
+    ),
+    Nilai = c(
+      "Harga_IDR",
+      length(semua_fitur),
+      length(fitur_terpilih)
+    )
+  ),
+  caption = "Ringkasan hasil Embedded Variable Selection"
+)
+```
+
+## 4.11 Export Hasil K5
+
+```{r k5-export}
+write_xlsx(
+  df_filtered,
+  "PSD_DATA_FILTERED_K5.xlsx"
+)
+
+write_xlsx(
+  selected_original_table,
+  "PSD_HASIL_ELASTIC_NET_K5.xlsx"
+)
+
+write_xlsx(
+  cv_summary,
+  "PSD_CV_ELASTIC_NET_K5.xlsx"
+)
+
+cat(
+  "Dataset hasil seleksi: PSD_DATA_FILTERED_K5.xlsx\n",
+  "Keputusan seleksi: PSD_HASIL_ELASTIC_NET_K5.xlsx\n",
+  "Hasil cross-validation: PSD_CV_ELASTIC_NET_K5.xlsx\n"
+)
+```
+
+## 4.12 Output untuk Infografis
+
+```{r k5-infographic}
+infografis_k5 <- data.frame(
+  Tahap = c(
+    "Kandidat fitur",
+    "Dummy encoding",
+    "Elastic Net",
+    "Cross-validation",
+    "Seleksi"
+  ),
+  Hasil = c(
+    paste0(length(semua_fitur), " fitur asli"),
+    paste0(ncol(x), " dummy feature"),
+    "L1 + L2 regularization",
+    "10-fold CV",
+    paste0(length(fitur_terpilih), " fitur asli terpilih")
+  )
+)
+
+kable(
+  infografis_k5,
+  row.names = FALSE,
+  caption = "Ringkasan siap infografis K5"
+)
+```
+
+## 4.13 Interpretasi K5
+
+K5 menggunakan **Embedded Method dengan Elastic Net**. Proses seleksi dilakukan bersamaan dengan pembentukan model, bukan melalui pengujian satu per satu seperti pada metode filter.
+
+Alurnya:
+
+**Kandidat fitur → Dummy Encoding → Elastic Net → 10-Fold Cross Validation → Koefisien Non-Zero → Fitur Terpilih**
+
+Hasil akhir K5 dapat digunakan untuk menunjukkan:
+
+- jumlah kandidat fitur;
+- jumlah dummy feature setelah encoding;
+- nilai alpha terbaik;
+- nilai lambda terbaik;
+- jumlah fitur yang memiliki koefisien non-zero;
+- daftar fitur yang dipertahankan.
+
+# 5. Kesimpulan Pipeline
+
+## K2 — Scraping
+
+Python digunakan untuk mengumpulkan data iklan mobil bekas. Hasilnya adalah:
+
+**`PSD_DATA_MOBIL_JAKARTA_FULL.xlsx`**
+
+dengan **4.441 observasi dan 19 peubah**.
+
+## K3 — Data Management
+
+Data hasil scraping:
+
+- dideduplikasi;
+- dibersihkan dari format teks yang tidak sesuai;
+- harga dan jarak tempuh diubah menjadi numerik;
+- kapasitas mesin dibentuk menjadi numerik;
+- fitur baru diekstraksi dari judul;
+- usia kendaraan dihitung;
+- brand tier dibentuk;
+- odometer dikelompokkan;
+- observasi yang tidak sesuai rentang harga dibuang;
+- wilayah dibatasi pada DKI Jakarta;
+- missing value pada variabel analisis ditangani;
+- tipe data disesuaikan.
+
+Output:
+
+**`PSD_DATA_MANAGED.xlsx`**
+
+## K4 — Eksplorasi dan Visualisasi
+
+Data hasil K3 digunakan untuk memahami:
+
+- distribusi harga;
+- merek yang dominan;
+- komposisi brand tier;
+- perbedaan harga antarkelompok;
+- pola hubungan usia, jarak tempuh, kapasitas mesin, dan harga;
+- karakteristik kategorik;
+- kata-kata yang dominan dalam judul iklan.
+
+K4 berfungsi untuk **memahami pola data**, bukan melakukan cleaning besar-besaran.
+
+## K5 — Embedded Method
+
+K5 menggunakan **Embedded Method melalui Elastic Net**.
+
+Tahapannya:
+
+1. menentukan kandidat fitur;
+2. melakukan dummy encoding untuk fitur kategorik;
+3. melakukan transformasi target `log1p(Harga_IDR)`;
+4. mencari kombinasi `alpha` dan `lambda` menggunakan **10-fold cross-validation**;
+5. melihat koefisien model;
+6. mempertahankan fitur dengan koefisien non-zero;
+7. membentuk dataset hasil variable selection.
+
+Output:
+
+**`PSD_DATA_FILTERED_K5.xlsx`**
+
+serta tabel keputusan:
+
+**`PSD_HASIL_ELASTIC_NET_K5.xlsx`**.
+
+Dengan demikian, K5 menggunakan **Embedded Method**, sedangkan K3 dan K4 tetap mempertahankan alur dan eksplorasi yang sudah ada.

@@ -1,0 +1,156 @@
+---
+title: "Proyek PSD Minggu 4"
+author: "Aquila Putra N."
+date: "2026-09-16"
+output:
+  html_document:
+    rmdformats::readthedown
+---
+
+# libraries
+```{r}
+library(readxl)   # baca file excel
+library(dplyr)    # olah data
+library(tidyr)    # rapikan data (pivot dll)
+library(ggplot2)  # visualisasi
+library(corrplot) # heatmap korelasi
+library(skimr)    # ringkasan data cepat & lengkap
+library(scales)   # untuk skala
+```
+
+# Input Data
+```{r}
+data <- read_xlsx("C:\\Users\\Aquila\\Downloads\\PSD_DATA_MOBIL_JAKARTA_FINAL_CLEAN.xlsx")
+data
+```
+
+# Eksplorasi Data
+
+```{r}
+dim(data) # Cek dimensi 
+```
+
+```{r}
+str(data) # Cek struktur/tipe data
+```
+
+```{r}
+sum(is.na(data)) # total missing value di seluruh data
+```
+
+```{r}
+sum(duplicated(data)) # cek baris duplikat
+```
+
+```{r}
+summary(data)
+```
+
+## Pola Sebaran
+
+### Tahun
+```{r}
+ggplot(data, aes(x = Tahun)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
+  labs(title = "Distribusi tahun produksi mobil bekas", x = "Tahun mobil bekas diproduksi", y = "Frekuensi")
+```
+Distribusi tahun produksi mobil bekas di jakarta bersifat left-skewed, Mobil bekas yang dijual di OLX paling banyak di produksi di sekitar tahun 2021 - 2025, dengan puncak di 2023.
+
+### Harga
+```{r}
+data$Harga_Juta <- data$Harga_IDR / 1e6
+
+ggplot(data, aes(x = Harga_Juta)) +
+  geom_histogram(bins = 30, fill = "#4C72B0", color = "white") +
+  labs(
+    title = "Distribusi Harga Mobil Bekas Jakarta",
+    x = "Harga (Juta IDR)",
+    y = "Jumlah Mobil"
+  ) +
+  theme_minimal()
+```
+Distribusi harga mobil bekas di Jakarta bersifat right-skewed, dengan frekuensi paling besar dari 0 sampai 800 Juta Rupiah
+
+### Jarak Tempuh (KM)
+```{r}
+ggplot(data, aes(x = Jarak_Tempuh_KM / 1000)) +
+  geom_histogram(bins = 30, fill = "#2b5c8f", color = "white") +
+  labs(title = "Distribusi Jarak Tempuh Mobil Bekas Jakarta", x = "Jarak Tempuh (Ribu KM)", y = "Jumlah Mobil") 
+```
+Distribusi Jarak Tempuh untuk mobil bekas di Jakarta juga memiliki sebaran right-skewed, dengan mayoritas di rentang 0 sampai 500 ribu KM
+
+### Kapasitas Mesin (CC)
+```{r}
+ggplot(data, aes(x = Kapasitas_Mesin_CC)) +
+  geom_histogram(bins = 30, fill = "#2b5c8f", color = "white") +
+  labs(title = "Distribusi Kapasitas Mesin Mobil Bekas Jakarta", x = "Kapasitas Mesin (CC)", y = "Jumlah Mobil") 
+```
+Distribusi kapasitas mesin mobil bekas di Jakarta memiliki distribusi yang relatif acak dengan modus di 2500 CC
+
+# Visualisasi dan Insights (Boxplot)
+
+## Top 10 Merk vs Harga
+
+```{r}
+# Top 10 merk
+top_merk <- data %>%
+  group_by(Merk) %>%
+  summarise(n = n()) %>%
+  top_n(10, n) %>%
+  pull(Merk)
+
+data_10merk <- data %>% filter(Merk %in% top_merk)
+```
+
+```{r}
+ggplot(data_10merk, aes(x = reorder(Merk, Harga_IDR / 1e6, FUN = median), y = Harga_IDR / 1e6)) +
+  geom_boxplot(fill = "steelblue", outlier.size = 1) +
+  coord_flip() +
+  scale_y_log10(labels = scales::comma) + # Menggunakan skala Log10 karena rentang harga sangat lebar
+  labs(
+    title = "Perbandingan Harga Mobil Bekas (Top 10 Merek Terpopuler)",
+    x = "Merek Mobil",
+    y = "Harga (Juta IDR, Skala Log)"
+  )
+```
+Dengan visualisasi boxplot yang diambil dari 10 merek mobil bekas yang paing banyak dijual di daerah Jakarta, kita mendapatkan banyak insight seperti merk Nissan dan Suzuki memiliki harga yang relatif rendah, sebaliknya merk lexus memiliki harga yang paling tinggi. Merk Toyota memiliki sebaran harga yang paling lebar, diikuti dengan merk Mercedes-Benz.
+
+
+## Warna vs Harga 
+```{r}
+ggplot(data, aes(x = reorder(Warna, Harga_IDR / 1e6, FUN = median), y = Harga_IDR / 1e6)) +
+  geom_boxplot(fill = "steelblue", outlier.size = 1) +
+  coord_flip() +
+  scale_y_log10(labels = scales::comma) + # Menggunakan skala Log10 karena rentang harga sangat lebar
+  labs(
+    title = "Perbandingan Harga Mobil Bekas untuk setiap warna",
+    x = "Warna Mobil",
+    y = "Harga (Juta IDR, Skala Log)"
+  )
+```
+Dengan visualisasi boxplot perbandingan warna dan harga, warna kuingn dan oranye memiliki median harga yang paling tinggi. Warna mobil yang monokrom dan umum seperti abu-abu, hitam, dan putih memiliki sebaran harga yang lebar, warna selain monokrom yang juga cukup umum seperti merah dan biru juga memiliki sebaran data yang lebar. Warna emas memiliki harga penjualan yang relatif rendah, mungkin hal ini terjadi karenan memang jumlah mobil bekas berwarna emas yang di OLX sangat sedikit dan kebetulan mobil tersebut dijual dengan harga yang rendah.
+
+## Brand Tier vs Usia mobil
+```{r}
+ggplot(data, aes(x = reorder(Brand_Tier, Usia_Mobil, FUN = median), y = Usia_Mobil)) +
+  geom_boxplot(fill = "steelblue", outlier.size = 1) +
+  scale_y_log10(labels = scales::comma) + # Menggunakan skala Log10 karena rentang harga sangat lebar
+  labs(
+    title = "Perbandingan Brand Tier dengan Usia Mobil",
+    x = "Brand Tier",
+    y = "Usia Mobil"
+  )
+```
+Dengan perbandingan brand tier dengan usia mobil bekas yang dijual dalam OLX di Jakarta, semua brand tier memiliki sebaran data dalam usia yang relatif lebar, yaitu dari 1 sampai diatas 30 tahun. Terceuali untuk brand tier chinese EV yang memiliki sebaran data yang berukuran kecil, karena brand tipe EV merupakan brand tipe yang baru saja dibuat. Median menunjukkan bahwa Mass Market memiliki median yang paling tinggi walaupun berbeda tipis dengan other dan luxury.
+
+## Tipe Penjual VS Jarak Tempuh (KM)
+```{r}
+ggplot(data, aes(x = reorder(Tipe_Penjual, Jarak_Tempuh_KM / 1e3, FUN = median), y = Jarak_Tempuh_KM / 1e3)) +
+  geom_boxplot(fill = "steelblue", outlier.size = 1) +
+  scale_y_log10(labels = scales::comma) + # Menggunakan skala Log10 karena rentang harga sangat lebar
+  labs(
+    title = "Perbandingan Tipe Penjual dengan Jarak Tempuh",
+    x = "Tipe Penjual",
+    y = "Jarak Tempuh (ribu KM)")
+```
+Dengan visualisasi boxplot perbandingan jarak tempuh untuk tipe penjual, dapat diketahui bahwa jarak tempuh individu memiliki median yang lebih besar dibandingkan diler. Sebaran data dalam individu juga terlihat memiliki pola left-skewed.

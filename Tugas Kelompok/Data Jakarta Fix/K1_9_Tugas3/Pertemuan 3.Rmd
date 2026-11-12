@@ -1,0 +1,135 @@
+---
+title: "Pertemuan 3"
+output: html_document
+---
+
+# 1. Load Library & Data
+
+```{r}
+library(readxl)
+library(writexl)
+library(dplyr)
+library(stringr)
+
+# Load file dataset mobil bekas Jakarta
+df_raw <- read_excel("PSD_DATA_MOBIL_JAKARTA_FULL.xlsx")
+
+# Cek struktur awal data
+glimpse(df_raw)
+```
+
+# 2. Helper Function RegEx (Ekstraksi Numerik)
+Membuat fungsi pembersih teks menggunakan Regular Expression (RegEx) sesuai materi modul Pertemuan 3.
+
+```{r}
+# Fungsi 1: Membersihkan Harga_Teks menjadi angka murni
+clean_harga_regex <- function(x) {
+  if (is.na(x)) return(NA_real_)
+  x_nodot <- str_remove_all(as.character(x), "[.]")
+  digits <- str_extract_all(x_nodot, "[0-9]+")[[1]]
+  if (length(digits) > 0) return(as.numeric(paste0(digits, collapse = "")))
+  return(NA_real_)
+}
+
+# Fungsi 2: Membersihkan range Jarak_Tempuh menjadi nilai tengah numerik
+clean_mileage_regex <- function(x) {
+  if (is.na(x)) return(NA_real_)
+  x_nodot <- str_remove_all(as.character(x), "[.]")
+  nums <- as.numeric(str_extract_all(x_nodot, "\\d+")[[1]])
+  if (length(nums) >= 2) return(mean(nums[1:2]))
+  if (length(nums) == 1) return(nums[1])
+  return(NA_real_)
+}
+```
+
+# 3. Proses Manajemen Data & Feature Engineering
+Menjalankan deduplikasi, ekstraksi peubah baru dari teks Judul, transformasi usia mobil, klasifikasi merek, serta binning jarak tempuh.
+
+
+```{r}
+df_managed <- df_raw %>%
+  # Deduplikasi iklan berdasarkan URL Detail
+  distinct(URL_Detail, .keep_all = TRUE) %>%
+  
+  # RegEx Processing & Feature Extraction
+  mutate(
+    # Cleaning peubah teks ke numerik
+    Harga_Clean     = sapply(Harga_Teks, clean_harga_regex),
+    Odometer_KM     = sapply(Jarak_Tempuh, clean_mileage_regex),
+    
+    # Ekstraksi liter mesin dari Judul (contoh: 2.4, 1.5)
+    Liter_Mesin     = as.numeric(str_extract(Judul, "\\b(\\d\\.\\d)\\b")),
+    
+    # Konversi Kapasitas_Mesin (Text Range) ke Midpoint CC
+    CC_Mesin        = case_when(
+      str_detect(Kapasitas_Mesin, "<1.000") ~ 850,
+      str_detect(Kapasitas_Mesin, "1.000 - 1.500") ~ 1250,
+      str_detect(Kapasitas_Mesin, "1.500 - 2.000") ~ 1750,
+      str_detect(Kapasitas_Mesin, "2.000 - 3.000") ~ 2500,
+      str_detect(Kapasitas_Mesin, ">3.000") ~ 3500,
+      TRUE ~ NA_real_
+    ),
+    
+    # CC Final (Hybrid: Gunakan Liter_Mesin * 1000 jika presisi, sisanya fallback ke CC_Mesin)
+    CC_Final        = ifelse(!is.na(Liter_Mesin), Liter_Mesin * 1000, CC_Mesin),
+    
+    # Feature Matching Boolean dari Judul via RegEx str_detect
+    Is_Garansi      = str_detect(Judul, "(?i)GARANSI"),
+    Is_KM_Low       = str_detect(Judul, "(?i)KM\\s*LOW|LOW\\s*KM|ANTIK"),
+    Is_Facelift     = str_detect(Judul, "(?i)FACELIFT|FL|LCI"),
+    Is_Sport_Trim   = str_detect(Judul, "(?i)AMG|TRD|RS|SPORT|M-SPORT"),
+    Is_Promo_DP     = str_detect(Judul, "(?i)TDP|DP\\s*\\d+|DP\\s*MURAH"),
+    
+    # Transformasi Usia Mobil
+    Tahun_Num       = as.numeric(Tahun),
+    Usia_Mobil      = 2026 - Tahun_Num,
+    
+    # Klasifikasi Segmentasi Merek (Brand Tier)
+    Brand_Tier      = case_when(
+      toupper(Merk) %in% c("MERCEDES-BENZ", "BMW", "LEXUS", "AUDI", "PORSCHE", "MINI", "LAND ROVER") ~ "Luxury",
+      toupper(Merk) %in% c("TOYOTA", "HONDA", "MITSUBISHI", "SUZUKI", "DAIHATSU", "NISSAN", "MAZDA", "HYUNDAI") ~ "Mass Market",
+      toupper(Merk) %in% c("WULING", "CHERY", "BYD", "MG") ~ "Chinese EV",
+      TRUE ~ "Other"
+    ),
+    
+    # Binning Odometer (Pengelompokan Diskrit)
+    Odometer_Group  = cut(
+      Odometer_KM,
+      breaks = c(-1, 20000, 50000, 100000, 1000000),
+      labels = c("<20k (Sangat Low)", "20k-50k (Low)", "50k-100k (Sedang)", ">100k (Tinggi)")
+    )
+  ) %>%
+  
+  # Outlier Filtering (Membuang harga DP murahan & outlier ekstrim)
+  filter(
+    Harga_Clean >= 30000000 & Harga_Clean <= 5000000000,
+    !is.na(Odometer_KM)
+  )
+```
+
+```{r}
+df_managed
+```
+
+
+# 4. Evaluasi Hasil Manajemen Data
+```{r}
+# Ringkasan Peubah Hasil Filtering
+summary(df_managed %>% select(Harga_Clean, Odometer_KM, Usia_Mobil))
+
+# Distribusi Brand Tier
+table(df_managed$Brand_Tier)
+
+# Frekuensi Tag Hasil RegEx
+df_managed %>% 
+  summarise(
+    Total_Garansi = sum(Is_Garansi, na.rm = TRUE),
+    Total_KM_Low  = sum(Is_KM_Low, na.rm = TRUE),
+    Total_Sport   = sum(Is_Sport_Trim, na.rm = TRUE),
+    Total_Promo_DP= sum(Is_Promo_DP, na.rm = TRUE)
+  )
+```
+
+
+
+

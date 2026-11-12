@@ -1,0 +1,103 @@
+---
+title: "Handphone Android"
+output: html_document
+---
+
+
+# Pertemuan 2
+```{r}
+library(readxl)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+
+# 1. Baca data Excel
+data.hp <- read_excel("Data Handpone.xlsx")
+str(data.hp)
+```
+
+```{r}
+head(data.hp)
+```
+
+
+# Pertemuan 3
+
+
+```{r} 
+str(data.hp)
+harga.hp <- data.hp$harga # Diubah dari $hargahp ke $harga
+length(harga.hp)
+head(harga.hp)
+library(stringr)
+#remove dot
+h1 <- str_remove_all(harga.hp,"[.]")
+#ekstrak angka
+h2 <- str_extract(h1,"[0-9]+")
+#dibuat format numerik
+h3 <- as.numeric(h2) #sudah ok
+head(h3)
+```
+
+```{r}
+##ekstraksi peubah
+#ekstraksi nama merek HP
+nama.hp <- data.hp$nama_produk # Diubah dari $namahp ke $nama_produk
+head(nama.hp)
+#identifikasi list nama HP
+list.hp1 <- str_extract(nama.hp, '[A-Za-z]+')
+hp2 <- as.factor(list.hp1)
+summary(hp2)
+list.hp2 <- str_extract(nama.hp, '\\b(?!SMARTPHONE\\b)\\w+\\b')
+hp3 <- as.factor(list.hp2)
+summary(hp3)
+list.hp3 <- str_extract(nama.hp, '\\b(?!SMARTPHONE\\b|[Hh][Pp]\\b)\\w+\\b')
+hp4 <- as.factor(list.hp3)
+summary(hp4)
+```
+
+
+# Pertemuan 4
+
+```{r}
+##visualisasi
+library(ggplot2)
+ggplot(data = data.frame(x = h3),
+aes(x = x)) +
+ geom_histogram(aes(y = ..density..),
+fill = "lightblue", color = "black") +
+ geom_density(alpha = 0.5, fill =
+"red") +
+ labs(title = "Price Histogram with
+Density Curve", x = "Value", y =
+"Density") +
+ theme_minimal()
+```
+
+```{r}
+##visualisasi nama
+library(ggplot2)
+library(dplyr)
+# Categorical data
+dt.nama <- data.frame(
+ Category = merk_hp)
+# Summarize the data
+summarized_data <- dt.nama %>%
+ group_by(Category) %>%
+ summarise(Value = n())
+# Create a beautiful bar chart using ggplot2
+ggplot(summarized_data, aes(x = Value, y = Category, fill = Category)) +
+ geom_bar(stat = "identity", color = "black") + # Bar chart with border
+ scale_fill_brewer(palette = "Set3") + # Color palette from RColorBrewer
+ theme_minimal() + # Minimal theme for a clean look
+ labs(title = "Horizontal Bar Chart of Category Counts", x = "Count", y = "Category") +
+ theme(
+ plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+ axis.title.x = element_text(size = 14, face = "bold"),
+ axis.title.y = element_text(size = 14, face = "bold"),
+ axis.text.x = element_text(size = 12),
+ axis.text.y = element_text(size = 5),
+ legend.position = "none" # Hide legend if not needed
+ )
+```
+

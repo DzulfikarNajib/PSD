@@ -1,0 +1,291 @@
+---
+title: "Pertemuan 4"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  warning = FALSE, 
+  message = FALSE, 
+  fig.width = 9, 
+  fig.height = 5.5
+)
+
+# Load Library Utama
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(knitr)
+
+# Library pendukung statistik & visualisasi
+if (!require(e1071)) install.packages("e1071")
+if (!require(tidytext)) install.packages("tidytext")
+if (!require(wordcloud)) install.packages("wordcloud")
+if (!require(RColorBrewer)) install.packages("RColorBrewer")
+
+library(e1071)
+library(tidytext)
+library(wordcloud)
+library(RColorBrewer)
+```
+
+
+# 1. Pemeriksaan Struktur & Kualitas Data (Data Health Check)
+
+```{r}
+# Load Dataset
+df_raw <- read_excel("PSD_DATA_MOBIL_JAKARTA_FINAL_CLEAN.xlsx")
+
+# 1. Dimensi Data
+dim_info <- data.frame(
+  Metrik = c("Jumlah Baris (Observasi)", "Jumlah Kolom (Peubah)"),
+  Nilai = c(nrow(df_raw), ncol(df_raw))
+)
+kable(dim_info, caption = "Tabel 1.1: Dimensi Dataset")
+
+# 2. Cek Missing Value & Tipe Data
+health_df <- data.frame(
+  Kolom = colnames(df_raw),
+  Tipe_Data = sapply(df_raw, function(x) paste(class(x), collapse = ", ")),
+  Jumlah_NA = sapply(df_raw, function(x) sum(is.na(x))),
+  Persen_NA = sapply(df_raw, function(x) sprintf("%.2f%%", mean(is.na(x)) * 100))
+)
+kable(health_df, caption = "Tabel 1.2: Validasi Tipe Data & Missing Values")
+```
+
+# 2. Eksplorasi
+
+```{r}
+# 3. Statistik Deskriptif Variabel Numerik
+target_cols <- c("Harga_IDR", "Jarak_Tempuh_KM", "Usia_Mobil", "Kapasitas_Mesin_CC")
+
+calc_stats <- function(x) {
+  c(
+    Min      = min(x, na.rm = TRUE),
+    Q1       = as.numeric(quantile(x, 0.25, na.rm = TRUE)),
+    Median   = median(x, na.rm = TRUE),
+    Mean     = mean(x, na.rm = TRUE),
+    Q3       = as.numeric(quantile(x, 0.75, na.rm = TRUE)),
+    Max      = max(x, na.rm = TRUE),
+    Std      = sd(x, na.rm = TRUE),
+    Skewness = e1071::skewness(x, na.rm = TRUE)
+  )
+}
+
+stat_matrix <- t(sapply(df_raw[target_cols], calc_stats))
+stat_df <- data.frame(Variabel = rownames(stat_matrix), stat_matrix, check.names = FALSE)
+rownames(stat_df) <- NULL
+
+kable(stat_df, digits = 2, format.args = list(big.mark = "."), caption = "Tabel 1.3: Statistik Deskriptif Variabel Numerik Utama")
+```
+
+Interpretasi Hasil Pemeriksaan Data:
+
+Dataset ini bersih dari missing values ($0\text{ NA}$) dengan total $3.485$ observasi dan $26$ kolom peubah. Berdasarkan statistik deskriptif, peubah Harga_IDR ($\text{Skewness} = 2,79$) dan Jarak_Tempuh_KM ($\text{Skewness} = 2,09$) menunjukkan kemencengan kanan (right-skewed) yang sangat tinggi akibat keberadaan unit mobil mewah. Oleh karena itu, ukuran nilai tengah yang paling objektif untuk representasi data adalah Median ketimbang Mean, serta memerlukan transformasi logaritmik pada analisis visualisasi.
+
+# 3. Visualisasi
+
+## Visualisasi 1: Distribusi Harga & Deteksi Outlier Ekstrem
+
+```{r}
+ggplot(df_raw, aes(x = Harga_IDR)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 50, fill = "#3498db", color = "white", alpha = 0.7) +
+  geom_density(color = "#e74c3c", linewidth = 1.2) +
+  geom_vline(xintercept = 1365000000, linetype = "dashed", color = "darkred", linewidth = 1) +
+  scale_x_log10(labels = label_number(prefix = "Rp ", scale = 1e-6, suffix = "Jt")) +
+  annotate("text", x = 2500000000, y = 0.8, label = "Batas Outlier IQR\n(> Rp1,365 Miliar)", color = "darkred", fontface = "bold") +
+  labs(
+    title = "Gambar 2.1: Distribusi Harga Mobil Bekas (Skala Log10)",
+    subtitle = "Garis merah (Vertikal) menandakan batas pencilan (outlier) harga ekstrem",
+    x = "Harga IDR (Log Scale)",
+    y = "Density"
+  ) +
+  theme_minimal()
+```
+
+Interpretasi Visualisasi 1:
+
+Visualisasi histogram berbasis skala $\log_{10}$ menunjukkan mayoritas stok mobil bekas di Jakarta berada pada rentang harga Rp150 juta hingga Rp700 juta dengan titik puncak median di Rp405 juta. Berdasarkan metode rentang antar-kuartil ($1,5 \times \text{IQR}$), mobil dengan harga di atas Rp1,365 miliar dikategorikan sebagai pencilan (outlier). Segmen pencilan ini mencakup $11,9\%$ populasi pasar yang didominasi oleh lini supercar dan SUV mewah seperti Lexus LM350, Mercedes-Benz G-Class, dan Toyota Land Cruiser.
+
+## Visualisasi 2: Brand Tier vs Jarak Tempuh (KM)
+```{r}
+ggplot(df_raw, aes(x = reorder(Brand_Tier, Jarak_Tempuh_KM, FUN = median), y = Jarak_Tempuh_KM, fill = Brand_Tier)) +
+  geom_boxplot(alpha = 0.7, outlier.size = 1.5, outlier.alpha = 0.4) +
+  scale_y_continuous(labels = label_number(big.mark = ".")) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    title = "Gambar 2.2: Sebaran Jarak Tempuh (KM) berdasarkan Tier Merek",
+    subtitle = "Membandingkan intensitas pemakaian fisik mobil premium vs mass market",
+    x = "Brand Tier",
+    y = "Jarak Tempuh (KM)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Interpretasi Visualisasi 2:
+
+Terdapat perbedaan pola pemakaian yang signifikan antara segmen merek Luxury dan Mass Market. Median jarak tempuh mobil Luxury dan Chinese EV tercatat sangat rendah, yaitu $17.500\text{ km}$, sedangkan mobil Mass Market memiliki median pemakaian fisik jauh lebih tinggi sebesar $47.500\text{ km}$. Temuan ini mengonfirmasi hipotesis bahwa mobil kelas premium cenderung digunakan sebagai kendaraan sekunder atau hobi, sementara mobil mass market difungsikan sebagai kendaraan komuter harian. 
+
+## Visualisasi 3: Top 10 Merek vs Usia Mobil
+```{r}
+df_raw %>%
+  filter(Merk %in% c("Toyota", "Mercedes-Benz", "Honda", "BMW", "Hyundai", "Lexus", "Mitsubishi", "Mazda", "Suzuki", "Nissan")) %>%
+  group_by(Merk) %>%
+  summarise(Median_Usia = median(Usia_Mobil)) %>%
+  ggplot(aes(x = reorder(Merk, Median_Usia), y = Median_Usia)) +
+  geom_segment(aes(xend = Merk, yend = 0), color = "#34495e", linewidth = 1) +
+  geom_point(color = "#e67e22", size = 4) +
+  geom_text(aes(label = paste(Median_Usia, "Thn")), hjust = -0.3, fontface = "bold", size = 3.5) +
+  coord_flip() +
+  labs(
+    title = "Gambar 2.3: Median Usia Mobil Bekas per Merek (Top 10 Populer)",
+    subtitle = "Indikator kecepatan rotasi jual-beli dan retensi pemakaian merek",
+    x = "Merek Mobil",
+    y = "Median Usia (Tahun)"
+  ) +
+  theme_minimal() +
+  scale_y_continuous(limits = c(0, 12))
+```
+
+Interpretasi Visualisasi 3:
+
+Hyundai dan Lexus mencatatkan median usia mobil paling muda di pasar bekas, yaitu $3\text{ tahun}$, yang menandakan tingkat rotasi penjualan kembali (depreciation turnover) yang relatif cepat pada model-model keluaran baru. Sebaliknya, Nissan memiliki median usia paling tua sebesar $10\text{ tahun}$, diikuti Mercedes-Benz ($6\text{ tahun}$) dan Toyota ($5\text{ tahun}$). Hal ini mengindikasikan bahwa daya tahan fisik (durability) dan daya pikat pasar sekunder untuk merek seperti Toyota dan Mercedes-Benz membuat pemilik cenderung mempertahankannya lebih lama sebelum dijual.
+
+## Visualisasi 4: Brand Tier vs Harga IDR
+
+
+```{r}
+ggplot(df_raw, aes(x = reorder(Brand_Tier, Harga_IDR, FUN = median), y = Harga_IDR, fill = Brand_Tier)) +
+  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.size = 1.5) +
+  scale_y_log10(labels = label_number(prefix = "Rp ", scale = 1e-6, suffix = "Jt")) +
+  scale_fill_brewer(palette = "Pastel1") +
+  coord_flip() +
+  labs(
+    title = "Gambar 2.4: Perbandingan Rentang Harga antar Brand Tier (Skala Log10)",
+    subtitle = "Memperlihatkan gap harga antar segmen pasar",
+    x = "Brand Tier",
+    y = "Harga IDR (Log Scale)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Interpretasi Visualisasi 4:
+
+Visualisasi boxplot menunjukkan jurang (gap) harga yang sangat tegas antar kasta merek. Segmen Luxury memimpin nilai tengah harga sebesar Rp730 juta dengan sebaran hingga Rp5 miliar, jauh melampaui kelas Mass Market yang memiliki median Rp310 juta dan Chinese EV sebesar Rp235 juta. Variabilitas harga pada segmen Luxury juga merupakan yang paling lebar, mencerminkan rentang opsi yang luas mulai dari entry-level sedan hingga supercar eksklusif.
+
+## Visualisasi 5: Tipe Penjual vs Harga IDR berdasarkan Brand Tier
+
+```{r}
+ggplot(df_raw, aes(x = Brand_Tier, y = Harga_IDR, fill = Tipe_Penjual)) +
+  geom_boxplot(alpha = 0.8, outlier.size = 1) +
+  scale_y_log10(labels = label_number(prefix = "Rp ", scale = 1e-6, suffix = "Jt")) +
+  scale_fill_manual(values = c("#2980b9", "#e67e22")) +
+  labs(
+    title = "Gambar 2.5: Perbandingan Harga Diler vs Penjual Individu per Tier",
+    subtitle = "Pengontrolan variabel tier untuk mengevaluasi strategi markup harga diler",
+    x = "Brand Tier",
+    y = "Harga IDR (Log Scale)",
+    fill = "Tipe Penjual"
+  ) +
+  theme_minimal()
+```
+
+Interpretasi Visualisasi 5:
+
+Secara agregat awal, diler terlihat menjual mobil jauh lebih mahal dibanding individu. Namun, setelah dikontrol berdasarkan Brand Tier, terbukti bahwa pada segmen Mass Market (Median Diler Rp359 Jt vs Individu Rp178 Jt) dan Luxury (Median Diler Rp745 Jt vs Individu Rp499 Jt), diler konsisten memasang harga lebih tinggi. Hal ini mengindikasikan adanya tambahan batas keuntungan (markup) diler atas jaminan inspeksi, garansi toko, serta kemudahan fasilitas pembiayaan (kredit/DP).
+
+## Visualisasi 6: Perbandingan Top Merek per Wilayah Jakarta
+
+
+```{r}
+df_jak <- df_raw %>%
+  filter(Kota_Kabupaten %in% c("Jakarta Selatan", "Jakarta Utara", "Jakarta Pusat", "Jakarta Barat", "Jakarta Timur"))
+
+df_top_wilayah <- df_jak %>%
+  count(Kota_Kabupaten, Merk, name = "Jumlah") %>%
+  group_by(Kota_Kabupaten) %>%
+  slice_max(order_by = Jumlah, n = 5, with_ties = FALSE) %>%
+  ungroup()
+
+ggplot(df_top_wilayah, aes(x = reorder_within(Merk, Jumlah, Kota_Kabupaten), y = Jumlah, fill = Kota_Kabupaten)) +
+  geom_col(show.legend = FALSE, width = 0.7) +
+  geom_text(aes(label = Jumlah), hjust = -0.15, size = 3, fontface = "bold") +
+  scale_x_reordered() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) + # <--- Solusi penambah ruang
+  coord_flip(clip = "off") + # <--- Agar teks di batas paling luar tidak terpotong
+  facet_wrap(~ Kota_Kabupaten, scales = "free", ncol = 3) +
+  labs(
+    title = "Gambar 2.6: Dominasi Top 5 Merek Mobil Bekas di 5 Wilayah Jakarta",
+    subtitle = "Membandingkan konsentrasi pasar berdasarkan geografis diler",
+    x = "Merek Mobil",
+    y = "Jumlah Unit"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.spacing = unit(1.2, "lines") # Beri jarak antar kotak facet
+  )
+```
+
+Interpretasi Visualisasi 6:
+
+Toyota menjadi merek nomor satu yang tidak tergantikan di seluruh wilayah Jakarta. Namun, struktur pasar sekunder menunjukkan perbedaan karakteristik antar wilayah: Jakarta Selatan didominasi kuat oleh merek premium (Mercedes-Benz 309 unit dan BMW 159 unit), sedangkan Jakarta Barat dan Jakarta Timur murni didominasi merek Mass Market keluarga seperti Honda dan Mitsubishi.
+
+## Visualisasi 7: WordCloud & Frekuensi Kata Kunci Judul Iklan
+```{r}
+# Preprocessing Sederhana Teks Judul
+titles_clean <- df_raw$Judul %>%
+  tolower() %>%
+  gsub(pattern = "[^a-z0-9 ]", replacement = " ") %>%
+  unlist() %>%
+  strsplit(" ")
+
+words_vec <- unlist(titles_clean)
+words_vec <- words_vec[nchar(words_vec) > 1]
+
+# Stopwords sederhana
+custom_stopwords <- c("dan", "atau", "di", "yang", "untuk", "dijual", "mobil", "bekas", "tahun", "rp", "unit")
+words_vec <- words_vec[!words_vec %in% custom_stopwords]
+
+word_freq <- data.frame(word = words_vec) %>%
+  count(word, sort = TRUE)
+
+# Render WordCloud
+set.seed(123)
+wordcloud(
+  words = word_freq$word, 
+  freq = word_freq$n, 
+  min.freq = 50,
+  max.words = 100, 
+  random.order = FALSE, 
+  colors = brewer.pal(8, "Dark2")
+)
+title("Gambar 2.7: WordCloud Kata Kunci Pemasaran Judul Iklan")
+```
+
+Interpretasi Visualisasi 7:
+
+Visualisasi WordCloud mengekstrak strategi pemasaran utama yang digunakan para penjual di platform OLX Jakarta. Kata kunci yang paling sering muncul seperti "km", "low", "at" (automatic), "garansi", dan "hybrid" menunjukkan bahwa diler sangat mengandalkan daya pikat kondisi odometer rendah dan jaminan kualitas untuk menarik calon pembeli.
+
+
+# 4. Temuan Utama Hasil Eksplorasi
+
+1. Segmentasi Pasar & Pemakaian Fisik Berlawanan Arah:
+
+Terdapat dikotomi yang jelas antara kendaraan Luxury dan Mass Market. Mobil premium memiliki jarak tempuh fisik jauh lebih rendah (median $17.500\text{ km}$) dibanding Mass Market ($47.500\text{ km}$), menegaskan fungsinya sebagai mobil sekunder/hobi di Jakarta.
+
+2. Preferensi Geografis Diler Berbasis Premium vs Ekonomis:
+
+Jakarta Selatan berfungsi sebagai hub utama perdagangan mobil Luxury (menyumbang $51,7\%$ dari total outlier harga di Jakarta), sementara wilayah Jakarta Barat dan Timur murni digerakkan oleh segmen kendaraan harian ekonomis.
+
+3. Premi Nilai Diler (Dealer Pricing Power):
+
+Diler konsisten menetapkan harga penawaran unit yang lebih tinggi dibanding penjual individu pada tier yang sama, dipicu oleh nilai tambah jaminan inspeksi, garansi unit, serta kemudahan fasilitas skema kredit/DP promo. 

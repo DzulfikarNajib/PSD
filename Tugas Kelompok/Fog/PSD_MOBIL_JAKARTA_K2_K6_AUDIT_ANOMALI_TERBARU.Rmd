@@ -1,0 +1,381 @@
+---
+title: "Menguak Pola Harga Mobil Bekas di Jakarta"
+subtitle: "K2 Scraping | K3 Manajemen Data | K4 Eksplorasi | K5 Hubungan | K6 Seleksi Peubah"
+author: "Dzulfikar Najib"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    theme: cosmo
+---
+
+# Tujuan dan alur
+
+Penelitian ini mengeksplorasi iklan mobil bekas hasil scraping OLX dengan fokus **lokasi iklan di DKI Jakarta**. Lokasi iklan bukan bukti lokasi fisik kendaraan. Data mentah tidak diubah; hasil setiap tahap disimpan terpisah. Hasil statistik di bawah bersifat eksploratif, bukan bukti sebab-akibat atau model prediksi harga.
+
+**K2** dokumentasi scraping Python → **K3** validasi dan manajemen data → **K4** eksplorasi satu peubah → **K5** hubungan antarpeubah → **K6** filter method untuk seleksi fitur terhadap harga. Grafik dan tabel yang ditandai *bahan infografis* dapat dipakai untuk poster akhir.
+
+```{r setup, include=FALSE}
+paket <- c("readxl", "writexl", "dplyr", "tidyr", "stringr", "ggplot2", "scales", "knitr", "forcats")
+belum <- setdiff(paket, rownames(installed.packages()))
+if (length(belum)) stop("Instal paket dahulu: ", paste(belum, collapse=", "))
+invisible(lapply(paket, library, character.only=TRUE))
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE, fig.width=9, fig.height=5)
+options(scipen=999)
+warna <- "#163B60"
+file_raw <- "PSD_DATA_MOBIL_JAKARTA_FULL.xlsx"
+file_keputusan <- "KEPUTUSAN_AUDIT_MANUAL.xlsx" # Opsional: isi dari template keluaran, lalu Knit ulang
+if (!file.exists(file_raw)) stop("Letakkan file Excel mentah di folder yang sama dengan Rmd: ", file_raw)
+output_dir <- "hasil_analisis"
+dir.create(output_dir, showWarnings=FALSE)
+aman_median <- function(x) if (all(is.na(x))) NA_real_ else median(x, na.rm=TRUE)
+aman_mean <- function(x) if (all(is.na(x))) NA_real_ else mean(x, na.rm=TRUE)
+aman_iqr <- function(x) if (all(is.na(x))) NA_real_ else IQR(x, na.rm=TRUE)
+bersih_teks <- function(x) {x <- stringr::str_squish(as.character(x)); x[x %in% c("", "NA", "N/A", "null", "-", "Tidak diketahui")] <- NA_character_; x}
+```
+
+# K2. Dokumentasi scraping dan audit data mentah
+
+Scraping dilakukan sebelumnya menggunakan Python. R Markdown ini **tidak mengklaim menjalankan ulang scraping**; sumber analisis adalah Excel mentah yang diberikan. Pembatasan lokasi pada permintaan scraping tetap perlu divalidasi ulang karena hasil dapat memuat iklan luar Jakarta.
+
+```{r k2-audit}
+raw <- readxl::read_excel(file_raw) |> as.data.frame()
+raw$ID_Mentah <- seq_len(nrow(raw))
+kolom_wajib <- c("Judul","Provinsi","Kota_Kabupaten","Harga_Teks","Harga_IDR", "Merk", "Tahun", "Jarak_Tempuh", "URL_Detail")
+stopifnot(all(kolom_wajib %in% names(raw)))
+knitr::kable(data.frame(Metrik=c("Observasi mentah","Jumlah peubah","URL duplikat nonkosong"), Nilai=c(nrow(raw), ncol(raw), sum(duplicated(raw$URL_Detail) & !is.na(raw$URL_Detail)))))
+audit_na <- data.frame(Peubah=names(raw), Jumlah_NA=sapply(raw, function(z) sum(is.na(z) | (is.character(z) & trimws(z)==""))))
+audit_na$Persen <- round(100*audit_na$Jumlah_NA/nrow(raw),1)
+knitr::kable(audit_na[order(-audit_na$Jumlah_NA),], caption="Audit missing value data mentah")
+knitr::kable(raw |> dplyr::count(Provinsi, sort=TRUE), caption="Provinsi pada data mentah")
+```
+
+# K3. Manajemen data
+
+**Prinsip:** batasi lokasi iklan DKI, deduplikasi URL, tahan harga tidak valid atau perlu verifikasi; jangan menghapus seluruh baris hanya karena warna, bodi, penjual, atau kapasitas mesin kosong. Simpan informasi rentang sebagai rentang dan beri label ketika angka merupakan estimasi. Tidak menganggap kolom `Kecamatan` sebagai kecamatan jika identik dengan kota.
+
+## K3.1 Fungsi parsing yang dapat diaudit
+
+```{r k3-helper}
+parse_rupiah <- function(x) {
+  s <- tolower(bersih_teks(x))
+  # Hanya menerima nilai yang benar-benar berupa rupiah dengan angka, bukan teks cicilan/DP.
+  s <- stringr::str_replace_all(s, "(?i)rp\\.?\\s*", "")
+  s <- stringr::str_replace_all(s, "[[:space:].,]", "")
+  out <- suppressWarnings(as.numeric(ifelse(stringr::str_detect(s,"^[0-9]+$"),s,NA_character_)))
+  out
+}
+parse_angka_id <- function(x) suppressWarnings(as.numeric(stringr::str_replace_all(as.character(x),"[.,]","")))
+parse_rentang_km <- function(x) {
+  s <- tolower(bersih_teks(x))
+  s <- stringr::str_replace_all(s,"(?i)km|kilometer|\\s","")
+  # Titik pada kilometer adalah pemisah ribuan, bukan desimal.
+  s <- stringr::str_replace_all(s,"\\.","")
+  angka <- stringr::str_extract_all(s,"[0-9]+")
+  n <- lengths(angka)
+  lo <- hi <- rep(NA_real_,length(s))
+  for(i in seq_along(s)) {
+    if(n[i]==0 || is.na(s[i])) next
+    a <- as.numeric(angka[[i]])
+    if(stringr::str_detect(s[i],"^>")) {lo[i] <- a[1]; next}
+    if(stringr::str_detect(s[i],"^<")) {hi[i] <- a[1]; next}
+    lo[i] <- a[1]
+    hi[i] <- if(length(a)>=2 && stringr::str_detect(s[i],"-")) a[2] else a[1]
+  }
+  data.frame(KM_Min=lo,KM_Max=hi, KM_Estimasi=ifelse(!is.na(lo)&!is.na(hi),(lo+hi)/2,ifelse(!is.na(lo)&is.na(hi),lo,hi)), KM_Terbuka=is.na(lo)|is.na(hi))
+}
+parse_cc <- function(x) {
+  s <- bersih_teks(x)
+  nums <- stringr::str_extract_all(stringr::str_replace_all(s,"\\.",""),"[0-9]+")
+  out <- rep(NA_real_,length(s))
+  for(i in seq_along(s)) {
+    if(is.na(s[i]) || !length(nums[[i]])) next
+    z <- as.numeric(nums[[i]])
+    if(length(z)>=2 && stringr::str_detect(s[i],"-")) out[i] <- mean(z[1:2])
+    else if(!stringr::str_detect(s[i],"[<>]")) out[i] <- z[1]
+  }
+  out
+}
+```
+
+## K3.2 Validasi wilayah, deduplikasi, dan transformasi
+
+```{r k3-pipeline}
+d <- raw |> dplyr::mutate(dplyr::across(where(is.character), bersih_teks))
+n_awal <- nrow(d)
+d <- d |> dplyr::filter(stringr::str_detect(stringr::str_to_lower(Provinsi),"jakarta"))
+n_jakarta <- nrow(d)
+# Hanya URL nonkosong yang dideduplikasi. URL kosong tidak dianggap iklan yang sama.
+d <- d |> dplyr::arrange(ID_Mentah) |>
+  dplyr::filter(is.na(URL_Detail) | !duplicated(URL_Detail))
+n_unik <- nrow(d)
+km <- parse_rentang_km(d$Jarak_Tempuh)
+d <- dplyr::bind_cols(d,km)
+d <- d |>
+  dplyr::mutate(
+    Harga_Dari_Teks=parse_rupiah(Harga_Teks),
+    Harga_Dari_Kolom=suppressWarnings(as.numeric(Harga_IDR)),
+    Harga_Final=dplyr::coalesce(Harga_Dari_Teks,Harga_Dari_Kolom),
+    Harga_Berbeda=!is.na(Harga_Dari_Teks)&!is.na(Harga_Dari_Kolom)&abs(Harga_Dari_Teks-Harga_Dari_Kolom)>1000,
+    Tahun_Teks=as.character(Tahun),
+    Tahun_Num=suppressWarnings(as.numeric(ifelse(stringr::str_detect(Tahun_Teks,"^[0-9]{4}$"),Tahun_Teks,NA_character_))),
+    Tahun_Tidak_Pasti=is.na(Tahun_Num) & !is.na(Tahun_Teks),
+    Usia_Mobil=ifelse(!is.na(Tahun_Num)&Tahun_Num<=2026& Tahun_Num>=1900,2026-Tahun_Num,NA_real_),
+    Kapasitas_CC_Estimasi=parse_cc(Kapasitas_Mesin),
+    # Judul hanya digunakan untuk indikator dengan batas kata agar RS/FL tidak salah cocok.
+    Is_Garansi=stringr::str_detect(Judul,stringr::regex("\\bgaransi\\b",ignore_case=TRUE)),
+    Is_KM_Low=stringr::str_detect(Judul,stringr::regex("\\b(low[ -]?km|km[ -]?low|antik)\\b",ignore_case=TRUE)),
+    Is_Facelift=stringr::str_detect(Judul,stringr::regex("\\b(facelift|fl|lci)\\b",ignore_case=TRUE)),
+    Is_Sport_Trim=stringr::str_detect(Judul,stringr::regex("\\b(amg|trd|rs|sport|m[ -]?sport)\\b",ignore_case=TRUE)),
+    Is_Promo_DP=stringr::str_detect(Judul,stringr::regex("\\b(tdp|dp[ ]*[0-9]+|dp murah)\\b",ignore_case=TRUE)),
+    Harga_Juta=Harga_Final/1e6,
+    Odometer_Group=cut(KM_Estimasi,c(-Inf,20000,50000,100000,Inf),labels=c("<=20 ribu","20-50 ribu","50-100 ribu",">100 ribu")),
+    Lokasi_Kecamatan_Terverifikasi=ifelse(!is.na(Kecamatan)&!is.na(Kota_Kabupaten)&tolower(Kecamatan)!=tolower(Kota_Kabupaten),Kecamatan,NA_character_)
+  )
+# Aturan audit: harga rendah/tinggi adalah SINYAL, bukan bukti salah.
+# Nilai sangat kecil (< Rp1 juta) dianggap bukan harga mobil utuh dan
+# dikeluarkan sementara; keputusan akhir dapat dibatalkan melalui audit manual.
+# Ketidaksesuaian dua sumber harga ditahan dari analisis hingga diverifikasi.
+# Batas <30 juta dan >5 miliar hanya memicu pemeriksaan, TIDAK menghapus.
+d <- d |> dplyr::mutate(
+  Flag_Harga_Ekstrem = !is.na(Harga_Final) &
+    (Harga_Final < 30000000 | Harga_Final > 5000000000),
+  Flag_Harga_Tidak_Wajar = !is.na(Harga_Final) & Harga_Final < 1000000,
+  Flag_Tahun = is.na(Usia_Mobil),
+  Flag_Tahun_Masa_Depan = !is.na(Tahun_Num) & Tahun_Num > 2026,
+  Flag_KM = is.na(KM_Estimasi) | KM_Estimasi < 0 | KM_Estimasi > 1000000,
+  Flag_Potensi_DP = stringr::str_detect(
+    dplyr::coalesce(Judul,""),
+    stringr::regex("\\b(harga[ -]?dp|hanya[ -]?dp|dp[ :]*rp|tdp[ :]*rp)\\b",ignore_case=TRUE)),
+  Flag_Log_IQR = FALSE
+)
+# IQR pada log harga dipakai untuk menandai, tidak menghapus otomatis.
+log_harga <- log(d$Harga_Final[is.finite(d$Harga_Final) & d$Harga_Final > 0])
+q_log <- stats::quantile(log_harga,c(.25,.75),na.rm=TRUE)
+batas_log <- c(q_log[1]-1.5*diff(q_log),q_log[2]+1.5*diff(q_log))
+d$Flag_Log_IQR <- is.finite(d$Harga_Final) & d$Harga_Final > 0 &
+  (log(pmax(d$Harga_Final,1)) < batas_log[1] |
+   log(pmax(d$Harga_Final,1)) > batas_log[2])
+# Audit manual bersifat opsional. Status: VALID, KOREKSI, KELUARKAN.
+# Untuk KOREKSI, isi Harga_Koreksi_IDR bila masalahnya harga.
+if(file.exists(file_keputusan)) {
+  keputusan <- readxl::read_excel(file_keputusan) |> as.data.frame()
+  perlu <- c("ID_Mentah","Status_Manual","Harga_Koreksi_IDR","Alasan_Manual")
+  if(!all(perlu %in% names(keputusan))) stop("Kolom keputusan audit tidak lengkap.")
+  if(anyDuplicated(keputusan$ID_Mentah)) stop("ID_Mentah pada keputusan audit duplikat.")
+  keputusan <- keputusan |> dplyr::select(dplyr::all_of(perlu))
+  d <- d |> dplyr::left_join(keputusan,by="ID_Mentah")
+} else {
+  d$Status_Manual <- NA_character_
+  d$Harga_Koreksi_IDR <- NA_real_
+  d$Alasan_Manual <- NA_character_
+}
+d <- d |> dplyr::mutate(
+  Status_Manual = toupper(trimws(dplyr::coalesce(Status_Manual,""))),
+  Harga_Koreksi_IDR = suppressWarnings(as.numeric(Harga_Koreksi_IDR)),
+  Harga_Final = ifelse(Status_Manual=="KOREKSI" &
+    !is.na(Harga_Koreksi_IDR) & Harga_Koreksi_IDR>=1000000,
+    Harga_Koreksi_IDR,Harga_Final),
+  Harga_Juta = Harga_Final/1e6,
+  Alasan_Eksklusi = dplyr::case_when(
+    Status_Manual=="KELUARKAN" ~ "Ditolak setelah audit manual",
+    Status_Manual=="KOREKSI" & (is.na(Harga_Koreksi_IDR) | Harga_Koreksi_IDR<1000000) ~ "Koreksi harga belum valid",
+    Status_Manual=="VALID" ~ NA_character_,
+    is.na(Harga_Final) | !is.finite(Harga_Final) | Harga_Final<=0 ~ "Harga kosong/tidak positif",
+    Flag_Tahun_Masa_Depan ~ "Tahun produksi melebihi 2026, perlu verifikasi",
+    Flag_Harga_Tidak_Wajar ~ "Harga <Rp1 juta, perlu verifikasi",
+    Harga_Berbeda ~ "Harga teks dan kolom berbeda, perlu verifikasi",
+    Flag_Potensi_DP ~ "Indikasi harga uang muka, perlu verifikasi",
+    TRUE ~ NA_character_
+  ),
+  Status_Anomali = dplyr::case_when(
+    !is.na(Alasan_Eksklusi) ~ "Ditahan/dikeluarkan",
+    Status_Manual %in% c("VALID","KOREKSI") ~ "Terverifikasi manual",
+    Flag_Harga_Ekstrem | Flag_Log_IQR | Flag_Tahun | Flag_KM ~ "Ditandai, tetap disertakan",
+    TRUE ~ "Tidak ditandai"
+  )
+)
+review <- d |> dplyr::filter(Flag_Harga_Ekstrem | Flag_Log_IQR | Flag_Tahun | Flag_Tahun_Masa_Depan |
+  Flag_KM | Harga_Berbeda | Flag_Potensi_DP | Flag_Harga_Tidak_Wajar) |>
+  dplyr::select(ID_Mentah,Judul,URL_Detail,Harga_Teks,Harga_IDR,Harga_Final,
+  Tahun,Jarak_Tempuh,Flag_Harga_Ekstrem,Flag_Log_IQR,Flag_Harga_Tidak_Wajar,
+  Flag_Tahun,Flag_Tahun_Masa_Depan,Flag_KM,Harga_Berbeda,Flag_Potensi_DP,Status_Anomali,
+  Alasan_Eksklusi,Status_Manual,Harga_Koreksi_IDR,Alasan_Manual)
+writexl::write_xlsx(review,file.path(output_dir,"AUDIT_BARIS_PERLU_DICEK.xlsx"))
+if(!file.exists(file_keputusan)) {
+  template <- review |> dplyr::transmute(ID_Mentah,Judul,URL_Detail,
+    Status_Manual="",Harga_Koreksi_IDR=NA_real_,Alasan_Manual="")
+  writexl::write_xlsx(template,file.path(output_dir,"TEMPLATE_KEPUTUSAN_AUDIT.xlsx"))
+}
+# Keluarkan hanya harga tidak valid dan kasus yang memerlukan verifikasi;
+# outlier statistik, harga mobil klasik/supercar, tahun <1986 tetap ada.
+managed <- d |> dplyr::filter(is.na(Alasan_Eksklusi)) |>
+  dplyr::mutate(
+    Tipe_Bahan_Bakar=dplyr::na_if(Tipe_Bahan_Bakar,""),
+    Kapasitas_CC_Estimasi=ifelse(stringr::str_detect(tolower(dplyr::coalesce(Tipe_Bahan_Bakar,"")),"listrik|electric|ev"),NA_real_,Kapasitas_CC_Estimasi),
+    Merk=dplyr::if_else(is.na(Merk),"Tidak diketahui",Merk),
+    Transmisi=dplyr::if_else(is.na(Transmisi),"Tidak diketahui",Transmisi),
+    Tipe_Bahan_Bakar=dplyr::if_else(is.na(Tipe_Bahan_Bakar),"Tidak diketahui",Tipe_Bahan_Bakar),
+    Tipe_Bodi=dplyr::if_else(is.na(Tipe_Bodi),"Tidak diketahui",Tipe_Bodi),
+    Tipe_Penjual=dplyr::if_else(is.na(Tipe_Penjual),"Tidak diketahui",Tipe_Penjual)
+  )
+writexl::write_xlsx(d |> dplyr::filter(!is.na(Alasan_Eksklusi)) |>
+  dplyr::select(ID_Mentah,Judul,URL_Detail,Harga_Teks,Harga_IDR,Harga_Final,
+    Status_Anomali,Alasan_Eksklusi,Alasan_Manual),
+  file.path(output_dir,"DATA_DITAHAN_ATAU_DIKELUARKAN.xlsx"))
+knitr::kable(data.frame(Tahap=c("Hasil scraping","Provinsi Jakarta","URL unik/nonkosong dideduplikasi","Data analisis setelah validasi","Baris perlu audit manual"),N=c(n_awal,n_jakarta,n_unik,nrow(managed),nrow(review))),caption="Jejak jumlah observasi K2-K3")
+```
+
+## K3.3 Pemeriksaan akhir dan ekspor
+
+```{r k3-output}
+stopifnot(all(stringr::str_detect(tolower(managed$Provinsi),"jakarta")))
+stopifnot(!anyDuplicated(stats::na.omit(managed$URL_Detail)))
+stopifnot(all(is.finite(managed$Harga_Final) & managed$Harga_Final>0))
+knitr::kable(data.frame(Variabel=names(managed),Jumlah_NA=sapply(managed,function(x)sum(is.na(x)))),caption="NA tersisa: boleh ada pada peubah yang tidak wajib")
+writexl::write_xlsx(managed,file.path(output_dir,"PSD_DATA_MANAGED.xlsx"))
+```
+
+**Catatan metodologis:** Batas harga Rp30 juta dan Rp5 miliar hanya menandai baris audit. Harga di bawah Rp1 juta serta konflik sumber harga ditahan sementara, bukan dinyatakan pasti salah. Isi `TEMPLATE_KEPUTUSAN_AUDIT.xlsx`, simpan sebagai `KEPUTUSAN_AUDIT_MANUAL.xlsx` di folder yang sama dengan Rmd, lalu Knit ulang. `KM_Estimasi` adalah titik tengah rentang (atau batas tunggal untuk rentang terbuka), bukan odometer yang terukur. `Kapasitas_CC_Estimasi` hanya titik tengah kategori, bukan kapasitas mesin aktual. Nilai `Tahun` seperti `<1986` tidak dipaksakan menjadi tahun tepat. Audit harga ekstrem perlu ditinjau manual sebelum publikasi infografis. Data ditahan tidak sama dengan data yang terbukti salah.
+
+# K4. Eksplorasi dan visualisasi data
+
+K4 hanya menggunakan data managed. Visualisasi harga menggunakan jutaan rupiah agar sumbu mudah dibaca.
+
+```{r k4-ringkasan}
+ringkasan <- data.frame(Metrik=c("Jumlah iklan valid","Median harga (juta rupiah)","Median usia (tahun)","Median KM estimasi","Jumlah merek"),Nilai=c(nrow(managed),round(aman_median(managed$Harga_Juta),1),round(aman_median(managed$Usia_Mobil),1),round(aman_median(managed$KM_Estimasi)),dplyr::n_distinct(managed$Merk[managed$Merk!="Tidak diketahui"])))
+knitr::kable(ringkasan,caption="Bahan infografis: kartu angka K4")
+```
+
+```{r k4-histogram}
+p_harga <- ggplot(managed,aes(Harga_Juta))+geom_histogram(bins=45,fill=warna,color="white")+
+  geom_vline(xintercept=aman_median(managed$Harga_Juta),color="#E76F51",linetype="dashed")+
+  scale_x_log10(labels=scales::label_number(big.mark="."))+labs(title="Sebaran harga mobil bekas",subtitle="Sumbu harga logaritmik; garis putus-putus = median",x="Harga (juta rupiah, skala log10)",y="Jumlah iklan")+theme_minimal()
+print(p_harga)
+ggsave(file.path(output_dir,"INFOGRAFIS_01_histogram_harga.png"),p_harga,width=9,height=5,dpi=220)
+```
+
+```{r k4-kategori}
+top_merek <- managed |> dplyr::count(Merk,sort=TRUE) |> dplyr::slice_head(n=5)
+p_merek <- ggplot(top_merek,aes(x=reorder(Merk,n),y=n))+geom_col(fill=warna)+coord_flip()+labs(title="Lima merek paling banyak diiklankan",x=NULL,y="Jumlah iklan")+theme_minimal()
+print(p_merek)
+ggsave(file.path(output_dir,"INFOGRAFIS_02_top_merek.png"),p_merek,width=8,height=4,dpi=220)
+p_bbm <- managed |> dplyr::count(Tipe_Bahan_Bakar,sort=TRUE) |>
+ ggplot(aes(x=reorder(Tipe_Bahan_Bakar,n),y=n))+geom_col(fill="#3A7CA5")+coord_flip()+labs(title="Komposisi jenis bahan bakar",x=NULL,y="Jumlah iklan")+theme_minimal()
+print(p_bbm)
+```
+
+# K5. Hubungan antarpeubah
+
+K5 mengeksplorasi hubungan, **belum menyeleksi fitur**. Korelasi Spearman digunakan untuk hubungan monotonik numerik dan tidak mengasumsikan harga berdistribusi normal. Kruskal-Wallis dipakai untuk membandingkan distribusi harga antar kategori dengan kelompok memadai; hasil signifikan tidak membuktikan kausalitas.
+
+```{r k5-scatter}
+p_usia <- managed |> dplyr::filter(!is.na(Usia_Mobil)) |>
+ ggplot(aes(Usia_Mobil,Harga_Juta))+geom_point(alpha=.18,color=warna)+geom_smooth(method="loess",se=FALSE,color="#E76F51")+
+ scale_y_log10()+labs(title="Usia mobil dan harga",x="Usia mobil (tahun)",y="Harga (juta rupiah, log10)")+theme_minimal()
+print(p_usia)
+ggsave(file.path(output_dir,"INFOGRAFIS_03_usia_vs_harga.png"),p_usia,width=8,height=5,dpi=220)
+num_k5 <- c("Usia_Mobil","KM_Estimasi","Kapasitas_CC_Estimasi")
+korelasi <- lapply(num_k5,function(v){
+ z <- managed[,c(v,"Harga_Juta")]; z <- z[stats::complete.cases(z),]
+ if(nrow(z)<4 || length(unique(z[[v]]))<2) return(data.frame(Fitur=v,N=nrow(z),Spearman=NA_real_,P=NA_real_))
+ t <- suppressWarnings(cor.test(z[[v]],z$Harga_Juta,method="spearman",exact=FALSE))
+ data.frame(Fitur=v,N=nrow(z),Spearman=unname(t$estimate),P=t$p.value)
+}) |> dplyr::bind_rows()
+knitr::kable(korelasi,digits=4,caption="Korelasi Spearman terhadap harga")
+```
+
+```{r k5-kategori}
+# Kelompok dengan setidaknya 10 iklan agar boxplot tidak didominasi kategori langka.
+merek_layak <- managed |> dplyr::count(Merk) |> dplyr::filter(n>=10) |> dplyr::pull(Merk)
+p_box <- managed |> dplyr::filter(Merk %in% merek_layak) |>
+ dplyr::mutate(Merk=forcats::fct_lump_n(factor(Merk),n=8)) |>
+ ggplot(aes(Merk,Harga_Juta))+geom_boxplot(outlier.alpha=.12,fill="#9DC6E0")+coord_flip()+
+ scale_y_log10()+labs(title="Sebaran harga menurut merek",x=NULL,y="Harga (juta rupiah, log10)")+theme_minimal()
+# Jika belum memiliki forcats: instal sekali melalui install.packages("forcats")
+print(p_box)
+ggsave(file.path(output_dir,"INFOGRAFIS_04_boxplot_merek.png"),p_box,width=9,height=6,dpi=220)
+```
+
+# K6. Seleksi peubah: filter method
+
+Target: **Harga_Juta (numerik)**. Fitur numerik dinilai menggunakan Spearman; fitur kategorik dengan Kruskal-Wallis. Seleksi dilakukan tanpa melatih model. P-value dikoreksi menggunakan Benjamini-Hochberg untuk banyak pengujian. Fitur turunan harga, URL, judul mentah, dan variabel lokasi konstan tidak digunakan sebagai prediktor. **Hasil seleksi adalah asosiasi pada data ini, bukan peringkat sebab-akibat atau bukti performa prediksi.**
+
+```{r k6-filter}
+fitur_num <- c("Usia_Mobil","KM_Estimasi","Kapasitas_CC_Estimasi")
+fitur_kat <- c("Merk","Transmisi","Tipe_Bahan_Bakar","Tipe_Bodi","Tipe_Penjual","Odometer_Group","Is_Garansi","Is_KM_Low","Is_Facelift","Is_Sport_Trim","Is_Promo_DP")
+# Menghindari redundansi deterministik: Odometer_Group hanya eksplorasi, bukan kandidat final bila KM_Estimasi dipakai.
+fitur_kat <- setdiff(fitur_kat,"Odometer_Group")
+res_num <- lapply(fitur_num,function(v){
+ z <- managed[,c(v,"Harga_Juta")]; z <- z[complete.cases(z),]
+ if(nrow(z)<20 || length(unique(z[[v]]))<3) return(NULL)
+ t <- suppressWarnings(cor.test(z[[v]],z$Harga_Juta,method="spearman",exact=FALSE))
+ data.frame(Fitur=v,Jenis="Numerik",N=nrow(z),Skor=abs(unname(t$estimate)),Arah=unname(t$estimate),P=t$p.value,Ukuran="|rho Spearman|")
+}) |> dplyr::bind_rows()
+res_kat <- lapply(fitur_kat,function(v){
+ z <- managed[,c(v,"Harga_Juta")]; z <- z[complete.cases(z),]
+ tab <- table(z[[v]]); valid <- names(tab)[tab>=10]; z <- z[as.character(z[[v]]) %in% valid,]
+ k <- length(unique(z[[v]])); n <- nrow(z)
+ if(k<2 || n<30) return(NULL)
+ t <- kruskal.test(z$Harga_Juta,as.factor(z[[v]]))
+ # epsilon squared untuk Kruskal-Wallis; nolkan estimasi negatif karena fluktuasi sampel.
+ eps <- max(0,(unname(t$statistic)-k+1)/(n-k))
+ data.frame(Fitur=v,Jenis="Kategorik",N=n,Skor=eps,Arah=NA_real_,P=t$p.value,Ukuran="Epsilon kuadrat KW")
+}) |> dplyr::bind_rows()
+seleksi <- dplyr::bind_rows(res_num,res_kat)
+if(!nrow(seleksi)) stop("Tidak ada fitur yang memenuhi syarat untuk diuji.")
+seleksi <- seleksi |> dplyr::mutate(P_Adjust=p.adjust(P,method="BH"),Lolos=P_Adjust<0.05) |>
+ dplyr::arrange(desc(Lolos),Jenis,desc(Skor))
+knitr::kable(seleksi,digits=4,caption="Hasil filter method: skor numerik dan kategorik tidak boleh dibandingkan langsung")
+writexl::write_xlsx(seleksi,file.path(output_dir,"HASIL_SELEKSI_FILTER.xlsx"))
+```
+
+```{r k6-plot}
+# Visual terpisah menurut metode agar skala ukuran efek tidak dicampur.
+p_filter <- ggplot(seleksi,aes(x=reorder(Fitur,Skor),y=Skor,fill=Lolos))+geom_col()+coord_flip()+
+ facet_wrap(~Ukuran,scales="free_x")+scale_fill_manual(values=c("TRUE"="#287D59","FALSE"="#A8B4C0"))+
+ labs(title="Relevansi fitur terhadap harga",subtitle="Hijau: p-value terkoreksi < 0,05; skor antar-panel tidak sebanding",x=NULL,y="Ukuran asosiasi",fill="Lolos")+theme_minimal()
+print(p_filter)
+ggsave(file.path(output_dir,"INFOGRAFIS_05_seleksi_fitur.png"),p_filter,width=10,height=6,dpi=220)
+fitur_lolos <- seleksi |> dplyr::filter(Lolos) |> dplyr::pull(Fitur)
+cat("Fitur yang lolos kriteria statistik:",if(length(fitur_lolos))paste(fitur_lolos,collapse=", ") else "Tidak ada", "\n")
+```
+
+## Pemeriksaan redundansi dan batasan seleksi
+
+```{r k6-redundansi}
+num_lolos <- intersect(fitur_lolos,fitur_num)
+if(length(num_lolos)>=2) {
+  mat <- cor(managed[,num_lolos,drop=FALSE],method="spearman",use="pairwise.complete.obs")
+  knitr::kable(round(mat,3),caption="Korelasi antarfitur numerik terpilih; |rho| >= 0,8 perlu tinjauan redundansi")
+} else cat("Kurang dari dua fitur numerik lolos; matriks redundansi tidak diperlukan.")
+```
+
+Seleksi final tidak otomatis menghapus fitur hanya berdasarkan p-value: perhatikan besarnya ukuran efek, missing value, redundansi, dan pengetahuan domain. Untuk pemodelan prediktif di masa depan, pembagian train/test **harus dilakukan sebelum menghitung statistik seleksi**, lalu hasilnya diverifikasi pada data uji yang belum pernah digunakan saat seleksi.
+
+# Ringkasan untuk infografis
+
+Gunakan lima panel: (1) alur scraping dan cleaning beserta jumlah baris aktual dari tabel K3; (2) kartu median dan grafik distribusi K4; (3) top merek dan bahan bakar K4; (4) usia-harga serta boxplot K5; (5) hasil filter K6. Jangan mengisi angka infografis dari desain lama. Semua gambar resolusi tinggi dan dua file Excel keluaran tersedia di folder `hasil_analisis/` setelah Knit.
+
+**Batasan:** data adalah iklan yang terambil pada waktu scraping, bukan seluruh pasar mobil bekas Jakarta. Harga adalah harga iklan, bukan harga transaksi. Baris dalam file audit perlu pemeriksaan manual; rentang kilometer dan kapasitas mesin yang diubah menjadi titik tengah adalah estimasi.
+
+
+# Analisis sensitivitas harga ekstrem
+
+Bandingkan korelasi usia-harga dan kilometer-harga pada seluruh data valid dengan subset tanpa pengamatan yang ditandai IQR log harga. **Subset hanya untuk sensitivitas**, bukan menggantikan analisis utama.
+
+```{r sensitivitas}
+cek_sensitivitas <- function(nama) {
+  lapply(c("Semua data valid","Tanpa flag IQR"),function(grup) {
+    z <- if(grup=="Tanpa flag IQR") managed[!managed$Flag_Log_IQR,] else managed
+    z <- z[complete.cases(z[,c(nama,"Harga_Juta")]),]
+    rho <- if(nrow(z)>3 && length(unique(z[[nama]]))>1)
+      suppressWarnings(cor(z[[nama]],z$Harga_Juta,method="spearman")) else NA_real_
+    data.frame(Fitur=nama,Skenario=grup,N=nrow(z),Rho_Spearman=rho)
+  }) |> dplyr::bind_rows()
+}
+sensitivitas <- lapply(c("Usia_Mobil","KM_Estimasi"),cek_sensitivitas) |> dplyr::bind_rows()
+knitr::kable(sensitivitas,digits=3,caption="Sensitivitas asosiasi terhadap outlier harga")
+writexl::write_xlsx(sensitivitas,file.path(output_dir,"ANALISIS_SENSITIVITAS.xlsx"))
+```

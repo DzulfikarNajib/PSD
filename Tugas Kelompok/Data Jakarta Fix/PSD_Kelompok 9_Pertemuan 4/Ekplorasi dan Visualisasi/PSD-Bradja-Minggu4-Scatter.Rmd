@@ -1,0 +1,166 @@
+---
+title: "Proyek PSD Minggu 4 - Analisis Scatter Plot"
+author: "Putra Ramadhana"
+date: "2026-09-17"
+output:
+  html_document:
+    rmdformats::readthedown
+---
+
+# Libraries
+```{r}
+library(readxl)     
+library(dplyr)      
+library(tidyr)       
+library(ggplot2)     
+library(corrplot)    
+library(skimr)       
+library(scales)      
+library(ggrepel)     
+```
+
+# Input Data
+```{r}
+data <- read_xlsx("C:\\Users\\Roshan\\OneDrive\\Documents\\Kuliah\\PSD\\Kelompok\\PSD_DATA_MOBIL_JAKARTA_FINAL_CLEAN.xlsx")
+str(data)
+```
+
+# Visualisasi dan Insights (Scatter Plot)
+
+## Jarak_Tempuh_KM vs Harga_IDR
+
+```{r}
+cor_km_harga <- cor(data$Jarak_Tempuh_KM, data$Harga_IDR)
+cor_km_harga
+```
+
+```{r}
+# Tandai calon outlier: KM tinggi tapi harga masih mahal, atau KM rendah tapi harga murah
+data_km <- data %>%
+  mutate(
+    kategori_outlier = case_when(
+      Jarak_Tempuh_KM > quantile(Jarak_Tempuh_KM, 0.9) & Harga_IDR > quantile(Harga_IDR, 0.75) ~ "KM tinggi, harga masih mahal",
+      Jarak_Tempuh_KM < quantile(Jarak_Tempuh_KM, 0.1) & Harga_IDR < quantile(Harga_IDR, 0.25) ~ "KM rendah, harga murah",
+      TRUE ~ "Normal"
+    )
+  )
+
+ggplot(data_km, aes(x = Jarak_Tempuh_KM / 1000, y = Harga_IDR / 1e6)) +
+  geom_point(aes(color = kategori_outlier), alpha = 0.5, size = 1.5) +
+  geom_smooth(method = "loess", color = "black", se = FALSE) +
+  scale_color_manual(values = c("Normal" = "grey70",
+                                 "KM tinggi, harga masih mahal" = "red",
+                                 "KM rendah, harga murah" = "blue")) +
+  scale_y_log10(labels = scales::comma) +
+  labs(
+    title = "Jarak Tempuh vs Harga Mobil Bekas",
+    x = "Jarak Tempuh (Ribu KM)",
+    y = "Harga (Juta IDR)",
+    color = "Kategori"
+  ) +
+  theme_minimal()
+```
+Korelasi antara jarak tempuh dan harga sekitar -0.39, artinya sewmakin tinggi KM pemakaian, harga mobil cenderung makin turun, meskipun hubungannya tidak terlalu kuat. Polanya terlihat jelas bahwa harga turun paling drastis di rentang 0-100 ribu KM pertama, terus mulai landai setelahnya. Titik merah nunjukkin mobil "aneh" yang KM-nya udah di atas rata-rata tapi harganya masih di kelas mahal. Titik biru sebaliknya, KM masih rendah tapi harga udah murah saat dijual, kemungkinan besar ini merupakan mobil city car.
+
+## Usia_Mobil vs Harga_IDR
+
+```{r}
+cor_usia_harga <- cor(data$Usia_Mobil, data$Harga_IDR)
+cor_usia_harga
+```
+
+```{r}
+ggplot(data, aes(x = Usia_Mobil, y = Harga_IDR / 1e6)) +
+  geom_point(alpha = 0.4, size = 1.2, color = "#2b5c8f") +
+  geom_smooth(method = "loess", color = "red", se = FALSE) +
+  scale_y_log10(labels = scales::comma) +
+  labs(
+    title = "Usia Mobil vs Harga (Semua Merk)",
+    x = "Usia Mobil (Tahun)",
+    y = "Harga (Juta IDR)"
+  ) +
+  theme_minimal()
+```
+Secara keseluruhan korelasi usia mobil dengan harga ada di angka -0.25, lebih lemah dibanding korelasi KM tadi. Ini wajar karena usia saja belum tentu menunjukan kondisi mobil, beda merk juga punya laju depresiasi yang beda-beda.
+
+```{r}
+top_merk_depresiasi <- data %>%
+  group_by(Merk) %>%
+  summarise(n = n()) %>%
+  top_n(6, n) %>%
+  pull(Merk)
+
+data %>%
+  filter(Merk %in% top_merk_depresiasi) %>%
+  ggplot(aes(x = Usia_Mobil, y = Harga_IDR / 1e6, color = Merk)) +
+  geom_point(alpha = 0.3, size = 1) +
+  geom_smooth(method = "loess", se = FALSE) +
+  scale_y_log10(labels = scales::comma) +
+  labs(
+    title = "Usia Mobil Vs Harga ",
+    x = "Usia Mobil (Tahun)",
+    y = "Harga (Juta IDR)",
+    color = "Merk"
+  ) +
+  theme_minimal()
+```
+Saat dibagi per merk, dapat ditemukan merk mana yang resale value-nya lebih tahan lama. Merk yang garis depresiasinya landai berarti harga jualnya tetep terjaga meski usianya bertambah, biasanya ini merk-merk yang punya reputasi ketahanan mesin atau demand pasar bekasnya tinggi. Sebaliknya, merk dengan garis yang curam menunjukan harganya dapat menurun drastis setiap tahun usianya bertambah.
+
+## Usia_Mobil vs Jarak_Tempuh_KM
+
+```{r}
+cor_usia_km <- cor(data$Usia_Mobil, data$Jarak_Tempuh_KM)
+cor_usia_km
+```
+
+```{r}
+# Estimasi pemakaian wajar: rata-rata KM per tahun
+rata_km_per_tahun <- median(data$Jarak_Tempuh_KM / pmax(data$Usia_Mobil, 1))
+
+data_pola <- data %>%
+  mutate(
+    km_per_tahun = Jarak_Tempuh_KM / pmax(Usia_Mobil, 1),
+    kategori_pemakaian = case_when(
+      Usia_Mobil <= 5 & Jarak_Tempuh_KM > quantile(Jarak_Tempuh_KM, 0.75) ~ "Mobil muda, KM tinggi",
+      Usia_Mobil >= 10 & Jarak_Tempuh_KM < quantile(Jarak_Tempuh_KM, 0.25) ~ "Mobil tua, KM rendah",
+      TRUE ~ "Wajar"
+    )
+  )
+
+ggplot(data_pola, aes(x = Usia_Mobil, y = Jarak_Tempuh_KM / 1000)) +
+  geom_point(aes(color = kategori_pemakaian), alpha = 0.5, size = 1.5) +
+  geom_smooth(method = "lm", color = "black", se = FALSE, linetype = "dashed") +
+  scale_color_manual(values = c("Wajar" = "grey70",
+                                 "Mobil muda, KM tinggi" = "red",
+                                 "Mobil tua, KM rendah" = "darkgreen")) +
+  labs(
+    title = "Usia Mobil vs Jarak Tempuh",
+    x = "Usia Mobil (Tahun)",
+    y = "Jarak Tempuh (Ribu KM)",
+    color = "Kategori"
+  ) +
+  theme_minimal()
+```
+Korelasi usia dengan jarak tempuh cukup kuat, sekitar 0.72. Garis putus-putus di plot menunjukan tren pemakaian rata-rata. Titik merah adalah mobil yang usianya masih muda (≤ 5 tahun) tapi KM-nya sudah di atas kuartil 3, biasanya ini mobil-mobil bekas rental atau operasional yang memang dipake tiap hari secara intens. Titik hijau kebalikannya, yaitu mobil yang usianya sudah tua (≥ 10 tahun) tapi KM-nya masih di bawah kuartil 1, biasanya ini mobil koleksi atau mobil kedua yang jarang dipakai keluar rumah.
+
+## Kapasitas_Mesin_CC vs Harga_IDR
+
+```{r}
+cor_cc_harga <- cor(data$Kapasitas_Mesin_CC, data$Harga_IDR)
+cor_cc_harga
+```
+
+```{r}
+ggplot(data, aes(x = Kapasitas_Mesin_CC, y = Harga_IDR / 1e6, color = Tipe_Bahan_Bakar)) +
+  geom_point(alpha = 0.4, size = 1.2) +
+  geom_smooth(method = "loess", color = "black", se = FALSE) +
+  scale_y_log10(labels = scales::comma) +
+  labs(
+    title = "Kapasitas Mesin vs Harga Mobil Bekas",
+    x = "Kapasitas Mesin (CC)",
+    y = "Harga (Juta IDR, Skala Log)",
+    color = "Bahan Bakar"
+  ) +
+  theme_minimal()
+```
+Korelasi kapasitas mesin dengan harga ada di angka 0.59, cukup kuat dan arahnya positif, jadi secara umum semakin besar CC-nya semakin mahal juga harganya. Ini kebalikan dari dugaan awal soal "cc besar dianggap boros jadi harganya jatuh", ternyata di data ini tidak begitu kelihatan, ternyata CC besar cenderung punya harga jual yang lebih tinggi. Kemungkinan karena mobil ber-CC besar itu memang segmennya sudah premium/SUV/mewah dari awal, sehingga harga dasarnya tinggi. Kalau dilihat dari warna titiknya (jenis bahan bakar), mobil hybrid dan diesel cenderung berada di area harga yang lebih tinggi dibanding mobil bensin biasa walau CC-nya serupa.

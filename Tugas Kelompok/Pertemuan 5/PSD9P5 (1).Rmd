@@ -1,0 +1,635 @@
+---
+title: "Pengantar Sains Data - Data Mobil Bekas Jakarta"
+subtitle: "K3 Manajemen Data | K4 Eksplorasi & Visualisasi | K5 Hubungan Antar Peubah"
+author: "Dzulfikar Najib"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: false
+    theme: flatly
+    highlight: tango
+---
+
+```{r pkg, include=FALSE}
+# Pasang otomatis paket yang belum ada (hanya jalan kalau memang kurang)
+pkgs <- c("readxl", "dplyr", "tidyr", "ggplot2", "scales", "knitr",
+          "stringr", "gridExtra", "wordcloud", "RColorBrewer")
+miss <- setdiff(pkgs, rownames(installed.packages()))
+if (length(miss)) install.packages(miss, repos = "https://cloud.r-project.org")
+invisible(lapply(pkgs, library, character.only = TRUE))
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, warning = FALSE, message = FALSE,
+  fig.width = 9, fig.height = 5.5
+)
+options(scipen = 999)          # hindari notasi ilmiah (harga dalam Rupiah)
+f2 <- function(x) sprintf("%.2f", x)   # pembulat untuk inline text
+pct <- function(x) round(100 * x)      # proporsi -> persen bulat
+
+# Palet konsisten: 1 warna netral, 1 warna sorot, dan warna tetap untuk Brand Tier
+warna_utama <- "#2c3e50"
+warna_sorot <- "#e74c3c"
+pal_tier <- c("Mass Market" = "#2c3e50", "Luxury" = "#c0392b",
+              "Chinese EV" = "#27ae60", "Other" = "#95a5a6")
+```
+
+# 1. LOAD DATA
+
+Data hasil web scraping iklan mobil bekas (OLX). Kalau file mentah
+`PSD_DATA_MOBIL_JAKARTA_FINAL_CLEAN.xlsx` ada di folder yang sama, file itu yang dipakai;
+kalau tidak, dipakai `PSD_DATA_MOBIL_JAKARTA_CLEANED_V2.xlsx` (hasil pembersihan yang sama).
+
+```{r load-data}
+file_raw  <- "PSD_DATA_MOBIL_JAKARTA_FINAL_CLEAN.xlsx"
+file_v2   <- "PSD_DATA_MOBIL_JAKARTA_CLEANED_V2.xlsx"
+file_data <- if (file.exists(file_raw)) file_raw else file_v2
+cat("File data yang dipakai:", file_data, "\n")
+
+df_raw <- read_excel(file_data)
+
+kable(data.frame(
+  Metrik = c("Jumlah baris (observasi)", "Jumlah kolom (peubah)"),
+  Nilai  = c(nrow(df_raw), ncol(df_raw))
+), caption = "Tabel 1.1: Dimensi dataset")
+
+health_df <- data.frame(
+  Kolom     = colnames(df_raw),
+  Tipe_Data = sapply(df_raw, function(x) paste(class(x), collapse = ", ")),
+  Jumlah_NA = sapply(df_raw, function(x) sum(is.na(x)))
+)
+kable(health_df, row.names = FALSE,
+      caption = "Tabel 1.2: Tipe data dan missing value per kolom")
+```
+
+# 2. MANAJEMEN DATA (K3)
+
+Tujuan: menyesuaikan format peubah (numerik, teks, faktor) dan menyusun peubah-peubah baru.
+
+## 2.1 Pembersihan dan penyesuaian format
+
+```{r cleaning}
+df_clean <- df_raw %>%
+  select(-any_of(c("Kategori", "Nama_Bursa_Mobil", "Kecamatan"))) %>%
+  mutate(across(where(is.character), ~ str_squish(str_replace_all(., "\u00a0", " ")))) %>%
+  mutate(across(starts_with("Is_"), as.logical)) %>%
+  mutate(across(c(Provinsi, Kota_Kabupaten, Merk, Model, Brand_Tier,
+                  Tipe_Bahan_Bakar, Transmisi, Tipe_Bodi, Warna, Tipe_Penjual),
+                as.factor)) %>%
+  mutate(
+    Odometer_Group = factor(Odometer_Group,
+                            levels = c("<20k (Sangat Low)", "20k-50k (Low)",
+                                       "50k-100k (Sedang)", ">100k (Tinggi)"),
+                            ordered = TRUE),
+    Usia_Mobil = as.integer(2026 - Tahun),
+    Harga_Juta = Harga_IDR / 1e6,
+ 
+    Kapasitas_CC_valid = if_else(Tipe_Bahan_Bakar == "Listrik",
+                                 NA_real_, as.numeric(Kapasitas_Mesin_CC))
+  )
+
+glimpse(df_clean)
+```
+
+## 2.2 Pengecekan kualitas data
+
+```{r kualitas}
+n_cc_listrik <- sum(df_clean$Tipe_Bahan_Bakar == "Listrik")
+n_cc_plc     <- sum(df_clean$Tipe_Bahan_Bakar == "Listrik" &
+                      df_clean$Kapasitas_Mesin_CC == min(df_clean$Kapasitas_Mesin_CC))
+
+kualitas <- data.frame(
+  Pemeriksaan = c("Total NA seluruh kolom",
+                  "URL iklan duplikat",
+                  "Judul iklan duplikat (dealer yang sama memasang unit serupa)",
+                  "Iklan di luar DKI Jakarta",
+                  "Mobil berusia > 25 tahun (mobil klasik)",
+                  "Mobil listrik dengan CC = nilai minimum (indikasi placeholder)"),
+  Jumlah = c(sum(is.na(df_raw)),
+             sum(duplicated(df_clean$URL_Detail)),
+             sum(duplicated(df_clean$Judul)),
+             sum(df_clean$Provinsi != "Jakarta D.K.I."),
+             sum(df_clean$Usia_Mobil > 25),
+             n_cc_plc)
+)
+kable(kualitas, caption = "Tabel 2.1: Ringkasan pemeriksaan kualitas data")
+```
+
+Catatan:
+
+- Tidak ada missing value, dan setiap URL unik. Namun sekitar `r sum(duplicated(df_clean$Judul))` judul iklan muncul lebih dari sekali, umumnya dealer yang memasang beberapa unit serupa. Artinya observasi tidak sepenuhnya independen, jadi hasil korelasi dibaca sebagai gambaran pola, bukan bukti kuat.
+- `r n_cc_plc` dari `r n_cc_listrik` mobil listrik memiliki CC bernilai sama dengan minimum data (`r min(df_clean$Kapasitas_Mesin_CC)`), yang kelihatannya nilai pengisi. Karena itu `Kapasitas_CC_valid` (NA untuk mobil listrik) dipakai pada analisis korelasi.
+- `Jarak_Tempuh_KM` hanya punya `r length(unique(df_clean$Jarak_Tempuh_KM))` nilai berbeda, kelipatan 2.500 (titik tengah rentang 5.000 km). Jadi peubah ini bersifat diskret dan banyak nilai kembar (ties), sehingga korelasi berbasis peringkat (Spearman/Kendall) lebih cocok daripada Pearson.
+- Mobil klasik (usia > 25 tahun) dan mobil supermewah tidak dibuang. Keduanya dianggap pencilan yang valid, dan penanganannya lewat transformasi log10 pada harga.
+
+## 2.3 Membuat peubah baru dengan Regular Expression
+
+Judul iklan (`Judul`) memuat informasi tersembunyi, misalnya tag `[ GARANSI 5TH ]`, penanda `LOW KM 11RB`, dan `DP 65JT`. Informasi tersebut diekstrak dengan RegEx (paket `stringr`).
+
+```{r regex-fitur}
+df_clean <- df_clean %>%
+  mutate(
+    Tag_Judul   = str_extract(Judul, "\\[[^]]+\\]"),
+    Garansi_rx  = str_detect(Judul, regex("garansi", ignore_case = TRUE)),
+    PromoDP_rx  = str_detect(Judul, regex("\\bdp\\s*\\d|\\btdp", ignore_case = TRUE)),
+    KM_Judul    = as.numeric(str_match(Judul,
+                    regex("km\\s*\\.?\\s*(\\d+)\\s*(rb|ribu)", ignore_case = TRUE))[, 2]) * 1000
+  )
+
+kable(table(Is_Garansi = df_clean$Is_Garansi, Regex = df_clean$Garansi_rx),
+      caption = "Tabel 2.2: Is_Garansi vs hasil regex 'garansi'")
+kable(table(Is_Promo_DP = df_clean$Is_Promo_DP, Regex = df_clean$PromoDP_rx),
+      caption = "Tabel 2.3: Is_Promo_DP vs hasil regex promo DP")
+
+ok <- !is.na(df_clean$KM_Judul)
+cat("Judul yang menyebut jarak tempuh:", sum(ok), "iklan\n")
+cat("Korelasi Spearman KM_Judul vs Jarak_Tempuh_KM:",
+    f2(cor(df_clean$KM_Judul[ok], df_clean$Jarak_Tempuh_KM[ok], method = "spearman")), "\n")
+
+head(df_clean %>% filter(!is.na(Tag_Judul)) %>% select(Judul, Tag_Judul), 5)
+```
+
+Regex `garansi` cocok 100% dengan penanda `Is_Garansi`, dan regex promo DP sangat mendekati `Is_Promo_DP`. Jarak tempuh yang ditulis penjual di judul (`KM_Judul`) berkorelasi sangat kuat dengan `Jarak_Tempuh_KM`, sehingga kedua sumber informasi konsisten.
+
+Peragaan pengubahan teks berformat menjadi numerik (seperti kasus `"93.142 km"` pada K3):
+
+```{r regex-numerik}
+contoh_km    <- paste0(format(head(df_clean$Jarak_Tempuh_KM, 6), big.mark = ".",
+                              decimal.mark = ",", trim = TRUE), " km")
+contoh_harga <- paste0("Rp", format(head(df_clean$Harga_IDR, 6), big.mark = ".",
+                                    decimal.mark = ",", scientific = FALSE, trim = TRUE))
+
+data.frame(
+  Teks_Jarak = contoh_km,
+  Jarak_Num  = contoh_km    %>% str_remove_all("[.]") %>% str_extract("[0-9]+") %>% as.numeric(),
+  Teks_Harga = contoh_harga,
+  Harga_Num  = contoh_harga %>% str_remove_all("[^0-9]") %>% as.numeric()
+) %>% kable(caption = "Tabel 2.4: Teks berformat -> numerik dengan str_remove_all() dan str_extract()")
+```
+
+## 2.4 Preprocessing data teks (kolom Judul)
+
+Tahapan: (1) text cleaning, (2) tokenization, (3) stopwords removal, (4) normalisasi kata.
+
+```{r preprocessing-teks}
+teks_bersih <- df_clean$Judul %>%
+  str_to_lower() %>%                              # huruf kecil
+  str_remove_all("https?://\\S+|www\\.\\S+") %>%  # hapus URL
+  str_replace_all("[^\\x20-\\x7E]", " ") %>%      # hapus emoji / karakter non-ASCII
+  str_replace_all("[^a-z0-9 ]", " ") %>%          # hapus tanda baca & simbol
+  str_squish()                                    # rapikan spasi
+
+tokens_all <- tibble(id = seq_along(teks_bersih), teks = teks_bersih) %>%
+  mutate(token = str_split(teks, " ")) %>%
+  select(id, token) %>%
+  unnest(token) %>%
+  filter(token != "")
+
+stop_id <- c("dan", "atau", "yang", "yg", "di", "ke", "dari", "untuk", "dengan",
+             "dgn", "dg", "the", "and", "of", "for", "new", "jual", "dijual",
+             "mobil", "bekas", "second", "murah", "siap", "pakai", "bisa", "bs",
+             "nego", "km", "rb", "ribu", "jt", "juta", "tahun", "thn", "th",
+             "tgn", "tangan", "pajak", "pjk", "pkp", "plat", "nik", "tt",
+             "ori", "original", "istimewa", "terawat", "kondisi", "mulus",
+             "sangat", "asli", "harga", "cash", "kredit", "unit", "type", "tipe",
+             "series", "edition", "stok", "ready", "free", "hub", "wa", "info",
+             "cek", "only", "best", "deal", "no", "sd", "s", "sk")
+
+kamus_norm <- c(mercy = "mercedes", benz = "mercedes", bergaransi = "garansi",
+                automatik = "matic", automatic = "matic", at = "matic",
+                mt = "manual")
+
+tokens <- tokens_all %>%
+  mutate(token = coalesce(unname(kamus_norm[token]), token)) %>%
+  filter(nchar(token) >= 2,
+         !str_detect(token, "^[0-9]+(rb|ribu|jt|juta|k|th|thn|tahun)?$"),  # angka murni
+         !token %in% stop_id) %>%
+  distinct(id, token)         
+
+freq_kata <- tokens %>% count(token, sort = TRUE, name = "n_judul")
+
+kable(data.frame(
+  Tahap  = c("Token sebelum stopwords/normalisasi", "Token setelah pembersihan (unik per judul)",
+             "Kosakata unik akhir"),
+  Jumlah = c(nrow(tokens_all), nrow(tokens), nrow(freq_kata))
+), caption = "Tabel 2.5: Ringkasan preprocessing teks")
+
+head(data.frame(Judul_Asli = df_clean$Judul, Judul_Bersih = teks_bersih), 4)
+```
+
+Catatan: stemming Bahasa Indonesia (Sastrawi) tersedia di Python, sedangkan di R tidak ada paket stemmer yang terawat. Karena judul iklan lebih banyak berisi nama merek/model daripada kata berimbuhan, stemming diganti dengan kamus normalisasi (`mercy` menjadi `mercedes`, `at` dan `automatic` menjadi `matic`, dst). Kamus dan stopwords ini bisa diperluas setelah melihat hasil wordcloud.
+
+# 3. EKSPLORASI DAN VISUALISASI DATA (K4)
+
+## 3.1 Ringkasan statistik deskriptif (peubah numerik)
+
+```{r stat-deskriptif}
+skew <- function(x) { x <- x[!is.na(x)]; mean((x - mean(x))^3) / mean((x - mean(x))^2)^1.5 }
+iqr_out <- function(x) {
+  q <- quantile(x, c(.25, .75)); i <- q[2] - q[1]
+  sum(x < q[1] - 1.5 * i | x > q[2] + 1.5 * i)
+}
+
+num_vars <- c("Harga_IDR", "Usia_Mobil", "Jarak_Tempuh_KM", "Kapasitas_Mesin_CC")
+
+num_summary <- df_clean %>%
+  select(all_of(num_vars)) %>%
+  pivot_longer(everything(), names_to = "Variabel", values_to = "nilai") %>%
+  group_by(Variabel) %>%
+  summarise(Mean = mean(nilai), SD = sd(nilai), Median = median(nilai), IQR = IQR(nilai),
+            Min = min(nilai), Max = max(nilai), Skewness = skew(nilai),
+            Pencilan_IQR = iqr_out(nilai), .groups = "drop")
+
+kable(num_summary, digits = 2, caption = "Tabel 3.1: Statistik deskriptif peubah numerik")
+```
+
+Interpretasi: ketiga peubah utama menjulur ke kanan (skewness harga `r f2(skew(df_clean$Harga_IDR))`, usia `r f2(skew(df_clean$Usia_Mobil))`, jarak tempuh `r f2(skew(df_clean$Jarak_Tempuh_KM))`), sehingga median lebih mewakili nilai tipikal daripada rata-rata. Jumlah pencilan menurut aturan IQR paling banyak pada harga (`r num_summary$Pencilan_IQR[num_summary$Variabel == "Harga_IDR"]` unit), tetapi seperti dibahas di bagian 2.2 pencilan ini valid (mobil klasik dan mobil supermewah), jadi tidak dibuang.
+
+## 3.2 Pertanyaan eksplorasi dan pemilihan visualisasi
+
+Visualisasi dipilih berdasarkan pertanyaan yang ingin dijawab dan jenis peubahnya (mengacu pada jenis visualisasi di materi K4). Audiens laporan ini adalah dosen dan anggota kelompok yang akan menyusun infografis, jadi grafik dibuat sederhana: satu warna netral, satu warna sorot untuk hal yang penting, dan warna Brand Tier dibuat konsisten di seluruh laporan. Karena harga sangat menjulur, sumbu harga diberi skala log10 dan ditulis jelas pada label sumbu agar tidak menyesatkan.
+
+| No | Pertanyaan eksplorasi | Jenis visualisasi | Alasan |
+|----|-----------------------|-------------------|--------|
+| 1 | Berapa harga tipikal mobil bekas dan seberapa timpang sebarannya? | Sebaran: histogram (skala asli vs log10) | Menampilkan bentuk sebaran peubah numerik dan efek transformasi |
+| 2 | Merek apa yang paling banyak diiklankan? | Besaran: lollipop chart 10 merk teratas | Membandingkan jumlah antar kategori berlabel banyak |
+| 3 | Bagaimana komposisi segmen (Brand Tier) di pasar ini? | Proporsi: donut chart | Menunjukkan bagian terhadap keseluruhan untuk 4 kategori |
+| 4 | Apakah harga berbeda antar segmen? | Sebaran per kelompok: boxplot | Membandingkan median, rentang, dan pencilan antar kelompok |
+| 5 | Bagaimana sebaran usia dan jarak tempuh mobil? | Sebaran: histogram | Melihat pemusatan, kemiringan, dan ekor panjang |
+| 6 | Kata apa yang dipakai penjual di judul iklan? | Teks: wordcloud dan bar frekuensi kata | Meringkas data teks tidak terstruktur |
+
+## 3.3 Visualisasi 1: sebaran harga
+
+```{r v1-harga, fig.width=11, fig.height=4.8}
+med_h  <- median(df_clean$Harga_Juta)
+mean_h <- mean(df_clean$Harga_Juta)
+
+v1a <- ggplot(df_clean, aes(x = Harga_Juta)) +
+  geom_histogram(bins = 40, fill = warna_utama, color = "white", alpha = 0.9) +
+  geom_vline(xintercept = med_h,  linetype = "dashed", color = warna_sorot) +
+  geom_vline(xintercept = mean_h, linetype = "solid",  color = warna_sorot) +
+  annotate("text", x = med_h,  y = Inf, label = paste0("median ", round(med_h)),
+           hjust = 1.1, vjust = 2, size = 3.5, color = warna_sorot) +
+  annotate("text", x = mean_h, y = Inf, label = paste0("rata-rata ", round(mean_h)),
+           hjust = -0.1, vjust = 2, size = 3.5, color = warna_sorot) +
+  scale_x_continuous(labels = comma) +
+  labs(title = "Skala asli", x = "Harga (juta Rp)", y = "Jumlah iklan") +
+  theme_minimal()
+
+v1b <- ggplot(df_clean, aes(x = Harga_Juta)) +
+  geom_histogram(bins = 40, fill = warna_utama, color = "white", alpha = 0.9) +
+  geom_vline(xintercept = med_h, linetype = "dashed", color = warna_sorot) +
+  scale_x_log10(labels = comma) +
+  labs(title = "Skala log10", x = "Harga (juta Rp, skala log10)", y = "Jumlah iklan") +
+  theme_minimal()
+
+grid.arrange(v1a, v1b, ncol = 2, top = "Sebaran harga mobil bekas")
+```
+
+**Interpretasi.** Pada skala asli, `r pct(mean(df_clean$Harga_Juta <= 675))`% iklan berharga paling tinggi Rp 675 juta, tetapi ekor panjang sampai Rp `r round(max(df_clean$Harga_Juta))` juta menarik rata-rata (Rp `r round(mean_h)` juta) jauh di atas median (Rp `r round(med_h)` juta). Setelah skala log10 bentuk sebaran menjadi jauh lebih simetris dengan puncak di sekitar median. Karena itu median dipakai sebagai harga tipikal dan skala log dipakai pada grafik harga berikutnya.
+
+## 3.4 Visualisasi 2: merek paling banyak diiklankan
+
+```{r v2-merk, fig.width=8, fig.height=5}
+top_merk <- df_clean %>%
+  count(Merk, sort = TRUE) %>%
+  slice_max(n, n = 10, with_ties = FALSE) %>%
+  mutate(sorot = row_number() <= 2,
+         Merk = reorder(as.character(Merk), n))
+
+ggplot(top_merk, aes(x = Merk, y = n, color = sorot)) +
+  geom_segment(aes(xend = Merk, y = 0, yend = n), linewidth = 1) +
+  geom_point(size = 4) +
+  geom_text(aes(label = n), hjust = -0.7, size = 3.5, color = "grey20") +
+  coord_flip() +
+  scale_color_manual(values = c("TRUE" = warna_sorot, "FALSE" = "grey60"), guide = "none") +
+  scale_y_continuous(expand = expansion(mult = c(0, .15))) +
+  labs(title = "10 Merk Paling Banyak Diiklankan",
+       x = NULL, y = "Jumlah iklan") +
+  theme_minimal()
+```
+
+**Interpretasi.** Toyota (`r top_merk$n[top_merk$Merk == "Toyota"]` iklan) dan Mercedes-Benz (`r top_merk$n[top_merk$Merk == "Mercedes-Benz"]` iklan) menonjol jauh di atas merek lain, dan keduanya bersama menyumbang `r pct((top_merk$n[top_merk$Merk == "Toyota"] + top_merk$n[top_merk$Merk == "Mercedes-Benz"]) / nrow(df_clean))`% seluruh iklan. Sepuluh merk teratas mencakup `r pct(sum(top_merk$n) / nrow(df_clean))`% data, sehingga pasar iklan ini terkonsentrasi pada sedikit merek.
+
+## 3.5 Visualisasi 3: komposisi segmen (Brand Tier)
+
+```{r v3-donut, fig.width=6.5, fig.height=5}
+tier_prop <- df_clean %>%
+  count(Brand_Tier) %>%
+  mutate(p = n / sum(n), label = paste0(pct(p), "%"))
+
+ggplot(tier_prop, aes(x = 2, y = p, fill = Brand_Tier)) +
+  geom_col(width = 1, color = "white") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5),
+            color = "white", size = 4.2, fontface = "bold") +
+  coord_polar(theta = "y") +
+  xlim(0.5, 2.5) +
+  scale_fill_manual(values = pal_tier) +
+  labs(title = "Komposisi Iklan menurut Brand Tier", fill = "Brand Tier") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+**Interpretasi.** Segmen Mass Market mendominasi (`r pct(mean(df_clean$Brand_Tier == "Mass Market"))`%), diikuti Luxury (`r pct(mean(df_clean$Brand_Tier == "Luxury"))`%), sedangkan Chinese EV hanya `r pct(mean(df_clean$Brand_Tier == "Chinese EV"))`%. Ketimpangan serupa ada pada peubah lain: `r pct(mean(df_clean$Transmisi == "Automatic"))`% mobil bertransmisi otomatik, `r pct(mean(df_clean$Tipe_Bahan_Bakar == "Bensin"))`% berbahan bakar bensin, dan `r pct(mean(df_clean$Tipe_Penjual == "Diler"))`% dijual diler. Perbandingan yang melibatkan kelompok kecil (Chinese EV, transmisi manual) perlu dibaca hati-hati.
+
+## 3.6 Visualisasi 4: harga menurut Brand Tier
+
+```{r v4-harga-tier, fig.width=9, fig.height=5.5}
+med_tier <- df_clean %>%
+  group_by(Brand_Tier) %>%
+  summarise(n = n(), med = median(Harga_Juta),
+            q1 = quantile(Harga_Juta, .25), q3 = quantile(Harga_Juta, .75),
+            .groups = "drop") %>%
+  arrange(med)
+tier_ord <- as.character(med_tier$Brand_Tier)
+
+df_v4 <- df_clean %>% mutate(Tier_o = factor(as.character(Brand_Tier), levels = tier_ord))
+med_lab <- med_tier %>%
+  mutate(Tier_o = factor(as.character(Brand_Tier), levels = tier_ord),
+         label = paste0("median ", round(med), " jt"))
+
+ggplot(df_v4, aes(x = Tier_o, y = Harga_Juta, fill = Brand_Tier)) +
+  geom_boxplot(outlier.alpha = 0.25, alpha = 0.65, show.legend = FALSE) +
+  geom_label(data = med_lab, aes(x = Tier_o, y = med, label = label),
+             inherit.aes = FALSE, size = 3, fill = "white", alpha = 0.9) +
+  scale_fill_manual(values = pal_tier) +
+  scale_y_log10(labels = comma) +
+  labs(title = "Sebaran Harga menurut Brand Tier",
+       x = NULL, y = "Harga (juta Rp, skala log10)") +
+  theme_minimal() +
+  theme(panel.grid.major.x = element_blank())
+```
+
+**Interpretasi.** Median harga Luxury (Rp `r round(med_tier$med[med_tier$Brand_Tier == "Luxury"])` juta) sekitar `r round(med_tier$med[med_tier$Brand_Tier == "Luxury"] / med_tier$med[med_tier$Brand_Tier == "Mass Market"], 1)` kali Mass Market (Rp `r round(med_tier$med[med_tier$Brand_Tier == "Mass Market"])` juta) dan sekitar `r round(med_tier$med[med_tier$Brand_Tier == "Luxury"] / med_tier$med[med_tier$Brand_Tier == "Chinese EV"], 1)` kali Chinese EV (Rp `r round(med_tier$med[med_tier$Brand_Tier == "Chinese EV"])` juta). Rentang harga di dalam satu tier juga lebar (rentang antar kuartil Luxury Rp `r round(med_tier$q1[med_tier$Brand_Tier == "Luxury"])` sampai `r round(med_tier$q3[med_tier$Brand_Tier == "Luxury"])` juta), sehingga level harga memang berbeda antar segmen, tetapi segmen bukan satu-satunya faktor yang berkaitan dengan harga.
+
+## 3.7 Visualisasi 5: sebaran usia dan jarak tempuh
+
+```{r v5-usia-jarak, fig.width=11, fig.height=4.5}
+med_u <- median(df_clean$Usia_Mobil)
+med_j <- median(df_clean$Jarak_Tempuh_KM) / 1000
+
+v5a <- ggplot(df_clean, aes(x = Usia_Mobil)) +
+  geom_histogram(binwidth = 1, fill = warna_utama, color = "white", alpha = 0.9) +
+  geom_vline(xintercept = med_u, linetype = "dashed", color = warna_sorot) +
+  annotate("text", x = med_u, y = Inf, label = paste0("median ", med_u, " th"),
+           hjust = -0.1, vjust = 2, size = 3.5, color = warna_sorot) +
+  labs(title = "Usia mobil", x = "Usia (tahun)", y = "Jumlah iklan") +
+  theme_minimal()
+
+v5b <- ggplot(df_clean, aes(x = Jarak_Tempuh_KM / 1000)) +
+  geom_histogram(binwidth = 5, fill = warna_utama, color = "white", alpha = 0.9) +
+  geom_vline(xintercept = med_j, linetype = "dashed", color = warna_sorot) +
+  annotate("text", x = med_j, y = Inf, label = paste0("median ", round(med_j, 1), " rb km"),
+           hjust = -0.1, vjust = 2, size = 3.5, color = warna_sorot) +
+  labs(title = "Jarak tempuh", x = "Jarak tempuh (ribu km)", y = "Jumlah iklan") +
+  theme_minimal()
+
+grid.arrange(v5a, v5b, ncol = 2, top = "Sebaran usia dan jarak tempuh")
+```
+
+**Interpretasi.** Setengah iklan berusia paling lama `r med_u` tahun dan berjarak tempuh paling jauh `r round(med_j, 1)` ribu km, dengan `r pct(mean(df_clean$Usia_Mobil <= 8))`% unit berusia paling lama 8 tahun. Keduanya menjulur ke kanan: ada `r sum(df_clean$Usia_Mobil > 25)` mobil klasik berusia lebih dari 25 tahun dan `r sum(df_clean$Jarak_Tempuh_KM > 200000)` unit dengan odometer di atas 200 ribu km. Bentuk histogram jarak tempuh bergerigi karena nilainya tercatat per rentang 5.000 km.
+
+## 3.8 Visualisasi 6: wordcloud judul iklan
+
+```{r v6-wordcloud, fig.width=8, fig.height=6}
+set.seed(2026)
+top_w <- head(freq_kata, 100)
+wordcloud(words = top_w$token, freq = top_w$n_judul, scale = c(4, 0.6),
+          random.order = FALSE, colors = brewer.pal(8, "Dark2"))
+```
+
+**Interpretasi.** Kata terbesar adalah `r paste(head(freq_kata$token, 5), collapse = ", ")`, artinya judul iklan didominasi nama merek, jenis transmisi, dan atribut jual seperti "low km" serta "garansi". Masih ada sedikit noise (misalnya kode promo `dp10`), sehingga stopwords dan kamus normalisasi bisa diperluas pada iterasi berikutnya.
+
+## 3.9 Visualisasi 7: frekuensi kata judul iklan
+
+```{r v7-bar-kata, fig.width=8, fig.height=5}
+freq_kata %>%
+  slice_max(n_judul, n = 15, with_ties = FALSE) %>%
+  ggplot(aes(x = reorder(token, n_judul), y = n_judul)) +
+  geom_col(fill = warna_utama) +
+  geom_text(aes(label = n_judul), hjust = -0.15, size = 3.5) +
+  coord_flip() +
+  scale_y_continuous(expand = expansion(mult = c(0, .12))) +
+  labs(title = "15 Kata Paling Sering Muncul di Judul Iklan",
+       x = NULL, y = "Jumlah judul yang memuat kata") +
+  theme_minimal()
+```
+
+**Interpretasi.** Kata `r freq_kata$token[1]` muncul di `r pct(freq_kata$n_judul[1] / nrow(df_clean))`% judul, disusul `r freq_kata$token[2]` (`r pct(freq_kata$n_judul[2] / nrow(df_clean))`%) dan `r freq_kata$token[3]` (`r pct(freq_kata$n_judul[3] / nrow(df_clean))`%). Kata `garansi` dipakai di `r pct(mean(df_clean$Is_Garansi))`% judul, menunjukkan bahwa penjual cenderung menonjolkan jaminan sebagai nilai jual.
+
+## 3.10 Tiga temuan utama dari eksplorasi
+
+1. **Harga sangat timpang ke kanan.** Median harga Rp `r round(med_h)` juta jauh di bawah rata-rata Rp `r round(mean_h)` juta (skewness `r f2(skew(df_clean$Harga_IDR))`), sehingga harga tipikal sebaiknya diwakili median dan dianalisis pada skala log10 (Visualisasi 1).
+2. **Pasar terkonsentrasi dan tidak seimbang.** Toyota dan Mercedes-Benz menyumbang `r pct((top_merk$n[top_merk$Merk == "Toyota"] + top_merk$n[top_merk$Merk == "Mercedes-Benz"]) / nrow(df_clean))`% iklan, segmen Mass Market `r pct(mean(df_clean$Brand_Tier == "Mass Market"))`%, `r pct(mean(df_clean$Transmisi == "Automatic"))`% mobil otomatik, dan `r pct(mean(df_clean$Tipe_Penjual == "Diler"))`% dijual diler, jadi kelompok kecil seperti Chinese EV dan transmisi manual perlu dibaca hati-hati (Visualisasi 2 dan 3).
+3. **Level harga berbeda jauh antar segmen (Brand Tier).** Median harga Luxury sekitar `r round(med_tier$med[med_tier$Brand_Tier == "Luxury"] / med_tier$med[med_tier$Brand_Tier == "Mass Market"], 1)` kali Mass Market, namun sebaran harga di dalam tiap tier lebar, sehingga faktor lain seperti usia dan jarak tempuh perlu ditelusuri pada analisis hubungan antar peubah (Visualisasi 4).
+
+# 4. HUBUNGAN ANTAR PEUBAH (K5)
+
+## 4.1 Pertanyaan yang ingin dijawab
+
+1. **(Numerik vs numerik)** Apakah mobil dengan usia dan jarak tempuh lebih tinggi cenderung berharga lebih rendah, dan seberapa kuat hubungannya?
+2. **(Numerik vs kategorik/ordinal)** Apakah sebaran harga berbeda antar kelompok odometer, dan antar Brand Tier serta jenis transmisi?
+3. **(Kategorik vs kategorik)** Apakah komposisi bahan bakar berbeda antar Brand Tier?
+4. **(Biner)** Apakah tipe penjual berkaitan dengan adanya garansi, dan apakah transmisi manual atau garansi berkaitan dengan harga?
+
+Semua hubungan yang ditemukan bersifat asosiasi. Korelasi tidak menunjukkan sebab-akibat.
+
+## 4.2 Korelasi antar peubah numerik (Pearson, Spearman, Kendall)
+
+Dipilih korelasi sesuai karakter data. Pearson mengukur hubungan linier dan sensitif terhadap pencilan serta kemiringan. Spearman dan Kendall (berbasis peringkat) tidak terpengaruh pencilan dan cocok untuk data menjulur atau diskret dengan banyak nilai kembar seperti jarak tempuh.
+
+```{r k5-korelasi}
+num_data <- df_clean %>%
+  transmute(Harga = Harga_IDR, Usia = Usia_Mobil,
+            Jarak = Jarak_Tempuh_KM, CC = Kapasitas_CC_valid)
+
+pasangan <- combn(names(num_data), 2, simplify = FALSE)
+tab_kor <- do.call(rbind, lapply(pasangan, function(p) {
+  x <- num_data[[p[1]]]; y <- num_data[[p[2]]]
+  data.frame(Pasangan = paste(p, collapse = " ~ "),
+             n = sum(complete.cases(x, y)),
+             Pearson  = cor(x, y, use = "complete.obs"),
+             Spearman = cor(x, y, use = "complete.obs", method = "spearman"),
+             Kendall  = cor(x, y, use = "complete.obs", method = "kendall"))
+}))
+kable(tab_kor, digits = 2, row.names = FALSE,
+      caption = "Tabel 4.1: Korelasi antar peubah numerik (CC tidak mencakup mobil listrik)")
+kor <- function(pair, metode) tab_kor[tab_kor$Pasangan == pair, metode]
+```
+
+```{r k5-heatmap, fig.width=6.5, fig.height=5}
+cm <- cor(num_data, method = "spearman", use = "pairwise.complete.obs")
+cm_long <- as.data.frame(as.table(cm)) %>%
+  rename(V1 = Var1, V2 = Var2, r = Freq) %>%
+  filter(as.integer(V1) >= as.integer(V2))
+
+p_heat <- ggplot(cm_long, aes(x = V2, y = V1, fill = r)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = sprintf("%.2f", r)), size = 5) +
+  scale_fill_gradient2(low = "#2b83ba", mid = "white", high = "#e46726",
+                       limits = c(-1, 1), name = "Spearman") +
+  scale_y_discrete(limits = rev) +
+  labs(title = "Matriks Korelasi Spearman", x = NULL, y = NULL) +
+  theme_minimal()
+p_heat
+```
+
+**Interpretasi (Q1).** Harga berhubungan negatif dengan jarak tempuh (Spearman `r f2(kor("Harga ~ Jarak", "Spearman"))`, Kendall `r f2(kor("Harga ~ Jarak", "Kendall"))`) dan dengan usia (Spearman `r f2(kor("Harga ~ Usia", "Spearman"))`): mobil yang lebih tua atau lebih jauh dipakai cenderung lebih murah. Hubungan harga dengan kapasitas mesin positif (Spearman `r f2(kor("Harga ~ CC", "Spearman"))`). Pearson jauh lebih kecil dari Spearman untuk harga~jarak (`r f2(kor("Harga ~ Jarak", "Pearson"))` vs `r f2(kor("Harga ~ Jarak", "Spearman"))`) dan harga~usia (`r f2(kor("Harga ~ Usia", "Pearson"))` vs `r f2(kor("Harga ~ Usia", "Spearman"))`), karena hubungan bersifat monoton tetapi tidak linier, dan harga menjulur dengan pencilan. Memakai Pearson saja akan meremehkan hubungannya. Usia dan jarak tempuh saling berkorelasi kuat (Spearman `r f2(kor("Usia ~ Jarak", "Spearman"))`), jadi keduanya membawa informasi yang mirip.
+
+## 4.3 Jarak tempuh vs harga menurut Brand Tier (numerik vs numerik)
+
+```{r k5-viz-utama, fig.width=10, fig.height=6}
+p_utama <- ggplot(df_clean, aes(x = Jarak_Tempuh_KM / 1000, y = Harga_Juta)) +
+  geom_jitter(width = 1.5, height = 0, alpha = 0.3, color = "#2c3e50", size = 1) +
+  geom_smooth(method = "loess", se = FALSE, color = "#e74c3c") +
+  scale_y_log10(labels = comma) +
+  facet_wrap(~ Brand_Tier) +
+  labs(title = "Makin Jauh Jarak Tempuh, Harga Mobil Bekas Cenderung Turun",
+       subtitle = "Setiap titik = 1 iklan; garis merah = tren (loess); sumbu harga skala log10",
+       x = "Jarak tempuh (ribu km)", y = "Harga (juta Rp, log10)") +
+  theme_minimal()
+p_utama
+
+kor_tier <- df_clean %>%
+  group_by(Brand_Tier) %>%
+  summarise(n = n(),
+            Spearman_Jarak_Harga = cor(Jarak_Tempuh_KM, Harga_IDR, method = "spearman"),
+            Spearman_Usia_Harga  = cor(Usia_Mobil, Harga_IDR, method = "spearman"),
+            .groups = "drop")
+kable(kor_tier, digits = 2, caption = "Tabel 4.2: Korelasi Spearman terhadap harga per Brand Tier")
+```
+
+**Interpretasi.** Pola menurun terlihat di keempat Brand Tier: Spearman jarak~harga berkisar `r f2(min(kor_tier$Spearman_Jarak_Harga))` sampai `r f2(max(kor_tier$Spearman_Jarak_Harga))`. Level harga berbeda antar tier (Luxury tertinggi), tetapi arah hubungannya sama. Garis vertikal titik terjadi karena jarak tempuh tercatat dalam rentang 5.000 km.
+
+## 4.4 Usia mobil vs harga (numerik x numerik x kategorik)
+
+```{r k5-usia-harga}
+ggplot(df_clean, aes(x = Usia_Mobil, y = Harga_Juta, color = Brand_Tier)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_log10(labels = comma) +
+  scale_color_manual(values = pal_tier) +
+  labs(title = "Usia Mobil vs Harga per Brand Tier",
+       x = "Usia mobil (tahun)", y = "Harga (juta Rp, log10)", color = "Brand Tier") +
+  theme_minimal()
+```
+
+```{r k5-slope}
+slope_tier <- df_clean %>%
+  group_by(Brand_Tier) %>%
+  summarise(Slope_log10 = coef(lm(log10(Harga_IDR) ~ Usia_Mobil))[2],
+            R2 = summary(lm(log10(Harga_IDR) ~ Usia_Mobil))$r.squared,
+            .groups = "drop") %>%
+  mutate(Turun_persen_per_tahun = 100 * (1 - 10^Slope_log10))
+kable(slope_tier, digits = 3,
+      caption = "Tabel 4.3: Kemiringan garis regresi log10(harga) terhadap usia per Brand Tier")
+
+med_15_25 <- median(df_clean$Harga_Juta[df_clean$Usia_Mobil > 15 & df_clean$Usia_Mobil <= 25])
+med_25p   <- median(df_clean$Harga_Juta[df_clean$Usia_Mobil > 25])
+```
+
+**Interpretasi.** Tiap tahun usia bertambah, harga cenderung turun pada semua tier (garis regresi pada skala log menurun). Kemiringannya berbeda: Chinese EV turun sekitar `r round(slope_tier$Turun_persen_per_tahun[slope_tier$Brand_Tier == "Chinese EV"])`% per tahun, Luxury `r round(slope_tier$Turun_persen_per_tahun[slope_tier$Brand_Tier == "Luxury"])`%, Mass Market `r round(slope_tier$Turun_persen_per_tahun[slope_tier$Brand_Tier == "Mass Market"])`%, dan Other `r round(slope_tier$Turun_persen_per_tahun[slope_tier$Brand_Tier == "Other"])`% (dengan R2 rendah, hanya `r f2(slope_tier$R2[slope_tier$Brand_Tier == "Other"])`), sehingga pengaruh usia terhadap harga tidak sama untuk semua segmen (indikasi efek interaksi usia x Brand Tier). Pada usia di atas 15 tahun median harga mendatar (Rp `r round(med_15_25)` juta untuk usia 16-25 tahun dan Rp `r round(med_25p)` juta untuk di atas 25 tahun), sehingga garis linier kurang pas di ujung kanan grafik.
+
+## 4.5 Harga menurut kelompok odometer (numerik vs ordinal)
+
+```{r k5-odometer}
+ggplot(df_clean, aes(x = Odometer_Group, y = Harga_Juta, fill = Odometer_Group)) +
+  geom_violin(alpha = 0.6, show.legend = FALSE) +
+  geom_boxplot(width = 0.15, fill = "white", outlier.alpha = 0.3) +
+  scale_y_log10(labels = comma) +
+  labs(title = "Sebaran Harga per Kelompok Odometer",
+       x = "Kelompok odometer", y = "Harga (juta Rp, log10)") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 10, hjust = 1))
+
+odo_num <- as.integer(df_clean$Odometer_Group)
+rho_odo <- cor(odo_num, df_clean$Harga_IDR, method = "spearman")
+tau_odo <- cor(odo_num, df_clean$Harga_IDR, method = "kendall")
+```
+
+**Interpretasi.** Median harga turun konsisten dari kelompok odometer rendah ke tinggi. Karena `Odometer_Group` bersifat ordinal, dipakai korelasi peringkat: Spearman `r f2(rho_odo)` dan Kendall `r f2(tau_odo)` (negatif, hubungan sedang sampai kuat). Sebaran harga antar kelompok tumpang tindih, jadi jarak tempuh saja tidak cukup menjelaskan harga (merek dan kelas mobil ikut berperan).
+
+## 4.6 Harga menurut Brand Tier dan transmisi (numerik vs kategorik)
+
+```{r k5-tier-transmisi}
+ggplot(df_clean, aes(x = Brand_Tier, y = Harga_Juta, fill = Transmisi)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  scale_y_log10(labels = comma) +
+  labs(title = "Harga menurut Brand Tier dan Transmisi",
+       x = "Brand Tier", y = "Harga (juta Rp, log10)") +
+  theme_minimal()
+
+kable(df_clean %>% group_by(Brand_Tier, Transmisi) %>%
+        summarise(n = n(), Median_Harga_Juta = median(Harga_Juta), .groups = "drop"),
+      digits = 0, caption = "Tabel 4.4: Median harga per Brand Tier dan Transmisi")
+```
+
+**Interpretasi.** Median harga Luxury (Rp `r round(median(df_clean$Harga_Juta[df_clean$Brand_Tier == "Luxury"]))` juta) jauh di atas Mass Market (`r round(median(df_clean$Harga_Juta[df_clean$Brand_Tier == "Mass Market"]))` juta) dan Chinese EV (`r round(median(df_clean$Harga_Juta[df_clean$Brand_Tier == "Chinese EV"]))` juta). Di dalam tier yang sama, unit manual umumnya lebih murah daripada otomatik, tetapi jumlah unit manual per tier kecil (lihat kolom n), jadi perbandingannya harus dibaca hati-hati.
+
+## 4.7 Brand Tier vs bahan bakar (kategorik vs kategorik)
+
+```{r k5-tier-bbm}
+ggplot(df_clean, aes(x = Brand_Tier, fill = Tipe_Bahan_Bakar)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  labs(title = "Komposisi Bahan Bakar per Brand Tier",
+       x = NULL, y = "Proporsi", fill = "Bahan bakar") +
+  theme_minimal()
+
+tb <- table(df_clean$Brand_Tier, df_clean$Tipe_Bahan_Bakar)
+kable(round(prop.table(tb, 1), 2), caption = "Tabel 4.5: Proporsi bahan bakar per Brand Tier (baris = 100%)")
+
+chi <- suppressWarnings(chisq.test(tb))
+cramer_v <- sqrt(unname(chi$statistic) / (sum(tb) * (min(dim(tb)) - 1)))
+```
+
+**Interpretasi.** Komposisi bahan bakar berbeda antar tier: `r round(100 * prop.table(tb, 1)["Chinese EV", "Listrik"])`% Chinese EV berbahan bakar listrik, sedangkan mobil Luxury didominasi bensin (`r round(100 * prop.table(tb, 1)["Luxury", "Bensin"])`%). Ukuran keeratan Cramer's V = `r f2(cramer_v)` (hubungan lemah sampai sedang). Perlu dicatat, beberapa sel tabel berisi hitungan sangat kecil, jadi angka proporsinya kurang stabil.
+
+## 4.8 Peubah biner: tipe penjual, garansi, transmisi, dan harga
+
+Untuk dua peubah biner dipakai koefisien phi, dan untuk peubah biner vs numerik dipakai point-biserial (keduanya turunan korelasi Pearson). Harga ditransformasi log10 agar lebih simetris.
+
+```{r k5-biner}
+df_bin <- df_clean %>%
+  mutate(manual  = as.integer(Transmisi == "Manual"),
+         garansi = as.integer(Is_Garansi),
+         diler   = as.integer(Tipe_Penjual == "Diler"),
+         log_harga = log10(Harga_IDR))
+
+tab_bin <- data.frame(
+  Pasangan = c("Transmisi manual ~ log10(Harga)", "Garansi ~ log10(Harga)", "Diler ~ Garansi"),
+  Ukuran   = c("point-biserial", "point-biserial", "phi"),
+  r        = c(cor(df_bin$manual, df_bin$log_harga),
+               cor(df_bin$garansi, df_bin$log_harga),
+               cor(df_bin$diler, df_bin$garansi))
+)
+kable(tab_bin, digits = 3, caption = "Tabel 4.6: Korelasi untuk peubah biner")
+```
+
+```{r k5-garansi-plot, fig.height=4.5}
+ggplot(df_clean, aes(x = Tipe_Penjual, fill = Is_Garansi)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values = c("grey70", "#27ae60"),
+                    labels = c("Tanpa garansi", "Bergaransi")) +
+  labs(title = "Proporsi Iklan Bergaransi menurut Tipe Penjual",
+       x = NULL, y = "Proporsi", fill = NULL) +
+  theme_minimal()
+```
+
+**Interpretasi.** Transmisi manual berkorelasi negatif sedang dengan harga (r = `r f2(tab_bin$r[1])`), tetapi hanya `r sum(df_clean$Transmisi == "Manual")` unit manual, dan mobil manual jauh lebih tua (median usia `r median(df_clean$Usia_Mobil[df_clean$Transmisi == "Manual"])` tahun vs `r median(df_clean$Usia_Mobil[df_clean$Transmisi == "Automatic"])` tahun pada otomatik), sehingga usia ikut bercampur dalam perbedaan harga ini dan tidak boleh disimpulkan bahwa "transmisi manual menurunkan harga". Adanya kata garansi hampir tidak berkorelasi dengan harga (r = `r f2(tab_bin$r[2])`). Phi diler~garansi = `r f2(tab_bin$r[3])` (lemah positif): iklan bergaransi hampir seluruhnya dari diler (hanya `r sum(df_clean$Is_Garansi & df_clean$Tipe_Penjual == "Individu")` dari `r sum(df_clean$Is_Garansi)` iklan bergaransi berasal dari penjual individu), tetapi sebagian besar iklan diler pun tidak menyebut garansi (`r round(100 * mean(!df_clean$Is_Garansi[df_clean$Tipe_Penjual == "Diler"]))`%).
+
+# 5. KESIMPULAN DAN KANDIDAT INFOGRAFIS
+
+**Ringkasan temuan**
+
+1. Harga mobil bekas turun seiring bertambahnya jarak tempuh dan usia (Spearman jarak~harga `r f2(kor("Harga ~ Jarak", "Spearman"))`, usia~harga `r f2(kor("Harga ~ Usia", "Spearman"))`). Pearson meremehkan hubungan ini (jarak~harga hanya `r f2(kor("Harga ~ Jarak", "Pearson"))`) karena harga menjulur dan ada pencilan.
+2. Level harga berbeda jauh antar segmen merek (Brand Tier), sementara pola "makin jauh makin murah" muncul di semua tier.
+3. Bahan bakar berkaitan dengan Brand Tier (Cramer's V = `r f2(cramer_v)`): mobil listrik hampir seluruhnya berasal dari Chinese EV.
+4. Garansi hampir hanya ada di iklan diler dan tidak berkorelasi dengan harga.
+
+**Keterbatasan.** Semua hubungan di atas adalah asosiasi, bukan sebab-akibat. Data adalah harga tawaran (bukan harga transaksi) pada satu waktu, jarak tempuh berupa rentang, dan iklan dari diler yang sama tidak sepenuhnya independen.
+
+**Visualisasi utama untuk infografis kelompok:** scatter plot jarak tempuh vs harga per Brand Tier (Bagian 4.3). Alasannya: (a) menampilkan hubungan terkuat dan paling mudah dipahami awam, (b) pola yang sama konsisten di empat segmen sehingga pesannya jelas, dan (c) selisih Pearson vs Spearman memberi insight tambahan yang bisa ditampilkan sebagai catatan kecil.

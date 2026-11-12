@@ -1,0 +1,625 @@
+---
+title: "Pengantar Sains Data - Data Mobil Bekas Jakarta"
+subtitle: "Pipeline Lengkap: Data Gathering (K2) | Data Management (K3) | Eksplorasi & Visualisasi (K4) | Hubungan Peubah & Variable Selection (K5)"
+author: "Dzulfikar Najib"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: false
+    theme: flatly
+    highlight: tango
+---
+
+```{r}
+# Pasang otomatis paket yang belum ada
+# pkgs <- c("readxl", "writexl", "dplyr", "tidyr", "ggplot2", "scales", "knitr",
+          # "stringr", "gridExtra", "wordcloud", "RColorBrewer", "e1071")
+# miss <- setdiff(pkgs, rownames(installed.packages()))
+# if (length(miss)) install.packages(miss, repos = "[https://cloud.r-project.org](https://cloud.r-project.org)")
+# invisible(lapply(pkgs, library, character.only = TRUE))
+```
+
+```{r}
+library("readxl")
+library("writexl")
+library("dplyr")
+library("tidyr")
+library("ggplot2")
+library("scales")
+library("knitr")
+library("stringr")
+library("gridExtra")
+library("wordcloud")
+library("RColorBrewer")
+library("e1071")
+```
+
+```{r}
+knitr::opts_chunk$set(
+  echo = TRUE, warning = FALSE, message = FALSE,
+  fig.width = 9, fig.height = 5.5
+)
+options(scipen = 999)                            # Hindari notasi ilmiah
+f2 <- function(x) sprintf("%.2f", x)             # Pembulat desimal
+pct <- function(x) round(100 * x)                # Proporsi ke persen
+
+# Palet konsisten
+warna_utama <- "#2c3e50"
+warna_sorot <- "#e74c3c"
+pal_tier <- c("Mass Market" = "#2c3e50", "Luxury" = "#c0392b",
+              "Chinese EV" = "#27ae60", "Other" = "#95a5a6")
+```
+
+# 1. LOAD DATA MENTAH (HASIL K2 SCRAPING)
+Data awal berasal dari file mentah hasil scraping API OLX Indonesia (PSD_DATA_MOBIL_JAKARTA_FULL.xlsx).
+
+```{r}
+file_full <- "PSD_DATA_MOBIL_JAKARTA_FULL.xlsx"
+
+if (!file.exists(file_full)) {
+  stop("File PSD_DATA_MOBIL_JAKARTA_FULL.xlsx tidak ditemukan di working directory!")
+}
+
+df_raw <- read_excel(file_full)
+
+kable(data.frame(
+  Metrik = c("Jumlah baris (observasi)", "Jumlah kolom (peubah)"),
+  Nilai  = c(nrow(df_raw), ncol(df_raw))
+), caption = "Tabel 1.1: Dimensi Dataset Mentah (K2 Scraping)")
+
+health_raw <- data.frame(
+  Kolom     = colnames(df_raw),
+  Tipe_Data = sapply(df_raw, function(x) paste(class(x), collapse = ", ")),
+  Jumlah_NA = sapply(df_raw, function(x) sum(is.na(x)))
+)
+kable(health_raw, row.names = FALSE,
+      caption = "Tabel 1.2: Pemeriksaan awal dataset mentah")
+```
+
+
+# 2. MANAJEMEN DATA & FEATURE ENGINEERING (K3)
+## 2.1 Helper Function RegEx untuk Ekstraksi Numerik
+
+```{r}
+# Helper 1: Membersihkan Harga_Teks menjadi angka numerik murni
+clean_harga_regex <- function(x) {
+  if (is.na(x)) return(NA_real_)
+  x_nodot <- str_remove_all(as.character(x), "[.]")
+  digits <- str_extract_all(x_nodot, "[0-9]+")[[1]]
+  if (length(digits) > 0) return(as.numeric(paste0(digits, collapse = "")))
+  return(NA_real_)
+}
+
+# Helper 2: Membersihkan range Jarak_Tempuh menjadi nilai midpoint numerik
+clean_mileage_regex <- function(x) {
+  if (is.na(x)) return(NA_real_)
+  x_nodot <- str_remove_all(as.character(x), "[.]")
+  nums <- as.numeric(str_extract_all(x_nodot, "\\d+")[[1]])
+  if (length(nums) >= 2) return(mean(nums[1:2]))
+  if (length(nums) == 1) return(nums[1])
+  return(NA_real_)
+}
+```
+
+## 2.2 Tahap 1: Deduplikasi, RegEx Feature Extraction, & Filtering Awal
+
+```{r}
+df_managed <- df_raw %>%
+  # 1. Deduplikasi berbasis URL_Detail
+  distinct(URL_Detail, .keep_all = TRUE) %>%
+  
+  # 2. RegEx Processing & Cleaning
+  mutate(
+    Harga_Clean     = sapply(Harga_Teks, clean_harga_regex),
+    Odometer_KM     = sapply(Jarak_Tempuh, clean_mileage_regex),
+    
+    # Ekstraksi Liter Mesin dari Judul (misal 2.4, 1.5)
+    Liter_Mesin     = as.numeric(str_extract(Judul, "\\b(\\d\\.\\d)\\b")),
+    
+    # Konversi Kapasitas_Mesin (Text Range) ke Midpoint CC
+    CC_Mesin        = case_when(
+      str_detect(Kapasitas_Mesin, "<1.000") ~ 850,
+      str_detect(Kapasitas_Mesin, "1.000 - 1.500") ~ 1250,
+      str_detect(Kapasitas_Mesin, "1.500 - 2.000") ~ 1750,
+      str_detect(Kapasitas_Mesin, "2.000 - 3.000") ~ 2500,
+      str_detect(Kapasitas_Mesin, ">3.000") ~ 3500,
+      TRUE ~ NA_real_
+    ),
+    
+    # CC Final (Hybrid: Liter_Mesin * 1000 jika ada, fallback ke CC_Mesin)
+    CC_Final        = ifelse(!is.na(Liter_Mesin), Liter_Mesin * 1000, CC_Mesin),
+    
+    # RegEx Boolean Flags dari Judul
+    Is_Garansi      = str_detect(Judul, "(?i)GARANSI"),
+    Is_KM_Low       = str_detect(Judul, "(?i)KM\\s*LOW|LOW\\s*KM|ANTIK"),
+    Is_Facelift     = str_detect(Judul, "(?i)FACELIFT|FL|LCI"),
+    Is_Sport_Trim   = str_detect(Judul, "(?i)AMG|TRD|RS|SPORT|M-SPORT"),
+    Is_Promo_DP     = str_detect(Judul, "(?i)TDP|DP\\s*\\d+|DP\\s*MURAH"),
+    
+    # Transformasi Usia Mobil
+    Tahun_Num       = as.numeric(Tahun),
+    Usia_Mobil      = 2026 - Tahun_Num,
+    
+    # Klasifikasi Brand Tier
+    Brand_Tier      = case_when(
+      toupper(Merk) %in% c("MERCEDES-BENZ", "BMW", "LEXUS", "AUDI", "PORSCHE", "MINI", "LAND ROVER") ~ "Luxury",
+      toupper(Merk) %in% c("TOYOTA", "HONDA", "MITSUBISHI", "SUZUKI", "DAIHATSU", "NISSAN", "MAZDA", "HYUNDAI") ~ "Mass Market",
+      toupper(Merk) %in% c("WULING", "CHERY", "BYD", "MG") ~ "Chinese EV",
+      TRUE ~ "Other"
+    ),
+    
+    # Binning Odometer (Ordered Factor)
+    Odometer_Group  = cut(
+      Odometer_KM,
+      breaks = c(-1, 20000, 50000, 100000, 1000000),
+      labels = c("<20k (Sangat Low)", "20k-50k (Low)", "50k-100k (Sedang)", ">100k (Tinggi)"),
+      ordered_result = TRUE
+    )
+  ) %>%
+  
+  # Outlier & Price Filtering Awal
+  filter(
+    Harga_Clean >= 30000000 & Harga_Clean <= 5000000000,
+    !is.na(Odometer_KM)
+  )
+
+# Export otomatis file intermediate MANAGED2
+write_xlsx(df_managed, "PSD_DATA_MOBIL_JAKARTA_MANAGED2.xlsx")
+cat("File intermediate 'PSD_DATA_MOBIL_JAKARTA_MANAGED2.xlsx' berhasil disimpan (", nrow(df_managed), "baris).\n")
+```
+
+## 2.3 Tahap 2: Filter Murni DKI Jakarta & Pembersihan Final (drop_na())
+```{r}
+# Filter lokasi khusus DKI Jakarta & buang missing value
+df_final_clean <- df_managed %>%
+  filter(Provinsi == "Jakarta D.K.I.") %>%  # Buang data non-DKI
+  select(
+    Judul, URL_Detail, Provinsi, Kota_Kabupaten, Merk, Model, Brand_Tier,
+    Tahun = Tahun_Num, Usia_Mobil,
+    Harga_IDR = Harga_Clean, Jarak_Tempuh_KM = Odometer_KM, Odometer_Group,
+    Kapasitas_Mesin_CC = CC_Final, Tipe_Bahan_Bakar, Transmisi, Tipe_Bodi, Warna,
+    Tipe_Penjual, Is_Garansi, Is_KM_Low, Is_Facelift, Is_Sport_Trim, Is_Promo_DP
+  ) %>%
+  drop_na()                                # Pastikan 0 Missing Value
+
+# Export otomatis file final bersih
+write_xlsx(df_final_clean, "PSD_DATA_MOBIL_JAKARTA_FINAL_CLEAN.xlsx")
+cat("File final 'PSD_DATA_MOBIL_JAKARTA_FINAL_CLEAN.xlsx' berhasil disimpan (", nrow(df_final_clean), "baris, 0 NA).\n")
+```
+
+## 2.4 Penyesuaian Tipe Data & Format Kolom
+
+```{r}
+df_clean <- df_final_clean %>%
+  mutate(across(where(is.character), ~ str_squish(str_replace_all(., "\u00a0", " ")))) %>%
+  mutate(across(starts_with("Is_"), as.logical)) %>%
+  mutate(across(c(Provinsi, Kota_Kabupaten, Merk, Model, Brand_Tier,
+                  Tipe_Bahan_Bakar, Transmisi, Tipe_Bodi, Warna, Tipe_Penjual), as.factor)) %>%
+  mutate(
+    Harga_Juta = Harga_IDR / 1e6,
+    Kapasitas_CC_valid = if_else(Tipe_Bahan_Bakar == "Listrik", NA_real_, as.numeric(Kapasitas_Mesin_CC))
+  )
+
+glimpse(df_clean)
+```
+
+
+## 2.5 Ringkasan Kualitas Data Final
+
+```{r}
+kualitas <- data.frame(
+  Pemeriksaan = c("Total baris data mentah (FULL)",
+                  "Total baris setelah Data Management (MANAGED2)",
+                  "Total baris final murni DKI & 0 NA (FINAL_CLEAN)",
+                  "URL iklan duplikat",
+                  "Judul iklan duplikat",
+                  "Iklan di luar DKI Jakarta (dalam dataset final)",
+                  "Mobil berusia > 25 tahun (mobil klasik)"),
+  Jumlah = c(nrow(df_raw), nrow(df_managed), nrow(df_clean),
+             sum(duplicated(df_clean$URL_Detail)),
+             sum(duplicated(df_clean$Judul)),
+             sum(df_clean$Provinsi != "Jakarta D.K.I."),
+             sum(df_clean$Usia_Mobil > 25))
+)
+kable(kualitas, caption = "Tabel 2.1: Ringkasan pemeriksaan kualitas data final")
+```
+
+
+# 3. EKSPLORASI DAN VISUALISASI DATA (K4)
+## 3.1 Ringkasan Statistik Deskriptif (Peubah Numerik)
+
+```{r}
+skew <- function(x) { x <- x[!is.na(x)]; mean((x - mean(x))^3) / mean((x - mean(x))^2)^1.5 }
+iqr_out <- function(x) {
+  q <- quantile(x, c(.25, .75)); i <- q[2] - q[1]
+  sum(x < q[1] - 1.5 * i | x > q[2] + 1.5 * i)
+}
+
+num_vars <- c("Harga_IDR", "Usia_Mobil", "Jarak_Tempuh_KM", "Kapasitas_Mesin_CC")
+
+num_summary <- df_clean %>%
+  select(all_of(num_vars)) %>%
+  pivot_longer(everything(), names_to = "Variabel", values_to = "nilai") %>%
+  group_by(Variabel) %>%
+  summarise(Mean = mean(nilai), SD = sd(nilai), Median = median(nilai), IQR = IQR(nilai),
+            Min = min(nilai), Max = max(nilai), Skewness = skew(nilai),
+            Pencilan_IQR = iqr_out(nilai), .groups = "drop")
+
+kable(num_summary, digits = 2, caption = "Tabel 3.1: Statistik deskriptif peubah numerik")
+```
+
+## 3.2 Visualisasi 1: Sebaran Harga
+
+```{r}
+med_h  <- median(df_clean$Harga_Juta)
+mean_h <- mean(df_clean$Harga_Juta)
+
+v1a <- ggplot(df_clean, aes(x = Harga_Juta)) +
+  geom_histogram(bins = 40, fill = warna_utama, color = "white", alpha = 0.9) +
+  geom_vline(xintercept = med_h,  linetype = "dashed", color = warna_sorot) +
+  geom_vline(xintercept = mean_h, linetype = "solid",  color = warna_sorot) +
+  annotate("text", x = med_h,  y = Inf, label = paste0("median ", round(med_h)),
+           hjust = 0.75, vjust = 1.0, size = 2.5, color = warna_sorot) +
+  annotate("text", x = mean_h, y = Inf, label = paste0("rata-rata ", round(mean_h)),
+           hjust = -0.1, vjust = 3.0, size = 2.5, color = warna_sorot) +
+  scale_x_continuous(labels = comma) +
+  labs(title = "Skala Asli", x = "Harga (juta Rp)", y = "Jumlah Iklan") +
+  theme_minimal()
+
+v1b <- ggplot(df_clean, aes(x = Harga_Juta)) +
+  geom_histogram(bins = 40, fill = warna_utama, color = "white", alpha = 0.9) +
+  geom_vline(xintercept = med_h, linetype = "dashed", color = warna_sorot) +
+  scale_x_log10(labels = comma) +
+  labs(title = "Skala Log10", x = "Harga (juta Rp, skala log10)", y = "Jumlah Iklan") +
+  theme_minimal()
+
+grid.arrange(v1a, v1b, ncol = 2, top = "Sebaran Harga Mobil Bekas")
+```
+
+## 3.3 Visualisasi 2: Top 10 Merek Terbanyak
+
+```{r}
+top_merk <- df_clean %>%
+  count(Merk, sort = TRUE) %>%
+  slice_max(n, n = 10, with_ties = FALSE) %>%
+  mutate(sorot = row_number() <= 2,
+         Merk = reorder(as.character(Merk), n))
+
+ggplot(top_merk, aes(x = Merk, y = n, color = sorot)) +
+  geom_segment(aes(xend = Merk, y = 0, yend = n), linewidth = 1) +
+  geom_point(size = 4) +
+  geom_text(aes(label = n), hjust = -0.7, size = 3.5, color = "grey20") +
+  coord_flip() +
+  scale_color_manual(values = c("TRUE" = warna_sorot, "FALSE" = "grey60"), guide = "none") +
+  scale_y_continuous(expand = expansion(mult = c(0, .15))) +
+  labs(title = "10 Merk Paling Banyak Diiklankan", x = NULL, y = "Jumlah Iklan") +
+  theme_minimal()
+```
+
+## 3.4 Visualisasi 3: Komposisi Brand Tier (Donut Chart)
+
+```{r}
+tier_prop <- df_clean %>%
+  count(Brand_Tier) %>%
+  mutate(p = n / sum(n), label = paste0(pct(p), "%"))
+
+ggplot(tier_prop, aes(x = 2, y = p, fill = Brand_Tier)) +
+  geom_col(width = 1, color = "white") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5),
+            color = "white", size = 4.2, fontface = "bold") +
+  coord_polar(theta = "y") +
+  xlim(0.5, 2.5) +
+  scale_fill_manual(values = pal_tier) +
+  labs(title = "Komposisi Iklan menurut Brand Tier", fill = "Brand Tier") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+## 3.5 Visualisasi 4: Harga menurut Brand Tier
+
+```{r}
+med_tier <- df_clean %>%
+  group_by(Brand_Tier) %>%
+  summarise(n = n(), med = median(Harga_Juta),
+            q1 = quantile(Harga_Juta, .25), q3 = quantile(Harga_Juta, .75),
+            .groups = "drop") %>%
+  arrange(med)
+tier_ord <- as.character(med_tier$Brand_Tier)
+
+df_v4 <- df_clean %>% mutate(Tier_o = factor(as.character(Brand_Tier), levels = tier_ord))
+med_lab <- med_tier %>%
+  mutate(Tier_o = factor(as.character(Brand_Tier), levels = tier_ord),
+         label = paste0("median ", round(med), " jt"))
+
+ggplot(df_v4, aes(x = Tier_o, y = Harga_Juta, fill = Brand_Tier)) +
+  geom_boxplot(outlier.alpha = 0.25, alpha = 0.65, show.legend = FALSE) +
+  geom_label(data = med_lab, aes(x = Tier_o, y = med, label = label),
+             inherit.aes = FALSE, size = 3, fill = "white", alpha = 0.9) +
+  scale_fill_manual(values = pal_tier) +
+  scale_y_log10(labels = comma) +
+  labs(title = "Sebaran Harga menurut Brand Tier", x = NULL, y = "Harga (juta Rp, skala log10)") +
+  theme_minimal()
+```
+
+## 3.6 Text Mining: Preprocessing & Wordcloud Judul Iklan
+
+```{r}
+teks_bersih <- df_clean$Judul %>%
+  str_to_lower() %>%
+  str_remove_all("https?://\\S+|www\\.\\S+") %>%
+  str_replace_all("[^\\x20-\\x7E]", " ") %>%
+  str_replace_all("[^a-z0-9 ]", " ") %>%
+  str_squish()
+
+tokens_all <- tibble(id = seq_along(teks_bersih), teks = teks_bersih) %>%
+  mutate(token = str_split(teks, " ")) %>%
+  select(id, token) %>%
+  unnest(token) %>%
+  filter(token != "")
+
+stop_id <- c("dan", "atau", "yang", "yg", "di", "ke", "dari", "untuk", "dengan",
+             "dgn", "dg", "the", "and", "of", "for", "new", "jual", "dijual",
+             "mobil", "bekas", "second", "murah", "siap", "pakai", "bisa", "bs",
+             "nego", "km", "rb", "ribu", "jt", "juta", "tahun", "thn", "th",
+             "tgn", "tangan", "pajak", "pjk", "pkp", "plat", "nik", "tt",
+             "ori", "original", "istimewa", "terawat", "kondisi", "mulus",
+             "sangat", "asli", "harga", "cash", "kredit", "unit", "type", "tipe",
+             "series", "edition", "stok", "ready", "free", "hub", "wa", "info",
+             "cek", "only", "best", "deal", "no", "sd", "s", "sk")
+
+kamus_norm <- c(mercy = "mercedes", benz = "mercedes", bergaransi = "garansi",
+                automatik = "matic", automatic = "matic", at = "matic", mt = "manual")
+
+tokens <- tokens_all %>%
+  mutate(token = coalesce(unname(kamus_norm[token]), token)) %>%
+  filter(nchar(token) >= 2,
+         !str_detect(token, "^[0-9]+(rb|ribu|jt|juta|k|th|thn|tahun)?$"),
+         !token %in% stop_id) %>%
+  distinct(id, token)
+
+freq_kata <- tokens %>% count(token, sort = TRUE, name = "n_judul")
+```
+
+```{r}
+set.seed(2026)
+wordcloud(words = head(freq_kata, 100)$token, freq = head(freq_kata, 100)$n_judul,
+          scale = c(4, 0.6), random.order = FALSE, colors = brewer.pal(8, "Dark2"))
+```
+
+# 4. HUBUNGAN ANTAR PEUBAH & VARIABLE SELECTION (K5)
+## 4.1 Matriks Korelasi Peubah Numerik
+```{r}
+num_data <- df_clean %>%
+  transmute(Harga = Harga_IDR, Usia = Usia_Mobil,
+            Jarak = Jarak_Tempuh_KM, CC = Kapasitas_CC_valid)
+
+pasangan <- combn(names(num_data), 2, simplify = FALSE)
+tab_kor <- do.call(rbind, lapply(pasangan, function(p) {
+  x <- num_data[[p[1]]]; y <- num_data[[p[2]]]
+  data.frame(Pasangan = paste(p, collapse = " ~ "),
+             n = sum(complete.cases(x, y)),
+             Pearson  = cor(x, y, use = "complete.obs"),
+             Spearman = cor(x, y, use = "complete.obs", method = "spearman"),
+             Kendall  = cor(x, y, use = "complete.obs", method = "kendall"))
+}))
+kable(tab_kor, digits = 2, row.names = FALSE, caption = "Tabel 4.1: Korelasi antar peubah numerik")
+```
+
+## 4.2 Scatter Plot Jarak Tempuh vs Harga per Brand Tier
+```{r}
+ggplot(df_clean, aes(x = Jarak_Tempuh_KM / 1000, y = Harga_Juta)) +
+  geom_jitter(width = 1.5, height = 0, alpha = 0.3, color = "#2c3e50", size = 1) +
+  geom_smooth(method = "loess", se = FALSE, color = "#e74c3c") +
+  scale_y_log10(labels = comma) +
+  facet_wrap(~ Brand_Tier) +
+  labs(title = "Makin Jauh Jarak Tempuh, Harga Mobil Bekas Cenderung Turun",
+       subtitle = "Setiap titik = 1 iklan; garis merah = tren (loess); sumbu harga skala log10",
+       x = "Jarak Tempuh (ribu km)", y = "Harga (juta Rp, log10)") +
+  theme_minimal()
+```
+
+
+## 4.3 Variable Selection (Filtering Method)
+Menggunakan kriteria Near-Zero Variance dan Eta-Squared (Kruskal-Wallis) untuk memilih fitur yang paling informatif.
+
+```{r}
+# 1. Daftar fitur kategorik (Keluarkan 'Provinsi' karena nilainya seragam murni DKI)
+fitur_kategorik <- c("Merk", "Brand_Tier", "Tipe_Bahan_Bakar", "Transmisi",
+                     "Tipe_Bodi", "Warna", "Tipe_Penjual")
+
+# 2. Uji Kruskal-Wallis & kalkulasi Eta-Squared
+rel_kategorik <- do.call(rbind, lapply(fitur_kategorik, function(v) {
+  # Proteksi: lewati fitur jika kategorinya kurang dari 2
+  if (length(unique(df_clean[[v]])) < 2) return(NULL)
+  
+  k <- kruskal.test(df_clean$Harga_IDR, as.factor(df_clean[[v]]))
+  n <- nrow(df_clean)
+  kgrp <- length(unique(df_clean[[v]]))
+  eta2 <- unname((k$statistic - kgrp + 1) / (n - kgrp))
+  
+  data.frame(Fitur = v, N_kategori = kgrp, Eta_squared = eta2)
+})) %>% arrange(desc(Eta_squared))
+
+kable(rel_kategorik, digits = 3, row.names = FALSE,
+      caption = "Tabel 4.2: Evaluasi Relevansi Fitur Kategorik terhadap Harga (Eta-Squared)")
+```
+
+## 4.4 Usia Mobil vs Harga (Numerik x Numerik x Kategorik)
+
+```{r}
+ggplot(df_clean, aes(x = Usia_Mobil, y = Harga_Juta, color = Brand_Tier)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_log10(labels = comma) +
+  scale_color_manual(values = pal_tier) +
+  labs(title = "Usia Mobil vs Harga per Brand Tier",
+       x = "Usia Mobil (tahun)", y = "Harga (juta Rp, log10)", color = "Brand Tier") +
+  theme_minimal()
+```
+
+```{r}
+slope_tier <- df_clean %>%
+  group_by(Brand_Tier) %>%
+  summarise(Slope_log10 = coef(lm(log10(Harga_IDR) ~ Usia_Mobil))[2],
+            R2 = summary(lm(log10(Harga_IDR) ~ Usia_Mobil))$r.squared,
+            .groups = "drop") %>%
+  mutate(Turun_persen_per_tahun = 100 * (1 - 10^Slope_log10))
+kable(slope_tier, digits = 3, caption = "Tabel 4.3: Kemiringan garis regresi log10(harga) terhadap usia per Brand Tier")
+```
+
+## 4.5 Harga menurut Kelompok Odometer (Numerik vs Ordinal)
+```{r}
+ggplot(df_clean, aes(x = Odometer_Group, y = Harga_Juta, fill = Odometer_Group)) +
+  geom_violin(alpha = 0.6, show.legend = FALSE) +
+  geom_boxplot(width = 0.15, fill = "white", outlier.alpha = 0.3) +
+  scale_y_log10(labels = comma) +
+  labs(title = "Sebaran Harga per Kelompok Odometer",
+       x = "Kelompok Odometer", y = "Harga (juta Rp, log10)") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 10, hjust = 1))
+```
+
+## 4.6 Harga menurut Brand Tier dan Transmisi (Numerik vs Kategorik)
+```{r}
+ggplot(df_clean, aes(x = Brand_Tier, y = Harga_Juta, fill = Transmisi)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  scale_y_log10(labels = comma) +
+  labs(title = "Harga menurut Brand Tier dan Transmisi",
+       x = "Brand Tier", y = "Harga (juta Rp, log10)") +
+  theme_minimal()
+
+kable(df_clean %>% group_by(Brand_Tier, Transmisi) %>%
+        summarise(n = n(), Median_Harga_Juta = median(Harga_Juta), .groups = "drop"),
+      digits = 0, caption = "Tabel 4.4: Median harga per Brand Tier dan Transmisi")
+```
+
+## 4.7 Brand Tier vs Bahan Bakar (Kategorik vs Kategorik)
+```{r}
+ggplot(df_clean, aes(x = Brand_Tier, fill = Tipe_Bahan_Bakar)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  labs(title = "Komposisi Bahan Bakar per Brand Tier",
+       x = NULL, y = "Proporsi", fill = "Bahan Bakar") +
+  theme_minimal()
+
+tb <- table(df_clean$Brand_Tier, df_clean$Tipe_Bahan_Bakar)
+chi <- suppressWarnings(chisq.test(tb))
+cramer_v <- sqrt(unname(chi$statistic) / (sum(tb) * (min(dim(tb)) - 1)))
+```
+
+## 4.8 Peubah Biner: Tipe Penjual, Garansi, Transmisi, dan Harga
+```{r}
+df_bin <- df_clean %>%
+  mutate(manual    = as.integer(Transmisi == "Manual"),
+         garansi   = as.integer(Is_Garansi),
+         diler     = as.integer(Tipe_Penjual == "Diler"),
+         log_harga = log10(Harga_IDR))
+
+tab_bin <- data.frame(
+  Pasangan = c("Transmisi manual ~ log10(Harga)", "Garansi ~ log10(Harga)", "Diler ~ Garansi"),
+  Ukuran   = c("point-biserial", "point-biserial", "phi"),
+  r        = c(cor(df_bin$manual, df_bin$log_harga),
+               cor(df_bin$garansi, df_bin$log_harga),
+               cor(df_bin$diler, df_bin$garansi))
+)
+kable(tab_bin, digits = 3, caption = "Tabel 4.5: Korelasi peubah biner")
+```
+
+
+# 5. VARIABLE SELECTION (FILTERING METHOD)
+Menyeleksi fitur yang kurang relevan dengan metode filtering (memakai variansi, korelasi ke target, dan uji Kruskal-Wallis Eta-Squared).
+
+## 5.1 Kandidat Fitur yang Dievaluasi
+
+```{r}
+fitur_numerik   <- c("Usia_Mobil", "Jarak_Tempuh_KM", "Kapasitas_Mesin_CC")
+fitur_biner     <- c("Is_Garansi", "Is_KM_Low", "Is_Facelift", "Is_Sport_Trim", "Is_Promo_DP")
+fitur_kategorik <- c("Merk", "Brand_Tier", "Tipe_Bahan_Bakar", "Transmisi", "Tipe_Bodi", "Warna", "Tipe_Penjual")
+
+kable(data.frame(
+  Jenis = c("Numerik", "Biner", "Kategorik Nominal"),
+  Jumlah_Fitur = c(length(fitur_numerik), length(fitur_biner), length(fitur_kategorik)),
+  Contoh = c(paste(fitur_numerik, collapse = ", "),
+             paste(fitur_biner, collapse = ", "),
+             paste(head(fitur_kategorik, 4), collapse = ", "))
+), caption = "Tabel 5.1: Kandidat fitur yang dievaluasi")
+```
+
+## 5.2 Filter 1: Near-Zero Variance (Fitur Nyaris Konstan)
+```{r}
+nzv_biner <- sapply(fitur_biner, function(v) {
+  p <- mean(df_clean[[v]])
+  c(Proporsi_TRUE = p, Proporsi_minoritas = min(p, 1 - p),
+    Freq_ratio = max(p, 1 - p) / min(p, 1 - p))
+}) %>% t() %>% as.data.frame() %>% tibble::rownames_to_column("Fitur")
+
+nzv_kategorik <- do.call(rbind, lapply(fitur_kategorik, function(v) {
+  tb <- sort(table(df_clean[[v]]), decreasing = TRUE)
+  data.frame(Fitur = v, Kategori_terbesar = names(tb)[1],
+             Proporsi_terbesar = as.numeric(round(tb[1] / sum(tb), 3)),
+             Freq_ratio = as.numeric(round(tb[1] / tb[2], 1)))
+}))
+
+kable(nzv_biner, digits = 3, row.names = FALSE, caption = "Tabel 5.2a: Near-Zero Variance - Fitur Biner")
+kable(nzv_kategorik, row.names = FALSE, caption = "Tabel 5.2b: Near-Zero Variance - Fitur Kategorik")
+```
+
+## 5.3 Filter 2: Relevansi terhadap Target (Harga)
+```{r}
+rel_numerik <- data.frame(
+  Fitur = fitur_numerik,
+  Spearman_ke_Harga = sapply(fitur_numerik, function(v) {
+    x <- df_clean[[v]]; ok <- !is.na(x)
+    cor(x[ok], df_clean$Harga_IDR[ok], method = "spearman")
+  })
+) %>% mutate(Abs_r = abs(Spearman_ke_Harga)) %>% arrange(desc(Abs_r))
+
+kable(rel_numerik, digits = 3, row.names = FALSE, caption = "Tabel 5.3a: Relevansi Fitur Numerik terhadap Harga")
+
+# Uji Kruskal-Wallis untuk fitur kategorik (Keluarkan Provinsi & proteksi <2 kelompok)
+rel_kategorik <- do.call(rbind, lapply(fitur_kategorik, function(v) {
+  if (length(unique(df_clean[[v]])) < 2) return(NULL)
+  k <- kruskal.test(df_clean$Harga_IDR, as.factor(df_clean[[v]]))
+  n <- nrow(df_clean); kgrp <- length(unique(df_clean[[v]]))
+  eta2 <- unname((k$statistic - kgrp + 1) / (n - kgrp))
+  data.frame(Fitur = v, N_kategori = kgrp, Eta_squared = eta2)
+})) %>% arrange(desc(Eta_squared))
+
+kable(rel_kategorik, digits = 3, row.names = FALSE, caption = "Tabel 5.3b: Relevansi Fitur Kategorik (Eta-Squared)")
+```
+
+## 5.4 Filter 3: Redundansi Antar Fitur Numerik
+```{r}
+cor_x <- cor(df_clean[, fitur_numerik], method = "spearman", use = "pairwise.complete.obs")
+kable(cor_x, digits = 2, caption = "Tabel 5.4: Korelasi Spearman antar fitur numerik (redundansi)")
+```
+
+## 5.5 Ringkasan Hasil Filtering
+```{r}
+semua_fitur <- c(fitur_numerik, fitur_biner, fitur_kategorik)
+dibuang <- c("Is_Facelift")
+
+ringkasan_filter <- data.frame(Fitur = semua_fitur) %>%
+  mutate(
+    Keputusan = if_else(Fitur %in% dibuang, "Dibuang", "Dipertahankan"),
+    Alasan = case_when(
+      Fitur == "Is_Facelift" ~ "Near-Zero Variance (frequency ratio tinggi)",
+      TRUE                   ~ "Lolos filter variansi dan relevansi"
+    )
+  )
+
+kable(ringkasan_filter, row.names = FALSE, caption = "Tabel 5.5: Ringkasan keputusan filtering seluruh fitur")
+```
+
+
+
+
+
+
+
+
+
+
+
+

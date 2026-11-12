@@ -1,0 +1,1594 @@
+---
+title: "Menguak Pola Harga Mobil Bekas di Jakarta"
+author: "Kelompok PSD"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+# Library
+
+```{r library, message=FALSE, warning=FALSE}
+library(readxl)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(purrr)
+library(ggplot2)
+library(knitr)
+```
+
+# Load Data
+
+Data yang digunakan adalah data mentah hasil web scraping iklan mobil bekas.
+
+```{r load-data}
+data_mobil_raw <- read_excel("PSD_DATA_MOBIL_JAKARTA_FULL.xlsx")
+
+cat("Jumlah baris data mentah:", nrow(data_mobil_raw), "\n")
+cat("Jumlah peubah:", ncol(data_mobil_raw), "\n")
+
+glimpse(data_mobil_raw)
+```
+
+# Data Management dan Audit Anomali
+
+Alur data pada tahap ini adalah:
+
+**data mentah → validasi wilayah → data managed → pemeriksaan missing dan format → deteksi kandidat anomali → audit → KEEP/EXCLUDE → data final.**
+
+## Validasi cakupan wilayah
+
+Sebelum proses cleaning dan transformasi, cakupan wilayah divalidasi menggunakan peubah `Provinsi`. Data analisis dibatasi pada observasi yang mencantumkan Jakarta pada `Provinsi`. Data hasil scraping asli tetap disimpan pada `data_mobil_scraping` agar jumlah awal 4.441 observasi tetap terdokumentasi.
+
+```{r validasi-lokasi}
+data_mobil_scraping <- data_mobil_raw
+
+ringkasan_provinsi <- data_mobil_scraping %>%
+  count(Provinsi, sort = TRUE)
+
+kable(
+  ringkasan_provinsi,
+  caption = "Distribusi provinsi pada data hasil scraping"
+)
+
+data_mobil_raw <- data_mobil_raw %>%
+  filter(
+    !is.na(Provinsi),
+    str_detect(
+      str_to_lower(Provinsi),
+      "jakarta"
+    )
+  )
+
+ringkasan_lokasi <- tibble(
+  Tahap = c(
+    "Data hasil scraping",
+    "Data setelah validasi Jakarta",
+    "Data non-Jakarta yang disaring"
+  ),
+  Jumlah = c(
+    nrow(data_mobil_scraping),
+    nrow(data_mobil_raw),
+    nrow(data_mobil_scraping) - nrow(data_mobil_raw)
+  )
+)
+
+kable(
+  ringkasan_lokasi,
+  caption = "Validasi cakupan wilayah"
+)
+```
+
+Hasil validasi menunjukkan **4.441** iklan hasil scraping, terdiri dari **4.385** iklan yang mencantumkan Jakarta dan **56** iklan non-Jakarta yang disaring. Seluruh tahapan K3 setelah langkah ini menggunakan data Jakarta.
+
+Nilai ekstrem tidak langsung dihapus. R digunakan untuk mendeteksi kandidat, kemudian keputusan audit dibuat berdasarkan konteks data.
+
+## Pemeriksaan missing value
+
+```{r missing}
+missing_summary <- data_mobil_raw %>%
+  summarise(
+    across(
+      everything(),
+      ~ sum(is.na(.))
+    )
+  ) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Peubah",
+    values_to = "Jumlah_Missing"
+  ) %>%
+  mutate(
+    Persen_Missing = 100 * Jumlah_Missing / nrow(data_mobil_raw)
+  ) %>%
+  arrange(desc(Jumlah_Missing))
+
+kable(
+  missing_summary,
+  digits = 1,
+  caption = "Missing value pada data mentah"
+)
+```
+
+Pada data mentah terdapat missing pada tiga peubah:
+
+- `Tipe_Penjual`: 369 observasi (8,3%)
+- `Kapasitas_Mesin`: 357 observasi (8,0%)
+- `Tipe_Bodi`: 245 observasi (5,5%)
+
+Terdapat 724 baris yang memiliki sedikitnya satu missing pada ketiga peubah tersebut. Baris tersebut **tidak otomatis dibuang**.
+
+## Pemeriksaan duplikasi
+
+```{r duplicate}
+jumlah_duplikat <- nrow(data_mobil_raw) -
+  nrow(data_mobil_raw %>% distinct())
+
+url_duplikat <- sum(
+  duplicated(data_mobil_raw$URL_Detail) &
+    !is.na(data_mobil_raw$URL_Detail)
+)
+
+tibble(
+  Metrik = c(
+    "Jumlah observasi",
+    "Jumlah baris duplikat",
+    "URL non-kosong yang duplikat"
+  ),
+  Nilai = c(
+    nrow(data_mobil_raw),
+    jumlah_duplikat,
+    url_duplikat
+  )
+) %>%
+  kable(caption = "Pemeriksaan duplikasi")
+```
+
+Duplikasi diperiksa pada tingkat baris dan URL. Observasi tidak dihapus hanya karena judul mobil mirip.
+
+## Penyesuaian harga menggunakan RegEx
+
+`Harga_IDR` sudah tersedia sebagai numerik. `Harga_Teks` diproses kembali menggunakan RegEx untuk memeriksa konsistensi hasil ekstraksi.
+
+```{r harga-managed}
+data_mobil_managed <- data_mobil_raw %>%
+  mutate(
+    Harga_Hasil_RegEx = Harga_Teks %>%
+      str_remove_all("[.]") %>%
+      str_extract("[0-9]+") %>%
+      as.numeric(),
+
+    Flag_Harga_Parse =
+      is.na(Harga_Hasil_RegEx) |
+      is.na(Harga_IDR) |
+      Harga_Hasil_RegEx != Harga_IDR
+  )
+
+audit_parse_harga <- data_mobil_managed %>%
+  summarise(
+    Jumlah_Baris = n(),
+    Parsing_Tidak_Sesuai = sum(
+      Flag_Harga_Parse,
+      na.rm = TRUE
+    )
+  )
+
+kable(
+  audit_parse_harga,
+  caption = "Audit konsistensi Harga_Teks dan Harga_IDR"
+)
+```
+
+`Harga_IDR` digunakan sebagai peubah harga utama. `Harga_Hasil_RegEx` digunakan sebagai hasil pengecekan.
+
+## Penyesuaian jarak tempuh
+
+`Jarak_Tempuh` berbentuk rentang, misalnya `30.000-35.000`. Untuk rentang dengan dua batas, dibuat batas minimum, maksimum, dan titik tengah.
+
+Nilai terbuka seperti `>300.000` **tidak dipaksa menjadi 300.000** karena nilai sebenarnya tidak diketahui.
+
+```{r jarak-managed}
+ekstrak_jarak <- function(x) {
+
+  x <- coalesce(x, "")
+
+  angka <- str_extract_all(
+    str_remove_all(x, "[.]"),
+    "[0-9]+"
+  )[[1]]
+
+  angka <- as.numeric(angka)
+
+  if (length(angka) == 0) {
+    return(c(NA_real_, NA_real_, NA_real_))
+  }
+
+  if (str_detect(x, "^>")) {
+    return(c(angka[1], NA_real_, NA_real_))
+  }
+
+  if (length(angka) == 1) {
+    return(c(angka[1], angka[1], angka[1]))
+  }
+
+  c(
+    angka[1],
+    angka[2],
+    mean(angka[1:2])
+  )
+}
+
+data_mobil_managed <- data_mobil_managed %>%
+  mutate(
+    Jarak_Min = map_dbl(
+      Jarak_Tempuh,
+      ~ ekstrak_jarak(.x)[1]
+    ),
+
+    Jarak_Max = map_dbl(
+      Jarak_Tempuh,
+      ~ ekstrak_jarak(.x)[2]
+    ),
+
+    Jarak_Tengah = map_dbl(
+      Jarak_Tempuh,
+      ~ ekstrak_jarak(.x)[3]
+    ),
+
+    Flag_Jarak_Nol =
+      !is.na(Jarak_Tempuh) &
+      Jarak_Tempuh == "0",
+
+    Flag_Jarak_Terbuka =
+      str_detect(
+        coalesce(Jarak_Tempuh, ""),
+        "^>"
+      )
+  )
+
+ringkasan_jarak_khusus <- tibble(
+  Kondisi = c(
+    "Jarak = 0",
+    "Jarak >300.000"
+  ),
+  Jumlah = c(
+    sum(data_mobil_managed$Flag_Jarak_Nol, na.rm = TRUE),
+    sum(data_mobil_managed$Flag_Jarak_Terbuka, na.rm = TRUE)
+  )
+)
+
+kable(
+  ringkasan_jarak_khusus,
+  caption = "Nilai khusus pada jarak tempuh"
+)
+```
+
+Nilai `0` dan `>300.000` dipertahankan. Pada analisis numerik hanya nilai yang dapat direpresentasikan secara numerik yang digunakan.
+
+## Penyesuaian tahun
+
+Nilai seperti `<1986` dipertahankan sebagai informasi asli. Untuk analisis numerik, nilai tersebut tidak dipaksa menjadi 1985 atau 1986.
+
+```{r tahun-managed}
+data_mobil_managed <- data_mobil_managed %>%
+  mutate(
+    Tahun_Numerik = str_extract(
+      as.character(Tahun),
+      "[0-9]+"
+    ) %>%
+      as.numeric(),
+
+    Flag_Tahun_Khusus =
+      str_detect(
+        coalesce(as.character(Tahun), ""),
+        "^<"
+      ),
+
+    Tahun_Analisis = if_else(
+      Flag_Tahun_Khusus,
+      NA_real_,
+      Tahun_Numerik
+    )
+  )
+
+kable(
+  data_mobil_managed %>%
+    filter(Flag_Tahun_Khusus) %>%
+    count(Tahun),
+  caption = "Nilai tahun khusus yang dipertahankan"
+)
+```
+
+## Penyesuaian peubah kategorik dan missing
+
+Missing pada peubah kategorik tidak digunakan sebagai alasan untuk membuang seluruh baris.
+
+```{r factor-and-missing}
+data_mobil_managed <- data_mobil_managed %>%
+  mutate(
+    Transmisi_Analisis = if_else(
+      is.na(Transmisi),
+      "Tidak diketahui",
+      as.character(Transmisi)
+    ),
+
+    Tipe_Penjual_Analisis = if_else(
+      is.na(Tipe_Penjual),
+      "Tidak diketahui",
+      as.character(Tipe_Penjual)
+    ),
+
+    Tipe_Bodi_Analisis = if_else(
+      is.na(Tipe_Bodi),
+      "Tidak diketahui",
+      as.character(Tipe_Bodi)
+    ),
+
+    Kapasitas_Mesin_Analisis = case_when(
+      is.na(Kapasitas_Mesin) &
+        Tipe_Bahan_Bakar == "Listrik" ~
+        "Tidak berlaku",
+
+      is.na(Kapasitas_Mesin) ~
+        "Tidak diketahui",
+
+      TRUE ~
+        as.character(Kapasitas_Mesin)
+    )
+  ) %>%
+  mutate(
+    across(
+      c(
+        Kategori,
+        Provinsi,
+        Kota_Kabupaten,
+        Kecamatan,
+        Merk,
+        Model,
+        Tipe_Bahan_Bakar,
+        Transmisi,
+        Tipe_Penjual,
+        Nama_Bursa_Mobil,
+        Kapasitas_Mesin,
+        Warna,
+        Tipe_Bodi
+      ),
+      as.factor
+    ),
+
+    Transmisi_Analisis = factor(Transmisi_Analisis),
+    Tipe_Penjual_Analisis = factor(Tipe_Penjual_Analisis),
+    Tipe_Bodi_Analisis = factor(Tipe_Bodi_Analisis),
+    Kapasitas_Mesin_Analisis = factor(Kapasitas_Mesin_Analisis)
+  )
+
+ringkasan_missing <- tibble(
+  Peubah = c(
+    "Tipe_Penjual",
+    "Kapasitas_Mesin",
+    "Tipe_Bodi"
+  ),
+  Missing_Awal = c(
+    sum(is.na(data_mobil_raw$Tipe_Penjual)),
+    sum(is.na(data_mobil_raw$Kapasitas_Mesin)),
+    sum(is.na(data_mobil_raw$Tipe_Bodi))
+  ),
+  Penanganan = c(
+    "Tidak diketahui",
+    "Tidak berlaku untuk Listrik; selain itu Tidak diketahui",
+    "Tidak diketahui"
+  )
+)
+
+kable(
+  ringkasan_missing,
+  caption = "Penanganan missing value"
+)
+```
+
+Untuk `Kapasitas_Mesin`, missing pada kendaraan listrik diberi label **Tidak berlaku**, sedangkan missing pada kendaraan selain listrik diberi label **Tidak diketahui**.
+
+## Deteksi nilai ekstrem harga
+
+Nilai ekstrem dideteksi untuk pemeriksaan kualitas data. Deteksi statistik ini **tidak otomatis berarti data harus dikeluarkan**.
+
+```{r deteksi-ekstrem-harga}
+data_mobil_managed <- data_mobil_managed %>%
+  mutate(
+    Log_Harga = if_else(
+      !is.na(Harga_IDR) & Harga_IDR > 0,
+      log10(Harga_IDR),
+      NA_real_
+    )
+  )
+
+Q1_log <- quantile(
+  data_mobil_managed$Log_Harga,
+  0.25,
+  na.rm = TRUE
+)
+
+Q3_log <- quantile(
+  data_mobil_managed$Log_Harga,
+  0.75,
+  na.rm = TRUE
+)
+
+IQR_log <- Q3_log - Q1_log
+
+Batas_Bawah_Log <- Q1_log - 1.5 * IQR_log
+Batas_Atas_Log <- Q3_log + 1.5 * IQR_log
+
+Batas_Bawah_Harga <- 10^Batas_Bawah_Log
+Batas_Atas_Harga <- 10^Batas_Atas_Log
+
+data_mobil_managed <- data_mobil_managed %>%
+  mutate(
+    Flag_Harga_Ekstrem_IQR =
+      !is.na(Log_Harga) &
+      (
+        Log_Harga < Batas_Bawah_Log |
+        Log_Harga > Batas_Atas_Log
+      )
+  )
+
+tibble(
+  Batas_Bawah_Harga = Batas_Bawah_Harga,
+  Batas_Atas_Harga = Batas_Atas_Harga,
+  Jumlah_Ekstrem_IQR = sum(
+    data_mobil_managed$Flag_Harga_Ekstrem_IQR,
+    na.rm = TRUE
+  )
+) %>%
+  kable(
+    digits = 0,
+    caption = "Deteksi nilai ekstrem harga berdasarkan IQR log"
+  )
+```
+
+`Flag_Harga_Ekstrem_IQR` digunakan sebagai informasi audit. Harga mobil mahal tidak langsung dianggap salah hanya karena termasuk ekstrem secara statistik.
+
+## Deteksi anomali berdasarkan pembanding Merk-Model-Tahun
+
+Selain deteksi statistik, dibuat pemeriksaan konteks. Harga dibandingkan dengan median harga observasi lain yang memiliki kombinasi `Merk + Model + Tahun` yang sama.
+
+```{r peer-anomaly}
+peer_summary <- data_mobil_managed %>%
+  filter(
+    !is.na(Merk),
+    !is.na(Model),
+    !is.na(Tahun),
+    !is.na(Harga_IDR),
+    Harga_IDR > 0
+  ) %>%
+  group_by(Merk, Model, Tahun) %>%
+  summarise(
+    N_Peer = n(),
+    Median_Harga_Peer = median(
+      Harga_IDR,
+      na.rm = TRUE
+    ),
+    .groups = "drop"
+  )
+
+data_mobil_managed <- data_mobil_managed %>%
+  left_join(
+    peer_summary,
+    by = c("Merk", "Model", "Tahun")
+  ) %>%
+  mutate(
+    Rasio_Terhadap_Median_Peer =
+      case_when(
+        !is.na(Median_Harga_Peer) &
+          !is.na(Harga_IDR) &
+          Harga_IDR > 0 ~
+          pmax(
+            Harga_IDR / Median_Harga_Peer,
+            Median_Harga_Peer / Harga_IDR
+          ),
+        TRUE ~ NA_real_
+      ),
+
+    Flag_Anomali_Peer =
+      !is.na(N_Peer) &
+      N_Peer >= 2 &
+      !is.na(Rasio_Terhadap_Median_Peer) &
+      Rasio_Terhadap_Median_Peer >= 5
+  )
+```
+
+Rasio sebesar 5 atau lebih digunakan sebagai sinyal kuat untuk **pemeriksaan**, bukan sebagai keputusan penghapusan otomatis.
+
+## Kandidat audit
+
+Untuk audit mendalam, kandidat utama adalah harga di bawah Rp10 juta. Kandidat juga dapat muncul dari ketidakkonsistenan kuat dengan kelompok pembanding.
+
+```{r kandidat-audit}
+kandidat_audit <- data_mobil_managed %>%
+  filter(
+    (
+      !is.na(Harga_IDR) &
+      Harga_IDR < 10000000
+    ) |
+      Flag_Anomali_Peer |
+      Flag_Harga_Parse
+  ) %>%
+  select(
+    Judul,
+    Merk,
+    Model,
+    Tahun,
+    Harga_Teks,
+    Harga_IDR,
+    N_Peer,
+    Median_Harga_Peer,
+    Rasio_Terhadap_Median_Peer,
+    Flag_Harga_Parse,
+    Flag_Anomali_Peer,
+    Flag_Harga_Ekstrem_IQR,
+    URL_Detail
+  ) %>%
+  arrange(Harga_IDR)
+
+kable(
+  kandidat_audit,
+  digits = 2,
+  caption = "Kandidat anomali untuk diperiksa"
+)
+```
+
+## Audit KEEP / EXCLUDE
+
+Keputusan audit dibuat setelah kandidat ditemukan. Tidak ada nilai harga yang dikoreksi dengan tebakan.
+
+Untuk harga sangat rendah, pemeriksaan konteks menunjukkan tiga kandidat utama berikut:
+
+1. `Agya 2023 merah` — Rp145.
+2. `Corolla Cross Hybrid 2020 – Original, Terawat, Hybrid Sehat` — Rp2.990.000.
+3. `Carry matbul antik bodi kaleng` — Rp9.999.000.
+
+```{r audit-keep-exclude}
+audit_keputusan <- tibble(
+  URL_Detail = c(
+    "https://www.olx.co.id/item/947825751",
+    "https://www.olx.co.id/item/947839842",
+    "https://www.olx.co.id/item/943859210"
+  ),
+  Keputusan_Audit = c(
+    "EXCLUDE",
+    "EXCLUDE",
+    "KEEP"
+  ),
+  Alasan = c(
+    "Harga Rp145 sangat tidak konsisten dengan pembanding Toyota Agya tahun 2023 yang berada pada sekitar Rp140 juta.",
+    "Harga Rp2,99 juta sangat tidak konsisten dengan pembanding Toyota Corolla tahun 2020 yang mayoritas berada sekitar Rp299 juta.",
+    "Harga Rp9,999 juta rendah tetapi masih konsisten dengan konteks mobil lama tahun 1989 dan tidak menunjukkan ketidakkonsistenan peer yang kuat."
+  )
+)
+
+audit_detail <- data_mobil_managed %>%
+  filter(URL_Detail %in% audit_keputusan$URL_Detail) %>%
+  left_join(
+    audit_keputusan,
+    by = "URL_Detail"
+  ) %>%
+  select(
+    Judul,
+    Merk,
+    Model,
+    Tahun,
+    Harga_Teks,
+    Harga_IDR,
+    N_Peer,
+    Median_Harga_Peer,
+    Rasio_Terhadap_Median_Peer,
+    Keputusan_Audit,
+    Alasan,
+    URL_Detail
+  )
+
+kable(
+  audit_detail,
+  digits = 2,
+  caption = "Hasil audit kandidat anomali"
+)
+```
+
+### Pemeriksaan keputusan
+
+- `Agya 2023 merah` → **EXCLUDE**.
+- `Corolla Cross Hybrid 2020` dengan harga Rp2,99 juta → **EXCLUDE**.
+- `Carry 1989` dengan harga Rp9,999 juta → **KEEP**.
+
+Nilai ekstrem statistik lain tetap dipertahankan apabila tidak ada bukti cukup bahwa nilai tersebut merupakan kesalahan data.
+
+## Data final untuk analisis
+
+```{r data-final}
+data_mobil_managed <- data_mobil_managed %>%
+  left_join(
+    audit_keputusan %>%
+      select(URL_Detail, Keputusan_Audit),
+    by = "URL_Detail"
+  ) %>%
+  mutate(
+    Status_Audit = case_when(
+      Keputusan_Audit == "EXCLUDE" ~
+        "Dikeluarkan setelah audit",
+
+      Flag_Harga_Parse ~
+        "Perlu verifikasi parsing",
+
+      Flag_Harga_Ekstrem_IQR ~
+        "Ekstrem statistik - dipertahankan",
+
+      Flag_Tahun_Khusus |
+        Flag_Jarak_Nol |
+        Flag_Jarak_Terbuka ~
+        "Nilai khusus - dipertahankan",
+
+      TRUE ~
+        "Normal"
+    )
+  )
+
+data_analisis <- data_mobil_managed %>%
+  filter(
+    Status_Audit != "Dikeluarkan setelah audit"
+  )
+
+ringkasan_alur_data <- tibble(
+  Tahap = c(
+    "Data hasil scraping",
+    "Setelah validasi wilayah",
+    "Data managed",
+    "Kandidat audit",
+    "Dikeluarkan",
+    "Data final analisis"
+  ),
+  Jumlah_Baris = c(
+    nrow(data_mobil_scraping),
+    nrow(data_mobil_raw),
+    nrow(data_mobil_managed),
+    nrow(kandidat_audit),
+    sum(
+      data_mobil_managed$Status_Audit ==
+        "Dikeluarkan setelah audit",
+      na.rm = TRUE
+    ),
+    nrow(data_analisis)
+  )
+)
+
+kable(
+  ringkasan_alur_data,
+  caption = "Alur jumlah observasi"
+)
+
+kable(
+  data_mobil_managed %>%
+    count(Status_Audit, sort = TRUE),
+  caption = "Ringkasan status audit"
+)
+```
+
+Data final digunakan sebagai dasar seluruh analisis pada #4–#6.
+
+# Eksplorasi dan Visualisasi Data
+
+Bagian #4 menjawab pertanyaan:
+
+> **"Seperti apa komposisi, sebaran, dan karakteristik data mobil bekas dalam dataset?"**
+
+Nilai khusus dan missing tidak disembunyikan. Analisis hubungan antarpeubah ditempatkan pada #5.
+
+## Distribusi harga mobil
+
+```{r eksplorasi-harga, fig.width=8, fig.height=5}
+ggplot(
+  data_analisis,
+  aes(x = Harga_IDR / 1000000)
+) +
+  geom_histogram(
+    bins = 40,
+    na.rm = TRUE
+  ) +
+  labs(
+    title = "Distribusi Harga Mobil Bekas",
+    x = "Harga (juta rupiah)",
+    y = "Jumlah iklan"
+  ) +
+  theme_minimal()
+```
+
+## Proporsi tipe bahan bakar
+
+```{r proporsi-bbm, fig.width=7, fig.height=5}
+prop_bbm <- data_analisis %>%
+  filter(!is.na(Tipe_Bahan_Bakar)) %>%
+  count(Tipe_Bahan_Bakar) %>%
+  mutate(Proporsi = n / sum(n))
+
+ggplot(
+  prop_bbm,
+  aes(
+    x = reorder(Tipe_Bahan_Bakar, Proporsi),
+    y = Proporsi
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1)
+  ) +
+  labs(
+    title = "Proporsi Tipe Bahan Bakar",
+    x = "Tipe bahan bakar",
+    y = "Proporsi"
+  ) +
+  theme_minimal()
+```
+
+## Proporsi transmisi
+
+```{r proporsi-transmisi, fig.width=7, fig.height=5}
+prop_transmisi <- data_analisis %>%
+  count(Transmisi_Analisis) %>%
+  mutate(Proporsi = n / sum(n))
+
+ggplot(
+  prop_transmisi,
+  aes(
+    x = reorder(Transmisi_Analisis, Proporsi),
+    y = Proporsi
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1)
+  ) +
+  labs(
+    title = "Proporsi Transmisi Mobil",
+    x = "Transmisi",
+    y = "Proporsi"
+  ) +
+  theme_minimal()
+```
+
+## Proporsi kapasitas mesin
+
+```{r proporsi-cc, fig.width=8, fig.height=5}
+prop_cc <- data_analisis %>%
+  count(Kapasitas_Mesin_Analisis) %>%
+  mutate(Proporsi = n / sum(n))
+
+ggplot(
+  prop_cc,
+  aes(
+    x = reorder(Kapasitas_Mesin_Analisis, Proporsi),
+    y = Proporsi
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1)
+  ) +
+  labs(
+    title = "Proporsi Kapasitas Mesin",
+    x = "Kapasitas mesin",
+    y = "Proporsi"
+  ) +
+  theme_minimal()
+```
+
+**Tidak berlaku** menunjukkan kendaraan listrik yang tidak memiliki kapasitas mesin dalam satuan cc. **Tidak diketahui** menunjukkan informasi kapasitas yang tidak tercantum.
+
+## Proporsi tipe bodi
+
+```{r proporsi-bodi, fig.width=8, fig.height=7}
+prop_bodi <- data_analisis %>%
+  count(Tipe_Bodi_Analisis) %>%
+  mutate(Proporsi = n / sum(n))
+
+ggplot(
+  prop_bodi,
+  aes(
+    x = reorder(Tipe_Bodi_Analisis, Proporsi),
+    y = Proporsi
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1)
+  ) +
+  labs(
+    title = "Proporsi Tipe Bodi Mobil",
+    x = "Tipe bodi",
+    y = "Proporsi"
+  ) +
+  theme_minimal()
+```
+
+## Top 5 merek terbanyak
+```{r}
+
+top5_merk <- data_analisis %>%
+  count(Merk, sort = TRUE) %>%
+  mutate(Proporsi = n / sum(n)) %>%
+  slice_head(n = 5)
+
+kable(
+  top5_merk,
+  digits = 3,
+  caption = "Top 5 merek mobil terbanyak"
+)
+
+ggplot(
+  top5_merk,
+  aes(x = reorder(Merk, Proporsi), y = Proporsi)
+) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  labs(
+    title = "Top 5 Merek Mobil Terbanyak di OLX",
+    x = NULL, y = "Proporsi"
+  ) +
+  theme_minimal()
+```
+
+
+## Sebaran jarak tempuh
+
+```{r distribusi-jarak, fig.width=8, fig.height=5}
+ggplot(
+  data_analisis %>%
+    filter(!is.na(Jarak_Tengah)),
+  aes(x = Jarak_Tengah)
+) +
+  geom_histogram(
+    bins = 40,
+    na.rm = TRUE
+  ) +
+  labs(
+    title = "Sebaran Jarak Tempuh Mobil",
+    x = "Jarak tempuh (km)",
+    y = "Jumlah iklan"
+  ) +
+  theme_minimal()
+```
+
+Observasi dengan `>300.000 km` tetap ada di data, tetapi tidak dipaksa menjadi angka 300.000 sehingga tidak dimasukkan ke histogram numerik ini.
+
+## Kelengkapan informasi pada iklan
+
+```{r kelengkapan-data, fig.width=8, fig.height=5}
+kelengkapan <- tibble(
+  Peubah = c(
+    "Tipe Penjual",
+    "Kapasitas Mesin",
+    "Tipe Bodi"
+  ),
+  Persen_Tidak_Diketahui = c(
+    100 * mean(data_mobil_raw$Tipe_Penjual |> is.na()),
+    100 * mean(data_mobil_raw$Kapasitas_Mesin |> is.na()),
+    100 * mean(data_mobil_raw$Tipe_Bodi |> is.na())
+  )
+)
+
+ggplot(
+  kelengkapan,
+  aes(
+    x = reorder(Peubah, Persen_Tidak_Diketahui),
+    y = Persen_Tidak_Diketahui
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Proporsi Informasi yang Tidak Tersedia",
+    x = NULL,
+    y = "Persentase missing (%)"
+  ) +
+  theme_minimal()
+```
+
+Grafik ini menunjukkan kualitas kelengkapan informasi pada sumber iklan, bukan jumlah baris yang harus dibuang.
+
+## Komposisi mobil per tahun: Top 5 model
+
+Pertanyaan yang dijawab:
+
+> **"Pada setiap tahun, model mobil apa yang paling banyak muncul dalam iklan?"**
+
+Proporsi dihitung di dalam masing-masing tahun.
+
+```{r top5-model-tahun}
+top5_model_per_tahun <- data_analisis %>%
+  filter(
+    !is.na(Tahun_Analisis),
+    !is.na(Model)
+  ) %>%
+  count(Tahun_Analisis, Model, name = "Jumlah") %>%
+  group_by(Tahun_Analisis) %>%
+  mutate(
+    Total_Iklan_Tahun = sum(Jumlah),
+    Proporsi_Dalam_Tahun = Jumlah / Total_Iklan_Tahun
+  ) %>%
+  arrange(
+    Tahun_Analisis,
+    desc(Jumlah),
+    Model
+  ) %>%
+  slice_head(n = 5) %>%
+  ungroup() %>%
+  mutate(
+    Model_Tahun = paste0(
+      Tahun_Analisis,
+      "__",
+      Model
+    )
+  )
+
+kable(
+  top5_model_per_tahun,
+  digits = 3,
+  caption = "Top 5 model pada masing-masing tahun"
+)
+```
+
+Untuk visualisasi infografis, beberapa tahun dipilih agar tetap terbaca. Daftar tahun dapat diubah sesuai kebutuhan.
+
+```{r top5-model-tahun-chart, fig.width=10, fig.height=10}
+tahun_infografis <- intersect(
+  c(2010, 2015, 2020, 2025),
+  unique(top5_model_per_tahun$Tahun_Analisis)
+)
+
+plot_top5_tahun <- top5_model_per_tahun %>%
+  filter(Tahun_Analisis %in% tahun_infografis)
+
+ggplot(
+  plot_top5_tahun,
+  aes(
+    x = Proporsi_Dalam_Tahun,
+    y = reorder(Model_Tahun, Proporsi_Dalam_Tahun)
+  )
+) +
+  geom_col() +
+  facet_wrap(~ Tahun_Analisis, scales = "free_y") +
+  scale_x_continuous(
+    labels = scales::percent_format(accuracy = 1)
+  ) +
+  scale_y_discrete(
+    labels = function(x) {
+      sub("^[0-9]+__", "", x)
+    }
+  ) +
+  labs(
+    title = "Top 5 Model Mobil pada Masing-masing Tahun",
+    x = "Proporsi dalam tahun",
+    y = "Model"
+  ) +
+  theme_minimal()
+```
+
+## Nilai khusus sebagai informasi ringkas
+
+Nilai berikut ditampilkan sebagai callout pada infografis, bukan sebagai grafik terpisah.
+
+```{r special-values}
+info_khusus <- tibble(
+  Informasi = c(
+    "Tahun <1986",
+    "Jarak = 0",
+    "Jarak >300.000 km",
+    "Missing kapasitas pada kendaraan listrik"
+  ),
+  Jumlah = c(
+    sum(data_mobil_managed$Flag_Tahun_Khusus, na.rm = TRUE),
+    sum(data_mobil_managed$Flag_Jarak_Nol, na.rm = TRUE),
+    sum(data_mobil_managed$Flag_Jarak_Terbuka, na.rm = TRUE),
+    sum(
+      is.na(data_mobil_raw$Kapasitas_Mesin) &
+        data_mobil_raw$Tipe_Bahan_Bakar == "Listrik",
+      na.rm = TRUE
+    )
+  )
+)
+
+kable(
+  info_khusus,
+  caption = "Nilai khusus dalam dataset"
+)
+```
+
+# Hubungan Antarpeubah
+
+Tahap #5 berfokus pada hubungan antarpeubah. K5 membedakan numeric vs numeric, numeric vs categoric, dan categoric vs categoric. Hubungan tidak ditafsirkan sebagai hubungan sebab-akibat.
+
+## Numeric vs numeric: Tahun dan Harga
+
+```{r hubungan-tahun-harga, fig.width=8, fig.height=5}
+ggplot(
+  data_analisis %>%
+    filter(!is.na(Tahun_Analisis)),
+  aes(
+    x = Tahun_Analisis,
+    y = Harga_IDR / 1000000
+  )
+) +
+  geom_point(
+    alpha = 0.25,
+    na.rm = TRUE
+  ) +
+  geom_smooth(
+    method = "lm",
+    se = FALSE,
+    na.rm = TRUE
+  ) +
+  labs(
+    title = "Hubungan Tahun Kendaraan dengan Harga",
+    x = "Tahun kendaraan",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+Korelasi Pearson:
+
+```{r pearson-tahun-harga}
+z_tahun <- data_analisis %>%
+  select(Tahun_Analisis, Harga_IDR) %>%
+  filter(complete.cases(.))
+
+uji_tahun <- cor.test(
+  z_tahun$Tahun_Analisis,
+  z_tahun$Harga_IDR,
+  method = "pearson"
+)
+
+tibble(
+  Hubungan = "Tahun_Analisis vs Harga_IDR",
+  N = nrow(z_tahun),
+  r = unname(uji_tahun$estimate),
+  p_value = uji_tahun$p.value
+) %>%
+  kable(
+    digits = 4,
+    caption = "Korelasi Pearson tahun dan harga"
+  )
+```
+
+## Numeric vs numeric: Jarak dan Harga
+
+```{r hubungan-jarak-harga, fig.width=8, fig.height=5}
+ggplot(
+  data_analisis %>%
+    filter(!is.na(Jarak_Tengah)),
+  aes(
+    x = Jarak_Tengah,
+    y = Harga_IDR / 1000000
+  )
+) +
+  geom_point(
+    alpha = 0.25,
+    na.rm = TRUE
+  ) +
+  geom_smooth(
+    method = "lm",
+    se = FALSE,
+    na.rm = TRUE
+  ) +
+  labs(
+    title = "Hubungan Jarak Tempuh dengan Harga",
+    x = "Jarak tempuh (km)",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+Korelasi Pearson:
+
+```{r pearson-jarak-harga}
+z_jarak <- data_analisis %>%
+  select(Jarak_Tengah, Harga_IDR) %>%
+  filter(complete.cases(.))
+
+uji_jarak <- cor.test(
+  z_jarak$Jarak_Tengah,
+  z_jarak$Harga_IDR,
+  method = "pearson"
+)
+
+tibble(
+  Hubungan = "Jarak_Tengah vs Harga_IDR",
+  N = nrow(z_jarak),
+  r = unname(uji_jarak$estimate),
+  p_value = uji_jarak$p.value
+) %>%
+  kable(
+    digits = 4,
+    caption = "Korelasi Pearson jarak tempuh dan harga"
+  )
+```
+
+## Numeric vs categoric: Harga dan Transmisi
+
+```{r hubungan-harga-transmisi, fig.width=8, fig.height=5}
+ggplot(
+  data_analisis,
+  aes(
+    x = Transmisi_Analisis,
+    y = Harga_IDR / 1000000
+  )
+) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(
+    title = "Distribusi Harga Berdasarkan Transmisi",
+    x = "Transmisi",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+## Numeric vs categoric: Harga dan Tipe Bahan Bakar
+
+```{r hubungan-harga-bbm, fig.width=8, fig.height=5}
+ggplot(
+  data_analisis,
+  aes(
+    x = Tipe_Bahan_Bakar,
+    y = Harga_IDR / 1000000
+  )
+) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(
+    title = "Distribusi Harga Berdasarkan Tipe Bahan Bakar",
+    x = "Tipe bahan bakar",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+## Numeric vs categoric: Harga dan Tipe Bodi
+
+```{r hubungan-harga-bodi, fig.width=9, fig.height=7}
+ggplot(
+  data_analisis,
+  aes(
+    x = Tipe_Bodi_Analisis,
+    y = Harga_IDR / 1000000
+  )
+) +
+  geom_boxplot(na.rm = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Distribusi Harga Berdasarkan Tipe Bodi",
+    x = "Tipe bodi",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+## Categoric vs categoric: Transmisi dan Bahan Bakar
+
+```{r hubungan-transmisi-bbm, fig.width=9, fig.height=5}
+transmisi_bbm <- data_analisis %>%
+  count(
+    Tipe_Bahan_Bakar,
+    Transmisi_Analisis
+  )
+
+ggplot(
+  transmisi_bbm,
+  aes(
+    x = Tipe_Bahan_Bakar,
+    y = n,
+    fill = Transmisi_Analisis
+  )
+) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Komposisi Transmisi Menurut Tipe Bahan Bakar",
+    x = "Tipe bahan bakar",
+    y = "Jumlah iklan",
+    fill = "Transmisi"
+  ) +
+  theme_minimal()
+```
+
+# Seleksi Peubah dengan Filtering
+
+K6 menjelaskan filter method sebagai penilaian fitur menggunakan statistik sebelum modeling. Fitur kemudian diberi peringkat dan fitur yang tidak relevan dapat disisihkan. Metode dipilih berdasarkan tipe fitur dan target. K6 membahas correlation, ANOVA, dan Chi-square sebagai metode filtering. 
+
+Pada analisis ini, `Harga_IDR` tetap menjadi target harga utama. Karena ANOVA dan Chi-square pada materi K6 membutuhkan target kategorik, dibuat `Kelompok_Harga` sebagai **variabel turunan khusus untuk filtering**. `Harga_IDR` asli tidak diganti.
+
+## Membuat target kategorik untuk filtering
+
+Target kategorik dibentuk berdasarkan median `Harga_IDR`:
+
+- `Rendah` → harga <= median
+- `Tinggi` → harga > median
+
+```{r target-filtering}
+batas_harga <- median(
+  data_analisis$Harga_IDR,
+  na.rm = TRUE
+)
+
+data_filter <- data_analisis %>%
+  mutate(
+    Kelompok_Harga = if_else(
+      Harga_IDR <= batas_harga,
+      "Rendah",
+      "Tinggi"
+    ) %>%
+      factor(
+        levels = c("Rendah", "Tinggi")
+      )
+  )
+
+tibble(
+  Median_Harga_IDR = batas_harga,
+  Median_Harga_Juta = batas_harga / 1000000
+) %>%
+  kable(
+    digits = 0,
+    caption = "Batas pembentukan Kelompok_Harga"
+  )
+```
+
+## Menentukan kandidat fitur
+
+Fitur yang digunakan untuk filtering harus berbeda dari target dan tidak merupakan duplikasi langsung dari target.
+
+### Fitur numerik
+
+- `Tahun_Analisis`
+- `Jarak_Tengah`
+
+### Fitur kategorik
+
+- `Merk`
+- `Provinsi`
+- `Kota_Kabupaten`
+- `Kecamatan`
+- `Tipe_Bahan_Bakar`
+- `Transmisi_Analisis`
+- `Tipe_Penjual_Analisis`
+- `Kapasitas_Mesin_Analisis`
+- `Warna`
+- `Tipe_Bodi_Analisis`
+
+`Harga_Teks` dan `Harga_Hasil_RegEx` tidak digunakan sebagai fitur karena merepresentasikan informasi harga yang sama dengan `Harga_IDR`. `URL_Detail` juga tidak digunakan sebagai fitur. `Kategori` dan `Nama_Bursa_Mobil` tidak digunakan karena tidak memberikan variasi yang berarti. `Model` tidak dimasukkan ke uji Chi-square karena jumlah kategorinya sangat banyak dan banyak kategori memiliki frekuensi yang sangat kecil.
+
+## Filtering numerik dengan correlation
+
+K6 menggunakan correlation untuk fitur numerik terhadap target numerik. Fitur diranking berdasarkan absolute correlation atau p-value.
+
+```{r filtering-correlation}
+fitur_numerik <- c(
+  "Tahun_Analisis",
+  "Jarak_Tengah"
+)
+
+hasil_korelasi <- map_dfr(
+  fitur_numerik,
+  function(fitur) {
+
+    z <- data_filter %>%
+      select(
+        all_of(fitur),
+        Harga_IDR
+      ) %>%
+      filter(complete.cases(.))
+
+    uji <- cor.test(
+      z[[fitur]],
+      z$Harga_IDR,
+      method = "pearson"
+    )
+
+    tibble(
+      Fitur = fitur,
+      N = nrow(z),
+      Korelasi_Pearson = unname(uji$estimate),
+      Absolute_Correlation = abs(unname(uji$estimate)),
+      P_Value = uji$p.value
+    )
+  }
+) %>%
+  arrange(desc(Absolute_Correlation)) %>%
+  mutate(
+    Ranking = row_number(),
+    Keputusan = if_else(
+      P_Value < 0.05,
+      "KEEP",
+      "EXCLUDE"
+    )
+  )
+
+kable(
+  hasil_korelasi,
+  digits = 4,
+  caption = "Filtering fitur numerik menggunakan Pearson correlation"
+)
+```
+
+**Kriteria seleksi:** fitur dengan `p-value < 0,05` dipertahankan; selain itu disisihkan. Ranking kekuatan hubungan ditunjukkan dengan `Absolute_Correlation`.
+
+## Filtering numerik dengan ANOVA
+
+Untuk menyediakan target kategorik sesuai bentuk metode ANOVA di K6, fitur numerik dibandingkan antara kelompok `Rendah` dan `Tinggi`.
+
+```{r filtering-anova}
+hasil_anova <- map_dfr(
+  fitur_numerik,
+  function(fitur) {
+
+    z <- data_filter %>%
+      select(
+        all_of(fitur),
+        Kelompok_Harga
+      ) %>%
+      filter(complete.cases(.))
+
+    formula_anova <- as.formula(
+      paste(fitur, "~ Kelompok_Harga")
+    )
+
+    model_anova <- aov(
+      formula_anova,
+      data = z
+    )
+
+    tabel_anova <- summary(model_anova)[[1]]
+
+    tibble(
+      Fitur = fitur,
+      N = nrow(z),
+      F_Statistik = tabel_anova[["F value"]][1],
+      P_Value = tabel_anova[["Pr(>F)"]][1]
+    )
+  }
+) %>%
+  arrange(P_Value) %>%
+  mutate(
+    Ranking = row_number(),
+    Keputusan = if_else(
+      P_Value < 0.05,
+      "KEEP",
+      "EXCLUDE"
+    )
+  )
+
+kable(
+  hasil_anova,
+  digits = 4,
+  caption = "Filtering fitur numerik menggunakan ANOVA"
+)
+```
+
+Semakin kecil p-value, semakin kuat bukti bahwa rata-rata fitur berbeda antara kelas `Rendah` dan `Tinggi`, sesuai framing ANOVA pada K6.
+
+## Filtering kategorik dengan Chi-square
+
+Untuk fitur kategorik, target yang digunakan adalah `Kelompok_Harga`. K6 menjelaskan Chi-square untuk dua peubah kategorik dan menggunakan p-value sebagai dasar ranking/seleksi.
+
+```{r filtering-chisq}
+fitur_kategorik <- c(
+  "Merk",
+  "Provinsi",
+  "Kota_Kabupaten",
+  "Kecamatan",
+  "Tipe_Bahan_Bakar",
+  "Transmisi_Analisis",
+  "Tipe_Penjual_Analisis",
+  "Kapasitas_Mesin_Analisis",
+  "Warna",
+  "Tipe_Bodi_Analisis"
+)
+
+hasil_chisq <- map_dfr(
+  fitur_kategorik,
+  function(fitur) {
+
+    z <- data_filter %>%
+      select(
+        all_of(fitur),
+        Kelompok_Harga
+      ) %>%
+      filter(complete.cases(.))
+
+    tabel_kontingensi <- table(
+      z[[fitur]],
+      z$Kelompok_Harga
+    )
+
+    uji <- suppressWarnings(
+      chisq.test(
+        tabel_kontingensi,
+        correct = FALSE
+      )
+    )
+
+    tibble(
+      Fitur = fitur,
+      N = nrow(z),
+      Chi_Square = unname(uji$statistic),
+      DF = unname(uji$parameter),
+      P_Value = uji$p.value
+    )
+  }
+) %>%
+  arrange(P_Value) %>%
+  mutate(
+    Ranking = row_number(),
+    Keputusan = if_else(
+      P_Value < 0.05,
+      "KEEP",
+      "EXCLUDE"
+    )
+  )
+
+kable(
+  hasil_chisq,
+  digits = 4,
+  caption = "Filtering fitur kategorik menggunakan Chi-square"
+)
+```
+
+**Catatan:** Chi-square sensitif terhadap tabel yang sangat jarang. Karena itu `Model` yang memiliki ratusan kategori tidak dimasukkan ke tabel filtering ini.
+
+## Visualisasi hasil filtering
+
+### Ranking correlation
+
+```{r plot-filter-correlation, fig.width=8, fig.height=5}
+ggplot(
+  hasil_korelasi,
+  aes(
+    x = reorder(Fitur, Absolute_Correlation),
+    y = Absolute_Correlation
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Ranking Fitur Berdasarkan Absolute Correlation",
+    x = NULL,
+    y = "|r| dengan Harga_IDR"
+  ) +
+  theme_minimal()
+```
+
+### Ranking ANOVA
+
+```{r plot-filter-anova, fig.width=8, fig.height=5}
+ggplot(
+  hasil_anova,
+  aes(
+    x = reorder(Fitur, -log10(P_Value)),
+    y = -log10(P_Value)
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Ranking Fitur Berdasarkan ANOVA",
+    x = NULL,
+    y = "-log10(p-value)"
+  ) +
+  theme_minimal()
+```
+
+### Ranking Chi-square
+
+```{r plot-filter-chisq, fig.width=8, fig.height=6}
+ggplot(
+  hasil_chisq,
+  aes(
+    x = reorder(Fitur, -log10(P_Value)),
+    y = -log10(P_Value)
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Ranking Fitur Berdasarkan Chi-square",
+    x = NULL,
+    y = "-log10(p-value)"
+  ) +
+  theme_minimal()
+```
+
+## 6.7 Keputusan seleksi fitur
+
+Semua kandidat telah **dievaluasi terlebih dahulu**. Keputusan `KEEP` atau `EXCLUDE` diberikan setelah statistik dan p-value diperoleh.
+
+```{r keputusan-filtering}
+ringkasan_filter <- bind_rows(
+  hasil_korelasi %>%
+    transmute(
+      Metode = "Correlation",
+      Fitur,
+      Statistik = Korelasi_Pearson,
+      P_Value,
+      Ranking,
+      Keputusan,
+      Keterangan = "Fitur numerik terhadap Harga_IDR"
+    ),
+
+  hasil_anova %>%
+    transmute(
+      Metode = "ANOVA",
+      Fitur,
+      Statistik = F_Statistik,
+      P_Value,
+      Ranking,
+      Keputusan,
+      Keterangan = "Fitur numerik terhadap Kelompok_Harga"
+    ),
+
+  hasil_chisq %>%
+    transmute(
+      Metode = "Chi-square",
+      Fitur,
+      Statistik = Chi_Square,
+      P_Value,
+      Ranking,
+      Keputusan,
+      Keterangan = "Fitur kategorik terhadap Kelompok_Harga"
+    )
+) %>%
+  arrange(Metode, Ranking)
+
+kable(
+  ringkasan_filter,
+  digits = 4,
+  caption = "Ringkasan keputusan variable selection"
+)
+```
+
+### Fitur yang lolos pada masing-masing metode
+
+```{r fitur-lolos}
+fitur_lolos <- ringkasan_filter %>%
+  filter(Keputusan == "KEEP")
+
+kable(
+  fitur_lolos,
+  digits = 4,
+  caption = "Fitur yang lolos kriteria filtering"
+)
+```
+
+Hasil akhir variable selection dibaca **per metode**, bukan dengan menjumlahkan skor antar-metode. Correlation, ANOVA, dan Chi-square memiliki skala statistik yang berbeda sehingga tidak digabungkan menjadi satu skor.
+
+## Interpretasi hasil filtering
+
+Interpretasi final ditulis dari tabel hasil aktual ketika R Markdown di-*knit*:
+
+- **Correlation:** fitur numerik dengan `p-value < 0,05` dipertahankan dan diurutkan berdasarkan `|r|`.
+- **ANOVA:** fitur numerik dengan `p-value < 0,05` dipertahankan dan diurutkan berdasarkan p-value.
+- **Chi-square:** fitur kategorik dengan `p-value < 0,05` dipertahankan dan diurutkan berdasarkan p-value.
+
+Keputusan tersebut menunjukkan **relevansi statistik terhadap target yang digunakan pada masing-masing metode**, bukan bukti hubungan sebab-akibat. Setelah tahap ini, proses berhenti pada filtering sesuai scope tugas.
+
+# Kesimpulan
+
+Kesimpulan disusun berdasarkan hasil aktual setelah dokumen di-*knit*.
+
+1. Data mentah dikelola menjadi data managed melalui penyesuaian format dan pembentukan fitur.
+2. Missing value dan nilai khusus dicatat serta ditangani tanpa membuang seluruh observasi secara otomatis.
+3. Kandidat anomali dideteksi dan diaudit sebelum keputusan KEEP/EXCLUDE.
+4. Eksplorasi #4 menggambarkan distribusi, proporsi, komposisi model per tahun, serta karakteristik khusus dataset.
+5. Hubungan antarpeubah dieksplorasi pada #5 dengan pendekatan numeric-numeric, numeric-categoric, dan categoric-categoric.
+6. Variable selection pada #6 dilakukan dengan filter method melalui correlation, ANOVA, dan Chi-square sesuai tipe fitur dan target.

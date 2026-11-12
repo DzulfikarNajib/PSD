@@ -1,0 +1,287 @@
+---
+title: "PSD9P4"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  warning = FALSE, 
+  message = FALSE, 
+  fig.width = 9, 
+  fig.height = 5.5
+)
+
+# Load Library Utama
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(knitr)
+library(writexl)
+library(dplyr)
+library(stringr)
+
+# Library pendukung statistik & visualisasi
+if (!require(e1071)) install.packages("e1071")
+if (!require(tidytext)) install.packages("tidytext")
+if (!require(wordcloud)) install.packages("wordcloud")
+if (!require(RColorBrewer)) install.packages("RColorBrewer")
+
+library(e1071)
+library(tidytext)
+library(wordcloud)
+library(RColorBrewer)
+```
+
+# LOAD DATA
+```{r}
+# Load Dataset
+df_raw <- read_excel("PSD_DATA_MOBIL_JAKARTA_FINAL_CLEAN.xlsx")
+
+# 1. Dimensi Data
+dim_info <- data.frame(
+  Metrik = c("Jumlah Baris (Observasi)", "Jumlah Kolom (Peubah)"),
+  Nilai = c(nrow(df_raw), ncol(df_raw))
+)
+kable(dim_info, caption = "Tabel 1.1: Dimensi Dataset")
+
+# 2. Cek Missing Value & Tipe Data
+health_df <- data.frame(
+  Kolom = colnames(df_raw),
+  Tipe_Data = sapply(df_raw, function(x) paste(class(x), collapse = ", ")),
+  Jumlah_NA = sapply(df_raw, function(x) sum(is.na(x))),
+  Persen_NA = sapply(df_raw, function(x) sprintf("%.2f%%", mean(is.na(x)) * 100))
+)
+kable(health_df, caption = "Tabel 1.2: Validasi Tipe Data & Missing Values")
+```
+
+```{r}
+str(df_raw)
+```
+
+# CLEANING DATAA
+
+```{r}
+# 2. DATA CLEANING PIPELINE
+df_clean <- df_raw %>%
+  # a. Buang kolom redundan / zero variance & duplikasi kecamatan
+  select(-Kategori, -Nama_Bursa_Mobil, -Kecamatan) %>%
+  
+  # b. Bersihkan karakter tak kasat mata (\xa0) & trim spasi liar pada kolom string
+  mutate(across(where(is.character), ~ str_squish(str_replace_all(., "\xa0", " ")))) %>%
+  
+  # c. Konversi variabel kategorik nominal menjadi factor
+  mutate(across(c(Provinsi, Kota_Kabupaten, Merk, Model, Brand_Tier, 
+                  Tipe_Bahan_Bakar, Transmisi, Tipe_Bodi, Warna, Tipe_Penjual), as.factor)) %>%
+  
+  # d. Konversi Odometer_Group menjadi Ordered Factor agar urutan plot tidak acak
+  mutate(Odometer_Group = factor(Odometer_Group, 
+                                 levels = c("<20k (Sangat Low)", 
+                                            "20k-50k (Low)", 
+                                            "50k-100k (Sedang)", 
+                                            ">100k (Tinggi)"), 
+                                 ordered = TRUE)) %>%
+  
+  # e. Rekalkulasi & jamin konsistensi Usia_Mobil
+  mutate(Usia_Mobil = as.integer(2026 - Tahun))
+
+# 3. CEK STRUKTUR HASIL PEMBERSIHAN
+glimpse(df_clean)
+
+# 4. EKSPOR KE FILE EXCEL BARU
+write_xlsx(df_clean, "PSD_DATA_MOBIL_JAKARTA_CLEANED_V2.xlsx")
+```
+
+# EKSPLORASI DATA
+
+## 1. Ringkasan Statistik Deskriptif (Peubah Numerik)
+
+```{r stat-deskriptif}
+# Fungsi untuk menghitung ringkasan statistik lengkap
+get_num_summary <- function(df) {
+  df %>%
+    select(Harga_IDR, Usia_Mobil, Jarak_Tempuh_KM, Kapasitas_Mesin_CC) %>%
+    summarise(across(everything(), list(
+      Mean = ~ mean(., na.rm = TRUE),
+      SD = ~ sd(., na.rm = TRUE),
+      Median = ~ median(., na.rm = TRUE),
+      IQR = ~ IQR(., na.rm = TRUE),
+      Min = ~ min(., na.rm = TRUE),
+      Max = ~ max(., na.rm = TRUE),
+      Skewness = ~ e1071::skewness(., na.rm = TRUE)
+    ), .names = "{.col}__{.fn}")) %>%
+    tidyr::pivot_longer(cols = everything(), 
+                        names_to = c("Variabel", "Metrik"), 
+                        names_sep = "__") %>%
+    tidyr::pivot_wider(names_from = Metrik, values_from = value)
+}
+
+num_summary <- get_num_summary(df_clean)
+
+kable(num_summary, digits = 2, caption = "Tabel 2.1: Ringkasan Statistik Deskriptif Peubah Numerik")
+```
+
+## 2. Eksplorasi Distribusi Peubah Numerik
+### 2.1 Sebaran Harga Mobil (Harga_IDR)
+
+```{r}
+# p1: Dibagi 1e6 supaya nilainya pas dalam jutaan (Juta Rp)
+p1 <- ggplot(df_clean, aes(x = Harga_IDR / 1e6)) +
+  geom_histogram(bins = 40, fill = "#2c3e50", color = "white", alpha = 0.8) +
+  scale_x_continuous(labels = comma) +
+  labs(title = "Distribusi Harga Mobil (Skala Asli)",
+       x = "Harga (Juta Rp)", 
+       y = "Frekuensi") +
+  theme_minimal()
+
+# p2: Skala Log10 dengan format Rupiah yang rapi
+p2 <- ggplot(df_clean, aes(x = Harga_IDR)) +
+  geom_histogram(bins = 40, fill = "#e74c3c", color = "white", alpha = 0.8) +
+  scale_x_log10(labels = label_dollar(prefix = "Rp ", big.mark = ".")) +
+  labs(title = "Distribusi Harga Mobil (Skala Log10)",
+       x = "Harga (Skala Log IDR)", 
+       y = "Frekuensi") +
+  theme_minimal()
+
+gridExtra::grid.arrange(p1, p2, ncol = 2)
+```
+
+### 2.2 Sebaran Usia, Jarak Tempuh, dan Kapasitas Mesin
+```{r}
+# Usia Mobil
+p_usia <- ggplot(df_clean, aes(x = Usia_Mobil)) +
+  geom_histogram(binwidth = 1, fill = "#3498db", color = "white") +
+  labs(title = "Distribusi Usia Mobil", x = "Usia (Tahun)", y = "Frekuensi") +
+  theme_minimal()
+
+# Jarak Tempuh (KM)
+p_km <- ggplot(df_clean, aes(x = Jarak_Tempuh_KM / 1000)) +
+  geom_histogram(bins = 30, fill = "#2ecc71", color = "white") +
+  scale_x_continuous(labels = comma) +
+  labs(title = "Distribusi Jarak Tempuh", x = "Jarak Tempuh (Ribu KM)", y = "Frekuensi") +
+  theme_minimal()
+
+# Kapasitas Mesin (CC)
+p_cc <- ggplot(df_clean, aes(x = Kapasitas_Mesin_CC)) +
+  geom_histogram(bins = 30, fill = "#9b59b6", color = "white") +
+  labs(title = "Distribusi Kapasitas Mesin", x = "Kapasitas Mesin (CC)", y = "Frekuensi") +
+  theme_minimal()
+
+gridExtra::grid.arrange(p_usia, p_km, p_cc, ncol = 3)
+```
+
+### 2.3 Deteksi Pencilan (Outlier) dengan Boxplot
+```{r}
+p_box0 <- ggplot(df_clean, aes(y = Harga_IDR)) +
+  geom_boxplot(fill = "#e74c3c", alpha = 0.6) +
+  labs(title = "Boxplot Harga", y = "Harga") +
+  theme_minimal()
+
+p_box1 <- ggplot(df_clean, aes(y = log10(Harga_IDR))) +
+  geom_boxplot(fill = "#e74c3c", alpha = 0.6) +
+  labs(title = "Boxplot Log(Harga)", y = "Log10(Harga)") +
+  theme_minimal()
+
+p_box2 <- ggplot(df_clean, aes(y = Usia_Mobil)) +
+  geom_boxplot(fill = "#3498db", alpha = 0.6) +
+  labs(title = "Boxplot Usia Mobil", y = "Tahun") +
+  theme_minimal()
+
+p_box3 <- ggplot(df_clean, aes(y = Jarak_Tempuh_KM)) +
+  geom_boxplot(fill = "#2ecc71", alpha = 0.6) +
+  labs(title = "Boxplot Jarak Tempuh", y = "KM") +
+  theme_minimal()
+
+gridExtra::grid.arrange(p_box0, p_box1, p_box2, p_box3, ncol = 4)
+```
+
+## 3. Eksplorasi Variabel Kategorik
+### 3.1 Top 10 Merk Mobil Terbanyak
+```{r}
+df_clean %>%
+  count(Merk, sort = TRUE) %>%
+  slice_max(n, n = 10) %>%
+  ggplot(aes(x = reorder(Merk, n), y = n, fill = Merk)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  geom_text(aes(label = n), hjust = -0.2, size = 3.5) +
+  labs(title = "Top 10 Merk Mobil Paling Banyak Dijual",
+       x = "Merk Mobil", y = "Jumlah Unit") +
+  theme_minimal() +
+  scale_fill_viridis_d()
+```
+
+### 3.2 Komposisi Brand Tier, Transmisi, & Bahan Bakar
+```{r}
+p_tier <- ggplot(df_clean, aes(x = Brand_Tier, fill = Brand_Tier)) +
+  geom_bar(show.legend = FALSE) +
+  labs(title = "Brand Tier", x = NULL, y = "Jumlah") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 15, hjust = 1))
+
+p_trans <- ggplot(df_clean, aes(x = Transmisi, fill = Transmisi)) +
+  geom_bar(show.legend = FALSE) +
+  labs(title = "Transmisi", x = NULL, y = "Jumlah") +
+  theme_minimal()
+
+p_bbm <- ggplot(df_clean, aes(x = Tipe_Bahan_Bakar, fill = Tipe_Bahan_Bakar)) +
+  geom_bar(show.legend = FALSE) +
+  labs(title = "Bahan Bakar", x = NULL, y = "Jumlah") +
+  theme_minimal()
+
+gridExtra::grid.arrange(p_tier, p_trans, p_bbm, ncol = 3)
+```
+
+## 4. Analisis Bivariat & Korelasi
+### 4.1 Matriks Korelasi Peubah Numerik
+
+```{r}
+# Ambil peubah numerik
+num_data <- df_clean %>% 
+  select(Harga_IDR, Usia_Mobil, Jarak_Tempuh_KM, Kapasitas_Mesin_CC)
+
+cor_matrix <- cor(num_data, use = "complete.obs")
+
+# Heatmap Korelasi sederhanan
+ggcorrplot::ggcorrplot(cor_matrix, 
+                       hc.order = TRUE, 
+                       type = "lower", 
+                       lab = TRUE, 
+                       lab_size = 4, 
+                       colors = c("#6D9EC1", "white", "#E46726"),
+                       title = "Matriks Korelasi Peubah Numerik")
+```
+
+### 4.2 Hubungan Usia Mobil vs Harga Jual (berdasarkan Brand Tier)
+```{r}
+ggplot(df_clean, aes(x = Usia_Mobil, y = Harga_IDR / 1e6, color = Brand_Tier)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_log10(labels = comma) +
+  labs(title = "Pengaruh Usia Mobil Terhadap Harga per Brand Tier",
+       x = "Usia Mobil (Tahun)", 
+       y = "Harga (Juta Rp - Skala Log10)",
+       color = "Brand Tier") +
+  theme_minimal()
+```
+
+### 4.3 Harga Mobil Berdasarkan Transmisi & Brand Tier
+```{r}
+ggplot(df_clean, aes(x = Brand_Tier, y = Harga_IDR / 1e6, fill = Transmisi)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  scale_y_log10(labels = comma) +
+  labs(title = "Perbandingan Harga Berdasarkan Brand Tier dan Transmisi",
+       x = "Brand Tier", 
+       y = "Harga (Juta Rp - Skala Log10)") +
+  theme_minimal()
+```
+
+
+
+

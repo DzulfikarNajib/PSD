@@ -1,0 +1,494 @@
+---
+title: "Analisis Data Mobil Bekas Jakarta"
+author: "Fikar"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+# 1 Library
+
+```{r library, message=FALSE, warning=FALSE}
+library(readxl)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(purrr)
+library(ggplot2)
+```
+
+# 2 Load Data
+
+Data hasil web scraping dimuat dari file Excel.
+
+```{r load-data}
+data_mobil <- read_excel("PSD_DATA_MOBIL_JAKARTA_FULL.xlsx")
+
+str(data_mobil)
+head(data_mobil)
+```
+
+Dataset terdiri dari 4.441 observasi dan 19 peubah.
+
+# 3 Data Management
+
+Tahap ini bertujuan menyesuaikan format peubah, mengekstraksi informasi dari peubah teks, dan membentuk peubah numerik yang diperlukan untuk tahap eksplorasi, hubungan antarpeubah, dan filtering. Penggunaan Regular Expression (RegEx) mengikuti pendekatan pada materi Manajemen Data.
+
+## 3.1 Pemeriksaan struktur dan missing value
+
+```{r cek-data}
+data_mobil %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Peubah",
+    values_to = "Jumlah_Missing"
+  )
+```
+
+Nilai yang hilang tidak langsung dihapus karena pada tahap ini fokusnya adalah penyesuaian format dan pembentukan peubah.
+
+## 3.2 Penyesuaian format harga
+
+`Harga_IDR` sudah tersedia sebagai peubah numerik. `Harga_Teks` dipertahankan sebagai bentuk asli hasil scraping.
+
+Sebagai pengecekan, angka pada `Harga_Teks` diekstraksi menggunakan RegEx.
+
+```{r harga}
+data_mobil <- data_mobil %>%
+  mutate(
+    Harga_Hasil_RegEx = Harga_Teks %>%
+      str_remove_all("[.]") %>%
+      str_extract("[0-9]+") %>%
+      as.numeric()
+  )
+
+data_mobil %>%
+  summarise(
+    Jumlah_Beda = sum(Harga_Hasil_RegEx != Harga_IDR, na.rm = TRUE)
+  )
+```
+
+Untuk analisis selanjutnya, `Harga_IDR` digunakan sebagai peubah harga utama.
+
+## 3.3 Ekstraksi jarak tempuh
+
+`Jarak_Tempuh` berbentuk rentang, misalnya `30.000-35.000`. Angka batas bawah dan batas atas diekstraksi menggunakan RegEx.
+
+```{r jarak-tempuh}
+data_mobil <- data_mobil %>%
+  mutate(
+    Jarak_Clean = str_remove_all(Jarak_Tempuh, "[.]"),
+
+    Jarak_Min = str_extract(Jarak_Clean, "^[0-9]+") %>%
+      as.numeric(),
+
+    Jarak_Max = str_extract(Jarak_Clean, "(?<=-)[0-9]+") %>%
+      as.numeric(),
+
+    Jarak_Tengah = (Jarak_Min + Jarak_Max) / 2
+  )
+
+data_mobil %>%
+  select(Jarak_Tempuh, Jarak_Min, Jarak_Max, Jarak_Tengah) %>%
+  head(10)
+```
+
+`Jarak_Tengah` merupakan titik tengah dari rentang kilometer dan digunakan sebagai pendekatan numerik untuk analisis.
+
+## 3.4 Penyesuaian peubah tahun
+
+Pada `Tahun` terdapat nilai seperti `<1986`. Nilai tersebut tidak diperlakukan sebagai tahun produksi tepat 1986 ketika digunakan untuk analisis numerik.
+
+```{r tahun}
+data_mobil <- data_mobil %>%
+  mutate(
+    Tahun_Kurang_1986 = str_detect(Tahun, "^<"),
+
+    Tahun_Numerik = str_extract(Tahun, "[0-9]+") %>%
+      as.numeric(),
+
+    Tahun_Analisis = if_else(
+      Tahun_Kurang_1986,
+      NA_real_,
+      Tahun_Numerik
+    )
+  )
+
+data_mobil %>%
+  select(Tahun, Tahun_Numerik, Tahun_Kurang_1986, Tahun_Analisis) %>%
+  distinct() %>%
+  arrange(Tahun_Numerik)
+```
+
+`Tahun_Analisis` digunakan pada analisis hubungan dengan harga karena observasi `<1986` tidak memiliki tahun numerik yang pasti.
+
+## 3.5 Ekstraksi kapasitas mesin
+
+Informasi kapasitas mesin tetap disiapkan sebagai bagian dari manajemen data.
+
+```{r mesin}
+data_mobil <- data_mobil %>%
+  mutate(
+    Kapasitas_Clean = str_remove_all(Kapasitas_Mesin, "[.]"),
+
+    Kapasitas_Min_cc = str_extract(
+      Kapasitas_Clean,
+      "[0-9]+"
+    ) %>%
+      as.numeric(),
+
+    Kapasitas_Max_cc = str_extract(
+      Kapasitas_Clean,
+      "(?<=-)[[:space:]]*[0-9]+"
+    ) %>%
+      str_remove_all("[[:space:]]") %>%
+      as.numeric(),
+
+    Kapasitas_Lebih_3000 = str_detect(
+      Kapasitas_Clean,
+      "^>3\\.000|^>3000"
+    ),
+
+    Kapasitas_Kurang_1000 = str_detect(
+      Kapasitas_Clean,
+      "^<1\\.000|^<1000"
+    )
+  )
+```
+
+## 3.6 Penyesuaian peubah kategorik
+
+```{r factor}
+data_mobil <- data_mobil %>%
+  mutate(
+    Kategori = as.factor(Kategori),
+    Provinsi = as.factor(Provinsi),
+    Kota_Kabupaten = as.factor(Kota_Kabupaten),
+    Kecamatan = as.factor(Kecamatan),
+    Merk = as.factor(Merk),
+    Model = as.factor(Model),
+    Tipe_Bahan_Bakar = as.factor(Tipe_Bahan_Bakar),
+    Transmisi = as.factor(Transmisi),
+    Tipe_Penjual = as.factor(Tipe_Penjual),
+    Nama_Bursa_Mobil = as.factor(Nama_Bursa_Mobil),
+    Warna = as.factor(Warna),
+    Tipe_Bodi = as.factor(Tipe_Bodi)
+  )
+```
+
+## 3.7 Data hasil manajemen
+
+```{r data-final}
+data_mobil_managed <- data_mobil %>%
+  select(
+    Judul,
+    Kategori,
+    Provinsi,
+    Kota_Kabupaten,
+    Kecamatan,
+    Harga_Teks,
+    Harga_IDR,
+    Harga_Hasil_RegEx,
+    Merk,
+    Model,
+    Tahun,
+    Tahun_Numerik,
+    Tahun_Kurang_1986,
+    Tahun_Analisis,
+    Jarak_Tempuh,
+    Jarak_Min,
+    Jarak_Max,
+    Jarak_Tengah,
+    Tipe_Bahan_Bakar,
+    Transmisi,
+    Tipe_Penjual,
+    Nama_Bursa_Mobil,
+    Kapasitas_Mesin,
+    Kapasitas_Min_cc,
+    Kapasitas_Max_cc,
+    Kapasitas_Kurang_1000,
+    Kapasitas_Lebih_3000,
+    Warna,
+    Tipe_Bodi,
+    URL_Detail
+  )
+
+head(data_mobil_managed)
+```
+
+# 4 Eksplorasi dan Visualisasi Data
+
+Tahap eksplorasi digunakan untuk memahami karakteristik masing-masing peubah sebelum masuk ke hubungan antarpeubah.
+
+## 4.1 Distribusi harga
+
+```{r histogram-harga, fig.width=8, fig.height=5}
+ggplot(data_mobil_managed, aes(x = Harga_IDR / 1000000)) +
+  geom_histogram(bins = 40, na.rm = TRUE) +
+  labs(
+    title = "Distribusi Harga Mobil Bekas",
+    x = "Harga (juta rupiah)",
+    y = "Jumlah iklan"
+  ) +
+  theme_minimal()
+```
+
+Histogram digunakan untuk melihat bentuk distribusi harga dan penyebaran observasi.
+
+## 4.2 Lima merek dengan jumlah iklan terbanyak
+
+```{r top-merek, fig.width=8, fig.height=5}
+top_merek <- data_mobil_managed %>%
+  count(Merk, sort = TRUE) %>%
+  slice_head(n = 5)
+
+ggplot(top_merek, aes(x = reorder(Merk, n), y = n)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Lima Merek dengan Jumlah Iklan Terbanyak",
+    x = NULL,
+    y = "Jumlah iklan"
+  ) +
+  theme_minimal()
+```
+
+## 4.3 Distribusi harga menurut transmisi
+
+```{r boxplot-transmisi, fig.width=8, fig.height=5}
+ggplot(data_mobil_managed, aes(x = Transmisi, y = Harga_IDR / 1000000)) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(
+    title = "Distribusi Harga Menurut Transmisi",
+    x = "Transmisi",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+Visualisasi ini digunakan untuk membandingkan distribusi harga antar kategori transmisi.
+
+# 5 Hubungan Antarpeubah
+
+K5 membagi hubungan antarpeubah menjadi numeric vs numeric, numeric vs categoric, dan categoric vs categoric. Pada dataset ini, `Harga_IDR` digunakan sebagai peubah harga utama.
+
+## 5.1 Harga dan tahun kendaraan
+
+Karena `Harga_IDR` dan `Tahun_Analisis` merupakan peubah numerik, hubungan keduanya dapat dilihat dengan scatter plot.
+
+```{r scatter-tahun-harga, fig.width=8, fig.height=5}
+ggplot(
+  data_mobil_managed,
+  aes(x = Tahun_Analisis, y = Harga_IDR / 1000000)
+) +
+  geom_point(alpha = 0.25, na.rm = TRUE) +
+  geom_smooth(method = "lm", se = FALSE, na.rm = TRUE) +
+  labs(
+    title = "Hubungan Tahun Kendaraan dengan Harga",
+    x = "Tahun kendaraan",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+Scatter plot digunakan untuk melihat arah dan pola hubungan. Korelasi yang diperoleh nantinya tidak ditafsirkan sebagai hubungan sebab-akibat.
+
+## 5.2 Harga dan jarak tempuh
+
+```{r scatter-jarak-harga, fig.width=8, fig.height=5}
+ggplot(
+  data_mobil_managed,
+  aes(x = Jarak_Tengah, y = Harga_IDR / 1000000)
+) +
+  geom_point(alpha = 0.25, na.rm = TRUE) +
+  geom_smooth(method = "lm", se = FALSE, na.rm = TRUE) +
+  labs(
+    title = "Hubungan Jarak Tempuh dengan Harga",
+    x = "Jarak tempuh (km)",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+## 5.3 Harga dan transmisi
+
+```{r harga-transmisi, fig.width=8, fig.height=5}
+ggplot(
+  data_mobil_managed,
+  aes(x = Transmisi, y = Harga_IDR / 1000000)
+) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(
+    title = "Distribusi Harga Berdasarkan Transmisi",
+    x = "Transmisi",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+## 5.4 Harga dan tipe bahan bakar
+
+```{r harga-bbm, fig.width=8, fig.height=5}
+ggplot(
+  data_mobil_managed,
+  aes(x = Tipe_Bahan_Bakar, y = Harga_IDR / 1000000)
+) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(
+    title = "Distribusi Harga Berdasarkan Tipe Bahan Bakar",
+    x = "Tipe bahan bakar",
+    y = "Harga (juta rupiah)"
+  ) +
+  theme_minimal()
+```
+
+# 6 Seleksi Peubah dengan Filtering
+
+## 6.1 Menentukan target
+
+Target yang digunakan adalah:
+
+> **`Harga_IDR`**
+
+Target dipilih karena merupakan peubah numerik yang merepresentasikan harga mobil, sementara beberapa peubah lain menggambarkan karakteristik kendaraan.
+
+Pada tahap filtering, yang dinilai adalah hubungan fitur dengan target. `Harga_Teks` dan `Harga_Hasil_RegEx` tidak dimasukkan sebagai fitur karena keduanya merepresentasikan informasi harga yang sama dengan `Harga_IDR`.
+
+## 6.2 Metode filtering
+
+Sesuai materi K6, **correlation** dapat digunakan untuk filtering antara peubah numerik dan target numerik. K6 menyebutkan bahwa fitur dapat diranking berdasarkan absolute correlation atau p-value.
+
+Karena target `Harga_IDR` bersifat numerik dan kandidat fitur yang digunakan pada filtering juga numerik, metode yang digunakan adalah **korelasi Pearson**.
+
+Kriteria yang digunakan pada bagian ini adalah **ranking berdasarkan absolute correlation (`|r|`)**, bukan menetapkan cutoff baru yang tidak disebutkan dalam materi.
+
+Kandidat fitur numerik:
+
+- `Tahun_Analisis`
+- `Jarak_Tengah`
+
+Target:
+
+- `Harga_IDR`
+
+## 6.3 Menghitung korelasi Pearson
+
+```{r filtering-correlation}
+fitur_num <- c("Tahun_Analisis", "Jarak_Tengah")
+
+hasil_filter <- map_dfr(fitur_num, function(v) {
+
+  z <- data_mobil_managed %>%
+    select(all_of(v), Harga_IDR) %>%
+    filter(complete.cases(.))
+
+  uji <- cor.test(
+    z[[v]],
+    z$Harga_IDR,
+    method = "pearson"
+  )
+
+  tibble(
+    Fitur = v,
+    N = nrow(z),
+    Korelasi_Pearson = unname(uji$estimate),
+    Absolute_Correlation = abs(unname(uji$estimate)),
+    P_Value = uji$p.value
+  )
+}) %>%
+  arrange(desc(Absolute_Correlation))
+
+knitr::kable(
+  hasil_filter,
+  digits = 4,
+  caption = "Hasil filtering menggunakan korelasi Pearson"
+)
+```
+
+## 6.4 Visualisasi hasil filtering
+
+```{r plot-filtering, fig.width=8, fig.height=5}
+ggplot(
+  hasil_filter,
+  aes(
+    x = reorder(Fitur, Absolute_Correlation),
+    y = Absolute_Correlation
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Ranking Fitur Berdasarkan Absolute Correlation",
+    x = NULL,
+    y = "|Korelasi Pearson| dengan Harga_IDR"
+  ) +
+  theme_minimal()
+```
+
+## 6.5 Interpretasi hasil filtering
+
+Nilai korelasi dan p-value dihitung langsung dari dataset ketika R Markdown di-*knit*. Interpretasi hasil dapat ditulis berdasarkan tabel yang dihasilkan.
+
+```{r interpretasi-filtering, results='asis'}
+for (i in seq_len(nrow(hasil_filter))) {
+  arah <- ifelse(
+    hasil_filter$Korelasi_Pearson[i] > 0,
+    "positif",
+    "negatif"
+  )
+
+  cat(
+    paste0(
+      "- **", hasil_filter$Fitur[i], "** memiliki korelasi Pearson sebesar ",
+      round(hasil_filter$Korelasi_Pearson[i], 3),
+      " dengan `Harga_IDR`, dengan arah hubungan ",
+      arah,
+      ". Nilai absolute correlation sebesar ",
+      round(hasil_filter$Absolute_Correlation[i], 3),
+      " dan p-value sebesar ",
+      format.pval(hasil_filter$P_Value[i], digits = 3),
+      ".\n"
+    )
+  )
+}
+```
+
+Berdasarkan kriteria ranking `|r|`, fitur dengan nilai absolute correlation yang lebih besar memiliki hubungan linear yang lebih kuat dengan `Harga_IDR` pada dataset ini.
+
+Interpretasi tersebut merupakan **asosiasi statistik**, bukan bukti bahwa fitur tersebut menyebabkan perubahan harga.
+
+## 6.6 Ringkasan hasil #6
+
+Secara ringkas, proses filtering dilakukan sebagai berikut:
+
+```text
+Target: Harga_IDR
+        ↓
+Pilih fitur numerik yang relevan
+        ↓
+Hitung korelasi Pearson
+        ↓
+Hitung |r|
+        ↓
+Ranking fitur
+        ↓
+Interpretasi hubungan dengan harga
+```
+
+Hasil filtering pada bagian ini digunakan untuk menunjukkan fitur numerik mana yang memiliki hubungan linear relatif lebih kuat dengan target `Harga_IDR`.
+
+# 7 Kesimpulan
+
+Kesimpulan ditulis berdasarkan hasil aktual tabel dan visualisasi yang dihasilkan saat R Markdown di-*knit*.
+
+Poin yang perlu dirangkum:
+
+1. Karakteristik utama dataset setelah manajemen data.
+2. Bentuk distribusi harga dan beberapa karakteristik kategorik.
+3. Pola hubungan harga dengan tahun kendaraan dan jarak tempuh.
+4. Ranking fitur numerik berdasarkan absolute correlation terhadap `Harga_IDR`.
+5. Batasan interpretasi: hubungan statistik tidak sama dengan hubungan sebab-akibat.
+
