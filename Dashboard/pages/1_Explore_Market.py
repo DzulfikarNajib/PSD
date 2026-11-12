@@ -1,172 +1,228 @@
-"""Buyer-oriented analysis of saved OLX listing snapshots."""
+"""Buyer-oriented insights from saved listing data; never calls the paid API."""
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
-from src.data_loader import load_historical_data, load_history_data, load_live_data, load_combined_archive
+from src.data_loader import load_history_data, load_live_data, load_combined_archive
 from src.styles import apply_theme
 from src.ui import format_rupiah, render_empty_state
 
-apply_theme()
-st.title("Pahami pilihan yang tersedia")
-st.caption("Ringkasan ini membaca iklan OLX yang tersimpan. Harga adalah harga penawaran, bukan harga transaksi.")
 
-history, live, excel, historical = load_history_data(), load_live_data(), load_historical_data(), load_combined_archive()
-if historical.empty and history.empty and live.empty:
-    render_empty_state("Belum ada snapshot", "Listing akan muncul setelah tombol refresh manual digunakan. Tidak ada data contoh.")
+apply_theme()
+st.title("Pahami Pasar")
+st.caption("Baca pilihan dan kisaran harga yang benar-benar tercatat di AutoMatch.")
+st.info("Harga adalah harga penawaran. Grafik merangkum data yang terkumpul, bukan seluruh pasar atau harga transaksi.", icon=":material/info:")
+
+history, live, archive = load_history_data(), load_live_data(), load_combined_archive()
+if archive.empty and history.empty and live.empty:
+    render_empty_state("Belum ada data untuk dianalisis", "Arsip dan snapshot akan tampil setelah dataset tersedia atau refresh manual berhasil. Tidak ada data contoh.")
     st.stop()
 
-if not historical.empty:
-    source = historical.copy()
-    source_label = "arsip gabungan dataset Excel + snapshot OLX"
-    snapshots = history["snapshot_id"].nunique() if "snapshot_id" in history else 0
-elif not live.empty:
-    source = live.copy()
-    source_label = "snapshot live DKI Jakarta"
-    snapshots = 1
+source_choice = st.radio(
+    "Pilih data yang ingin dilihat",
+    ["Arsip Penuh", "Listing Terbaru"],
+    horizontal=True,
+    key="market_source_choice",
+    help="Arsip penuh memuat Excel dan snapshot OLX tersimpan. Listing terbaru hanya snapshot OLX paling baru.",
+)
+if source_choice == "Arsip Penuh":
+    source = archive.copy()
+    source_label = "Arsip penuh (Excel + snapshot OLX tersimpan)"
+    snapshot_count = history["snapshot_id"].nunique() if "snapshot_id" in history else 0
 else:
-    source = history.copy()
-    source_label = "riwayat pengamatan"
-    snapshots = source["fetched_at"].nunique(dropna=True) if "fetched_at" in source else 0
+    source = live.copy()
+    source_label = "Snapshot OLX terbaru"
+    snapshot_count = source["snapshot_id"].nunique() if "snapshot_id" in source else 0
+if source.empty:
+    st.info("Belum ada data di pilihan ini. Pilih Arsip Penuh atau lakukan refresh manual untuk memperoleh listing terbaru.")
+    st.stop()
 
 for field in ["price", "year", "mileage_km", "engine_cc"]:
     if field in source:
         source[field] = pd.to_numeric(source[field], errors="coerce")
 priced = source.dropna(subset=["price"]).copy() if "price" in source else pd.DataFrame()
 unique_count = source["listing_id"].nunique() if "listing_id" in source else len(source)
-timestamp = "Belum tercatat"
-if "fetched_at" in source:
-    dates = pd.to_datetime(source["fetched_at"], errors="coerce", utc=True).dropna()
-    if not dates.empty:
-        timestamp = dates.max().tz_convert("Asia/Jakarta").strftime("%d %b %Y, %H:%M WIB")
+make_count = source["make"].nunique() if "make" in source else 0
 
-with st.container(horizontal=True):
-    st.metric("Listing tersimpan", unique_count, border=True)
-    st.metric("Merek tersedia", source["make"].nunique() if "make" in source else 0, border=True)
-    st.metric("Jenis bahan bakar", source["fuel_type"].nunique() if "fuel_type" in source else 0, border=True)
-    st.metric("Median harga iklan", format_rupiah(priced["price"].median()) if not priced.empty else "-", border=True)
-st.caption(f"Sumber: {source_label} · {len(source):,} baris · listing unik {unique_count:,}".replace(",", "."))
-if not historical.empty:
+if source_choice == "Listing Terbaru" and "fetched_at" in source:
+    dates = pd.to_datetime(source["fetched_at"], errors="coerce", utc=True).dropna()
+    updated = dates.max().tz_convert("Asia/Jakarta").strftime("%d %b %Y, %H:%M WIB") if not dates.empty else "Waktu tidak tercatat"
+else:
+    updated = "Tidak tersedia untuk semua arsip"
+
+st.markdown("### Ringkasan pilihan")
+kpis = st.columns(4, gap="small")
+kpis[0].metric("Mobil unik", f"{unique_count:,}".replace(",", "."), border=True)
+kpis[1].metric("Snapshot OLX", f"{snapshot_count:,}".replace(",", "."), border=True)
+kpis[2].metric("Merek", f"{make_count:,}".replace(",", "."), border=True)
+kpis[3].metric("Median harga iklan", format_rupiah(priced["price"].median()) if len(priced) else "—", border=True)
+st.caption(f"Sumber: **{source_label}** · {len(source):,} baris tampilan · {unique_count:,} mobil unik".replace(",", "."))
+if source_choice == "Arsip Penuh":
     origins = source.get("source_origins", pd.Series("", index=source.index)).fillna("")
     excel_count = int(origins.str.contains("Dataset Excel", regex=False).sum())
     olx_count = int(origins.str.contains("Arsip snapshot OLX", regex=False).sum())
-    st.caption(f"Tercatat di Excel: {excel_count:,} listing unik · tercatat di snapshot OLX: {olx_count:,} listing unik · {snapshots:,} snapshot OLX. Hitungan sumber bisa tumpang tindih; pengulangan antar-snapshot tetap dihitung satu mobil unik.".replace(",", "."))
-if not historical.empty:
-    st.caption("Dataset historis digunakan untuk analisis. Listing pada file ini belum tentu masih aktif; data didominasi DKI Jakarta.")
-if unique_count < 30:
-    st.info("Sampel listing masih kecil. Gunakan angka dan grafik sebagai gambaran data yang terkumpul, bukan seluruh pasar DKI Jakarta.", icon=":material/info:")
-
-st.subheader("Gambaran harga yang teramati")
-if len(priced) >= 5:
-    q1, median, q3 = priced["price"].quantile([.25, .5, .75])
-    price_metrics = st.columns(3)
-    price_metrics[0].metric("Harga terendah", format_rupiah(priced["price"].min()), border=True)
-    price_metrics[1].metric("Median penawaran", format_rupiah(median), border=True)
-    price_metrics[2].metric("Harga tertinggi", format_rupiah(priced["price"].max()), border=True)
-    st.caption(f"Separuh listing berharga valid berada pada kisaran {format_rupiah(q1)}–{format_rupiah(q3)}. Ini ringkasan sampel yang terkumpul, bukan acuan pasti harga transaksi.")
+    st.caption(f"{excel_count:,} mobil tercatat di dataset Excel · {olx_count:,} juga pernah muncul di snapshot OLX · angka sumber bisa tumpang tindih.".replace(",", "."))
+    st.warning("Arsip mencakup iklan Excel dan snapshot lama. Iklan atau tautan arsip belum tentu masih aktif.", icon=":material/history:")
 else:
-    st.info("Belum cukup harga valid untuk merangkum kisaran harga.")
+    st.caption(f"Snapshot terakhir: {updated} · iklan terlihat saat diambil, tetapi bisa berubah atau sudah tidak aktif.")
+if unique_count < 30:
+    st.info("Sampelnya masih kecil. Baca angka sebagai data yang terkumpul, bukan perkiraan seluruh pasar.", icon=":material/info:")
 
-st.subheader("Apa yang tersedia di snapshot ini?")
-brand_col, fuel_col = st.columns(2)
+with st.container(border=True):
+    st.markdown("### Temuan singkat")
+    top_make = source["make"].dropna().astype(str).value_counts() if "make" in source else pd.Series(dtype=int)
+    top_fuel = source["fuel_type"].dropna().astype(str).value_counts() if "fuel_type" in source else pd.Series(dtype=int)
+    insight_cols = st.columns(3)
+    insight_cols[0].markdown(f"**Merek dengan listing terbanyak**\n\n{top_make.index[0] if len(top_make) else 'Belum tersedia'}" + (f" · {top_make.iloc[0]} mobil" if len(top_make) else ""))
+    insight_cols[1].markdown(f"**Bahan bakar yang paling sering tercatat**\n\n{top_fuel.index[0] if len(top_fuel) else 'Belum tersedia'}" + (f" · {top_fuel.iloc[0]} mobil" if len(top_fuel) else ""))
+    insight_cols[2].markdown(f"**Median harga penawaran**\n\n{format_rupiah(priced['price'].median()) if len(priced) else 'Belum tersedia'}")
+
+TEAL = "#109FA4"
+NAVY = "#102748"
+MUTED = "#718096"
+PALETTE = [TEAL, "#345B86", "#D9A441", "#7C6AA6", "#6C9B76", "#C87562"]
+
+
+def finish_chart(fig, height=320):
+    fig.update_layout(
+        height=height,
+        margin=dict(l=12, r=12, t=16, b=12),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, sans-serif", color=NAVY, size=12),
+        xaxis=dict(gridcolor="#E8EEF0", zerolinecolor="#E8EEF0"),
+        yaxis=dict(gridcolor="#E8EEF0", zerolinecolor="#E8EEF0"),
+        legend=dict(font=dict(color=NAVY)),
+    )
+    return fig
+
+
+st.markdown("### Pilihan mobil seperti apa yang tersedia?")
+brand_col, fuel_col = st.columns([1.2, .8], gap="medium")
 with brand_col:
     with st.container(border=True):
         st.markdown("**Merek apa yang paling banyak punya pilihan?**")
-        brands = source["make"].dropna().astype(str).value_counts().head(10) if "make" in source else pd.Series(dtype=int)
+        brands = source["make"].dropna().astype(str).value_counts().head(8) if "make" in source else pd.Series(dtype=int)
         if len(brands):
-            brand_data = brands.rename_axis("Merek").rename("Jumlah listing").reset_index()
-            fig = px.bar(brand_data, x="Jumlah listing", y="Merek", orientation="h", color_discrete_sequence=["#0b806b"])
-            fig.update_layout(height=340, margin=dict(l=10, r=10, t=12, b=10), yaxis={"categoryorder": "total ascending"})
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="brand_counts")
-            st.caption(f"Pilihan terbanyak di data ini: {brands.index[0]} ({brands.iloc[0]} listing). Banyak listing tidak otomatis berarti paling cocok untukmu.")
+            brand_data = brands.rename_axis("Merek").rename("Jumlah mobil").reset_index()
+            fig = px.bar(brand_data, x="Merek", y="Jumlah mobil", color_discrete_sequence=[TEAL], text="Jumlah mobil")
+            fig.update_traces(textposition="outside", cliponaxis=False, marker_cornerradius=7)
+            fig.update_xaxes(tickangle=-25, title=None, showgrid=False)
+            fig.update_yaxes(title=None)
+            st.plotly_chart(finish_chart(fig, 330), width="stretch", config={"displayModeBar": False}, key="market_brand_chart")
+            st.caption(f"Di {source_label.lower()}, {brands.index[0]} paling sering muncul ({brands.iloc[0]} mobil unik). Banyaknya pilihan tidak otomatis berarti paling cocok.")
+            link_cols = st.columns(min(4, len(brands)))
+            for index, brand in enumerate(brands.index[:4]):
+                with link_cols[index]:
+                    if st.button(f"Lihat {brand}", key=f"market_brand_link_{index}", use_container_width=True):
+                        st.session_state["prefill_make"] = brand
+                        st.session_state["car_source_choice"] = source_choice
+                        st.switch_page("pages/2_Find_Your_Car.py")
         else:
-            st.caption("Informasi merek belum tersedia.")
+            st.caption("Informasi merek belum tersedia pada sumber ini.")
 with fuel_col:
     with st.container(border=True):
-        st.markdown("**Pilihan bahan bakarnya apa saja?**")
-        fuels = source["fuel_type"].dropna().astype(str).value_counts() if "fuel_type" in source else pd.Series(dtype=int)
+        st.markdown("**Bahan bakar apa yang tersedia?**")
+        fuels = source["fuel_type"].fillna("").astype(str).replace("", "Tidak dicantumkan").value_counts() if "fuel_type" in source else pd.Series(dtype=int)
         if len(fuels):
-            fuel_data = fuels.rename_axis("Bahan bakar").rename("Jumlah listing").reset_index()
-            fig = px.bar(fuel_data, x="Jumlah listing", y="Bahan bakar", orientation="h", color="Bahan bakar",
-                         color_discrete_sequence=["#0b806b", "#d08c48", "#4f7894", "#8e6b9b"])
-            fig.update_layout(height=340, margin=dict(l=10, r=10, t=12, b=10), yaxis={"categoryorder": "total ascending"}, showlegend=False)
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="fuel_counts")
-            st.caption("Komposisi ini membantu menyaring tipe kendaraan; ketersediaan pada sampel tidak mewakili seluruh pasar.")
+            fuel_data = fuels.rename_axis("Bahan bakar").rename("Jumlah mobil").reset_index()
+            fig = px.pie(fuel_data, names="Bahan bakar", values="Jumlah mobil", hole=.66, color_discrete_sequence=PALETTE)
+            fig.update_traces(textposition="inside", textinfo="percent", sort=False, marker=dict(line=dict(color="#FFFFFF", width=3)))
+            fig.add_annotation(text=f"{unique_count:,}<br><span style='font-size:11px'>mobil unik</span>".replace(",", "."), x=.5, y=.5, showarrow=False, font=dict(size=18, color=NAVY))
+            fig.update_layout(showlegend=True, legend=dict(orientation="h", y=-.08, x=0, font=dict(size=11)))
+            st.plotly_chart(finish_chart(fig, 330), width="stretch", config={"displayModeBar": False}, key="market_fuel_donut")
+            st.caption("Bagian tiap warna adalah jumlah mobil pada sumber pilihan. Jenis bahan bakar yang tidak dicantumkan tetap dihitung terpisah.")
+            fuel_options = [fuel for fuel in fuels.index if fuel != "Tidak dicantumkan"]
+            if fuel_options:
+                selected_fuel = st.selectbox("Lihat pilihan bahan bakar", fuel_options, key="market_fuel_shortcut")
+                if st.button(f"Cari mobil {selected_fuel}", key="market_fuel_link", use_container_width=True):
+                    st.session_state["prefill_fuel"] = selected_fuel
+                    st.session_state["car_source_choice"] = source_choice
+                    st.switch_page("pages/2_Find_Your_Car.py")
         else:
-            st.caption("Informasi bahan bakar belum tersedia.")
+            st.caption("Informasi bahan bakar belum tersedia pada sumber ini.")
 
-st.markdown("**Mau melihat listing tertentu?**")
-quick_cols = st.columns(2)
-brand_options = sorted(source["make"].dropna().astype(str).unique()) if "make" in source else []
-fuel_options = sorted(source["fuel_type"].dropna().astype(str).unique()) if "fuel_type" in source else []
-with quick_cols[0]:
-    if brand_options:
-        chosen_make = st.selectbox("Pilih merek", brand_options, key="market_quick_make")
-        if st.button(f"Lihat listing {chosen_make}", key="market_open_make", icon=":material/directions_car:"):
-            st.session_state["prefill_make"] = chosen_make
-            st.switch_page("pages/2_Find_Your_Car.py")
-with quick_cols[1]:
-    if fuel_options:
-        chosen_fuel = st.selectbox("Pilih bahan bakar", fuel_options, key="market_quick_fuel")
-        if st.button(f"Lihat mobil {chosen_fuel}", key="market_open_fuel", icon=":material/directions_car:"):
-            st.session_state["prefill_fuel"] = chosen_fuel
-            st.switch_page("pages/2_Find_Your_Car.py")
-
-price_col, engine_col = st.columns(2)
+st.markdown("### Harga dan spesifikasi yang tercatat")
+price_col, engine_col = st.columns(2, gap="medium")
 with price_col:
     with st.container(border=True):
-        st.markdown("**Di rentang harga mana iklan terkumpul?**")
+        st.markdown("**Di rentang berapa harga iklan terkumpul?**")
         if len(priced) >= 5:
-            fig = px.histogram(priced, x="price", nbins=min(20, max(5, len(priced) // 2)), labels={"price": "Harga penawaran (Rp)", "count": "Jumlah listing"})
-            fig.update_layout(height=300, margin=dict(l=10, r=10, t=15, b=10), showlegend=False)
-            fig.update_traces(marker_color="#0b806b")
-            fig.add_vline(x=priced["price"].median(), line_dash="dash", line_color="#c27a31", annotation_text="Median")
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="price_distribution")
-            st.caption("Gunakan sebaran untuk melihat kelompok harga dan outlier. Harga listing belum tentu sama dengan harga deal.")
+            fig = px.histogram(priced, x="price", nbins=min(22, max(6, len(priced) // 3)), labels={"price": "Harga penawaran (Rp)", "count": "Jumlah mobil"})
+            fig.update_traces(marker_color=TEAL, marker_line_color="#FFFFFF", marker_line_width=1)
+            fig.add_vline(x=priced["price"].median(), line_dash="dash", line_color="#D9A441", annotation_text="Median")
+            fig.update_xaxes(title="Harga iklan (Rp)", tickformat="~s")
+            fig.update_yaxes(title="Jumlah mobil")
+            st.plotly_chart(finish_chart(fig, 310), width="stretch", config={"displayModeBar": False}, key="market_price_histogram")
+            q1, q3 = priced["price"].quantile([.25, .75])
+            st.caption(f"Separuh iklan valid berada sekitar {format_rupiah(q1)}–{format_rupiah(q3)}. Nilai ekstrem bisa memperlebar rentang.")
         else:
-            st.caption("Sebaran harga baru ditampilkan setelah tersedia minimal 5 harga valid.")
+            st.caption("Grafik menunggu setidaknya 5 harga iklan yang valid.")
 with engine_col:
     with st.container(border=True):
-        st.markdown("**Berapa kapasitas mesin yang ditemukan?**")
+        st.markdown("**Kapasitas mesin (CC) seperti apa yang sering muncul?**")
         engines = source.dropna(subset=["engine_cc"]) if "engine_cc" in source else pd.DataFrame()
         if len(engines) >= 5 and engines["engine_cc"].nunique() >= 3:
-            fig = px.histogram(engines, x="engine_cc", nbins=min(15, max(5, len(engines) // 2)), labels={"engine_cc": "Kapasitas mesin (cc)", "count": "Jumlah listing"})
-            fig.update_layout(height=300, margin=dict(l=10, r=10, t=15, b=10), showlegend=False)
-            fig.update_traces(marker_color="#0b806b")
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="engine_distribution")
-            st.caption(f"CC tersedia pada {len(engines)} dari {len(source)} baris. Cocokkan kapasitas dengan kebutuhan dan biaya operasional yang kamu pertimbangkan.")
+            fig = px.histogram(engines, x="engine_cc", nbins=min(18, max(6, len(engines) // 3)), labels={"engine_cc": "Kapasitas mesin (cc)", "count": "Jumlah mobil"})
+            fig.update_traces(marker_color="#345B86", marker_line_color="#FFFFFF", marker_line_width=1)
+            fig.update_xaxes(title="Kapasitas mesin (cc)")
+            fig.update_yaxes(title="Jumlah mobil")
+            st.plotly_chart(finish_chart(fig, 310), width="stretch", config={"displayModeBar": False}, key="market_engine_histogram")
+            st.caption(f"CC tercatat pada {len(engines):,} dari {len(source):,} mobil. Rentang ini membantu membandingkan spesifikasi, bukan langsung menentukan biaya operasional.".replace(",", "."))
         else:
-            st.caption("Grafik CC menunggu setidaknya 5 nilai valid dan 3 kapasitas berbeda.")
+            st.caption("Grafik CC baru berguna setelah tersedia 5 nilai valid dari setidaknya 3 kapasitas berbeda.")
 
-st.subheader("Apakah tahun atau kilometer terlihat terkait dengan harga?")
-feature_options = [("year", "Tahun kendaraan"), ("mileage_km", "Kilometer"), ("engine_cc", "Kapasitas mesin (cc)")]
-feature_options = [(key, label) for key, label in feature_options if key in priced and priced[key].notna().sum() >= 10 and priced[key].nunique() >= 4]
-if len(priced) >= 10 and feature_options:
-    feature, feature_label = st.selectbox("Bandingkan harga dengan", feature_options, format_func=lambda item: item[1])
-    points = priced.dropna(subset=[feature, "price"])
-    fig = px.scatter(points, x=feature, y="price", color="make" if "make" in points and points["make"].nunique() <= 8 else None,
-                     hover_data=[c for c in ["make", "model", "year", "mileage_km", "engine_cc"] if c in points],
-                     labels={feature: feature_label, "price": "Harga penawaran (Rp)", "make": "Merek"}, opacity=.78,
-                     color_discrete_sequence=["#0b806b", "#d08c48", "#4f7894", "#8e6b9b"])
-    fig.update_layout(height=370, margin=dict(l=10, r=10, t=15, b=10), legend_title_text="Merek")
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="feature_price_scatter")
-    corr = points[feature].corr(points["price"])
-    st.caption(f"Ada {len(points)} listing dengan kedua nilai. Korelasi linear pada sampel ini {corr:.2f}; ini pola deskriptif, bukan bukti sebab-akibat atau penentu kondisi mobil.")
+st.markdown("### Apakah tahun atau kilometer berkaitan dengan harga iklan?")
+scatter_features = [("year", "Tahun kendaraan", "Tahun"), ("mileage_km", "Kilometer", "Kilometer")]
+scatter_candidates = []
+for key, title, axis in scatter_features:
+    if key in priced:
+        points = priced.dropna(subset=[key, "price"])
+        if len(points) >= 10 and points[key].nunique() >= 4:
+            scatter_candidates.append((key, title, axis, points))
+if scatter_candidates:
+    scatter_cols = st.columns(len(scatter_candidates), gap="medium")
+    for idx, (key, title, axis, points) in enumerate(scatter_candidates):
+        with scatter_cols[idx]:
+            with st.container(border=True):
+                st.markdown(f"**Harga iklan dibanding {title.lower()}**")
+                fig = px.scatter(points, x=key, y="price", color="make" if "make" in points and points["make"].nunique() <= 7 else None,
+                                 hover_data=[column for column in ["make", "model", "year", "mileage_km", "engine_cc"] if column in points],
+                                 labels={key: axis, "price": "Harga penawaran (Rp)", "make": "Merek"}, opacity=.72,
+                                 color_discrete_sequence=PALETTE)
+                fig.update_yaxes(title="Harga iklan (Rp)", tickformat="~s")
+                fig.update_xaxes(title=axis)
+                st.plotly_chart(finish_chart(fig, 300), width="stretch", config={"displayModeBar": False}, key=f"market_scatter_{key}")
+                corr = points[key].corr(points["price"])
+                st.caption(f"{len(points):,} mobil memiliki kedua nilai. Korelasi linear sampel {corr:.2f}; hubungan ini deskriptif, bukan bukti sebab-akibat.".replace(",", "."))
 else:
-    st.info("Hubungan harga dengan tahun, kilometer, atau CC belum ditampilkan karena jumlah/kualitas nilai yang berpasangan belum cukup (minimal 10 listing dan 4 nilai fitur berbeda).")
+    st.info("Hubungan harga dengan tahun/kilometer belum ditampilkan: perlu sedikitnya 10 pasangan nilai dan 4 nilai fitur berbeda.", icon=":material/info:")
 
-st.subheader("Perubahan data dari waktu ke waktu")
-if not history.empty and "fetched_at" in history and history["fetched_at"].nunique(dropna=True) >= 2:
+with st.container(border=True):
+    st.markdown("**Bagaimana data listing berubah antar-refresh?**")
+    st.caption("Grafik ini khusus snapshot OLX yang memiliki waktu pengambilan. Dataset Excel tidak memiliki tanggal, jadi tidak masuk ke tren.")
     h = history.copy()
-    h["price"] = pd.to_numeric(h.get("price"), errors="coerce")
-    h["fetched_at"] = pd.to_datetime(h["fetched_at"], errors="coerce")
-    trend = h.dropna(subset=["fetched_at"]).groupby("fetched_at").agg(median_asking_price=("price", "median"), unique_listings=("listing_id", "nunique")).reset_index()
-    fig = px.line(trend, x="fetched_at", y="median_asking_price", markers=True, hover_data=["unique_listings"], labels={"fetched_at": "Waktu snapshot", "median_asking_price": "Median harga penawaran (Rp)", "unique_listings": "Listing unik"})
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="snapshot_trend")
-    st.caption("Perubahan ini hanya membandingkan snapshot live yang tersimpan, bukan tren transaksi seluruh pasar.")
-else:
-    st.caption("Belum ada tren waktu: perlu sedikitnya dua snapshot. Data tidak diperbarui otomatis.")
+    if not h.empty and "fetched_at" in h:
+        h["price"] = pd.to_numeric(h.get("price"), errors="coerce")
+        h["fetched_at"] = pd.to_datetime(h["fetched_at"], errors="coerce", utc=True)
+        h = h.dropna(subset=["fetched_at"])
+    if not h.empty and "snapshot_id" in h:
+        trend = h.groupby("snapshot_id", dropna=False).agg(fetched_at=("fetched_at", "min"), median_asking_price=("price", "median"), unique_listings=("listing_id", "nunique")).reset_index()
+        trend = trend.dropna(subset=["median_asking_price"]).sort_values("fetched_at")
+    else:
+        trend = pd.DataFrame()
+    if len(trend) >= 2:
+        trend["fetched_local"] = trend["fetched_at"].dt.tz_convert("Asia/Jakarta")
+        fig = px.line(trend, x="fetched_local", y="median_asking_price", markers=True, hover_data=["unique_listings"], labels={"fetched_local": "Waktu snapshot", "median_asking_price": "Median harga penawaran (Rp)", "unique_listings": "Mobil unik dalam snapshot"})
+        fig.update_traces(line_color=TEAL, line_width=3, marker_size=8)
+        fig.update_yaxes(tickformat="~s", title="Harga iklan (Rp)")
+        st.plotly_chart(finish_chart(fig, 300), width="stretch", config={"displayModeBar": False}, key="market_snapshot_trend")
+        st.caption("Perubahan mencerminkan iklan yang terkumpul di tiap snapshot—bukan perubahan harga transaksi atau seluruh pasar.")
+    else:
+        st.caption("Belum cukup snapshot OLX bertanggal untuk membentuk tren. Perlu setidaknya dua snapshot berhasil.")
 
-with st.expander("Tentang data dan keterbatasan"):
-    st.write(f"Analisis menggunakan **{source_label}**: {len(source)} baris dan {unique_count} listing unik. Harga merupakan harga penawaran yang tercantum pada iklan. Refresh hanya dilakukan manual; jika tidak ada refresh, listing bisa sudah berubah atau tidak tersedia. Kondisi kendaraan dan keabsahan dokumen tidak diverifikasi.")
+with st.expander("Tentang sumber dan batasan data"):
+    st.write(f"Sumber yang dipilih: **{source_label}**. Angka halaman ini menghitung {unique_count:,} mobil unik dari {len(source):,} baris yang ditampilkan. Pada arsip penuh, kemunculan listing pada beberapa sumber atau snapshot diringkas menjadi satu mobil unik; jumlah snapshot dilaporkan terpisah.".replace(",", "."))
+    st.write("Arsip Excel tidak memiliki tanggal pengambilan. Snapshot OLX menyimpan waktu saat refresh, tetapi iklan dapat berubah atau tidak aktif. Refresh tidak otomatis berjalan dan grafik bukan gambaran seluruh pasar Jabodetabek maupun nilai transaksi.")

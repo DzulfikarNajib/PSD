@@ -5,11 +5,12 @@ import streamlit as st
 
 CSS = """
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 :root {
-    --dashboard-bg: var(--background-color, #f3f5f2);
+    --dashboard-bg: var(--background-color, #f5f5f1);
     --dashboard-surface: var(--secondary-background-color, #ffffff);
-    --dashboard-text: var(--text-color, #14283b);
-    --dashboard-accent: var(--primary-color, #0b806b);
+    --dashboard-text: var(--text-color, #102748);
+    --dashboard-accent: var(--primary-color, #109fa4);
     --dashboard-muted: color-mix(in srgb, var(--dashboard-text) 78%, transparent);
     --dashboard-border: color-mix(in srgb, var(--dashboard-text) 12%, transparent);
 }
@@ -21,6 +22,58 @@ CSS = """
 }
 
 [data-testid="stAppViewContainer"] { background: var(--dashboard-bg); }
+[data-testid="stMainBlockContainer"] { max-width: 1540px; padding-top: 2rem; padding-bottom: 4rem; }
+div[class*="st-key-automatch_topnav"] {
+    position: sticky;
+    /* Streamlit keeps its own toolbar above the page; pin the custom nav below it. */
+    top: 3.75rem;
+    z-index: 999;
+    background: rgba(255, 255, 255, .97);
+    border-bottom: 1px solid #e5eaed;
+    margin: -1.7rem -1.5rem 1.35rem;
+    padding: .55rem 1.3rem .5rem;
+    box-shadow: 0 5px 20px rgba(16, 39, 72, .045);
+    backdrop-filter: blur(14px);
+}
+div[class*="st-key-automatch_topnav"] [data-testid="stHorizontalBlock"] { gap: .4rem; }
+div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] { min-width: max-content; }
+div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a {
+    min-height: 2.6rem;
+    padding: .45rem .45rem .35rem;
+    border-radius: 0;
+    color: #41556c;
+    font-size: .82rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a:hover { color: #087f86; background: transparent; }
+div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a {
+    color: #087f86 !important;
+    border-bottom: 2px solid #109fa4;
+}
+.automatch-wordmark { display:flex; align-items:center; gap:.45rem; color:#102748; font-weight:800; font-size:1.06rem; letter-spacing:-.045em; white-space:nowrap; }
+.automatch-wordmark svg { width:2.4rem; height:1.25rem; fill:none; stroke:#109fa4; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.automatch-tagline { color:#56677a; font-family:"Plus Jakarta Sans",sans-serif; font-size:.72rem; font-style:italic; white-space:nowrap; }
+div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.35rem; border-radius:999px; padding:.2rem .7rem; font-size:.78rem; white-space:nowrap; }
+[data-testid="stAppViewContainer"] h1 { font-size: clamp(2rem, 3.7vw, 3.25rem); }
+div[class*="st-key-home_hero"] {
+    background: linear-gradient(105deg, #fbfcfa 5%, #eef8f6 60%, #dff3f1 100%);
+    border: 1px solid #e5eaed;
+    border-radius: 22px;
+    padding: 1.3rem 1.55rem;
+    box-shadow: 0 12px 36px rgba(16, 39, 72, .065);
+}
+div[class*="st-key-project_editorial_hero"] {
+    background: linear-gradient(110deg, #edf8f6, #fbfcfa 62%);
+    border: 1px solid #e5eaed;
+    border-radius: 22px;
+    padding: 1.15rem 1.4rem;
+    margin-bottom: 1.3rem;
+}
+.project-illustration { padding:.7rem; text-align:center; color:#718096; font-size:.76rem; }
+.project-illustration svg { display:block; width:100%; max-height:250px; }
+.project-illustration span { display:block; margin-top:.2rem; }
 [data-testid="stSidebar"] {
     background: var(--dashboard-surface);
     border-right: 1px solid var(--dashboard-border);
@@ -34,24 +87,25 @@ CSS = """
 }
 [data-testid="stSidebar"] p, [data-testid="stSidebar"] label { color: var(--dashboard-text); }
 
-h1, h2, h3, h4 { letter-spacing: -0.025em; color: var(--dashboard-text); }
+h1, h2, h3, h4 { letter-spacing: -0.03em; color: var(--dashboard-text); font-family: "Plus Jakarta Sans", Inter, "Segoe UI", system-ui, sans-serif; }
 [data-testid="stCaptionContainer"] { color: var(--dashboard-muted); }
 [data-testid="stAppViewContainer"] h1 { font-size: clamp(2.2rem, 4vw, 3.4rem); }
 
 .stMetric {
     background: var(--dashboard-surface);
     border: 1px solid var(--dashboard-border);
-    border-radius: 14px;
-    padding: 1rem 1.1rem;
+    border-radius: 17px;
+    padding: .8rem .95rem;
     box-shadow: 0 3px 14px color-mix(in srgb, var(--dashboard-text) 5%, transparent);
 }
 .stMetric label, .stMetric [data-testid="stMetricLabel"] { color: var(--dashboard-muted); }
 .stMetric [data-testid="stMetricValue"] { color: var(--dashboard-text); }
 .stMetric [data-testid="stMetricValue"] { font-size: clamp(1rem, 1.7vw, 1.55rem); overflow-wrap: anywhere; }
+[data-testid="stMetricLabel"] p { font-size: .82rem; }
 
 .card, [data-testid="stVerticalBlockBorderWrapper"] {
     border-color: var(--dashboard-border);
-    border-radius: 16px;
+    border-radius: 17px;
 }
 .card {
     background: var(--dashboard-surface);
@@ -59,6 +113,13 @@ h1, h2, h3, h4 { letter-spacing: -0.025em; color: var(--dashboard-text); }
     padding: 1.1rem 1.25rem;
     box-shadow: 0 8px 28px color-mix(in srgb, var(--dashboard-text) 6%, transparent);
 }
+[data-testid="stImage"] img { border-radius: 17px; aspect-ratio: 16 / 9; object-fit: cover; }
+[data-testid="stImage"] figcaption { color: var(--dashboard-muted); font-size: .78rem; }
+div[class*="st-key-home_hero"] [data-testid="stImage"] img { max-height: 330px; }
+[data-testid="stPlotlyChart"] { padding: .2rem; }
+.stMarkdown p { line-height: 1.65; }
+.stButton > button[kind="primary"] { box-shadow: 0 7px 18px color-mix(in srgb, var(--dashboard-accent) 20%, transparent); }
+.stButton > button:hover { transform: translateY(-1px); transition: transform .15s ease, box-shadow .15s ease; }
 .car-price {
     color: var(--dashboard-accent);
     font-size: 1.45rem;
@@ -79,6 +140,10 @@ h1, h2, h3, h4 { letter-spacing: -0.025em; color: var(--dashboard-text); }
 }
 .car-photo-fallback span { font-size: 3.2rem; }
 .car-photo-fallback small { font-size: .8rem; }
+.listing-spec { display:flex; justify-content:space-between; gap:.5rem; padding:.2rem 0; border-bottom:1px solid #eef1f2; font-size:.79rem; }
+.listing-spec span { color:#718096; }
+.listing-spec b { color:#102748; font-weight:600; text-align:right; }
+.price-hero-value { color:#109fa4; font-family:"Plus Jakarta Sans",sans-serif; font-size:clamp(1.65rem,2.7vw,2.3rem); font-weight:800; letter-spacing:-.045em; }
 .kpi-box {
     background: var(--dashboard-surface);
     border: 1px solid var(--dashboard-border);
@@ -88,15 +153,24 @@ h1, h2, h3, h4 { letter-spacing: -0.025em; color: var(--dashboard-text); }
 }
 
 .stButton > button, [data-testid="stLinkButton"] a {
-    border-radius: 11px;
+    border-radius: 999px;
     font-weight: 650;
 }
 div.stAlert { border-radius: 12px; }
+[data-testid="stSelectbox"] [data-baseweb="select"] > div,
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-testid="stMultiSelect"] [data-baseweb="select"] > div { border-radius:10px; border-color:#dce4e6; }
+[data-testid="stRadio"] div[role="radiogroup"] { gap:.35rem; }
+[data-testid="stRadio"] div[role="radiogroup"] label { background:#fff; border:1px solid #e5eaed; border-radius:999px; padding:.35rem .8rem; }
 [data-testid="stDataFrame"] { border: 1px solid var(--dashboard-border); border-radius: 12px; }
 [data-testid="stPlotlyChart"] { border-radius: 12px; }
 @media (max-width: 700px) {
+    div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin: -.9rem -1rem 1rem; padding:.4rem .75rem; }
+    .automatch-tagline { display:none; }
     .car-photo-fallback { min-height: 130px; }
     .car-price { font-size: 1.2rem; }
+    [data-testid="stMetricValue"] { font-size: 1.15rem !important; }
 }
 </style>
 """

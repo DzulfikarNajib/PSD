@@ -18,13 +18,14 @@ FIELDS = [
     "location_normalized", "image_url", "url", "posted_at", "seller_type", "data_source",
 ]
 EXCEL_SEED_SNAPSHOT = "00000000-0000-0000-0000-000000000001"
+INTEGER_FIELDS = ("price", "year", "mileage_km", "engine_cc")
 
 
 def _credentials():
     url = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
     # Accept either the project root or the REST base URL. All request helpers
     # append /rest/v1/{table}, so retaining that suffix would create an invalid path.
-    if url.lower().endswith("/rest/v1"):
+    while url.lower().endswith("/rest/v1"):
         url = url[:-8].rstrip("/")
     return url, os.getenv("SUPABASE_SECRET_KEY", "").strip()
 
@@ -44,6 +45,22 @@ def _headers(prefer=""):
     return f"{url}/rest/v1/{TABLE}", headers
 
 
+def _records_for_insert(data: pd.DataFrame) -> list[dict]:
+    """Serialize numeric columns as PostgreSQL integers where the table expects them."""
+    rows = data.copy()
+    for column in INTEGER_FIELDS:
+        if column in rows:
+            values = pd.to_numeric(rows[column], errors="coerce").round()
+            rows[column] = values.astype("Int64")
+    payload = rows.reindex(columns=FIELDS).astype(object).where(lambda frame: pd.notna(frame), None)
+    records = payload.to_dict("records")
+    for record in records:
+        for key, value in record.items():
+            if hasattr(value, "item"):
+                record[key] = value.item()
+    return records
+
+
 def save_snapshot(data: pd.DataFrame) -> str:
     """Insert one complete refresh snapshot; duplicate listing IDs are removed."""
     snapshot_id = str(uuid.uuid4())
@@ -54,12 +71,7 @@ def save_snapshot(data: pd.DataFrame) -> str:
     rows["fetched_at"] = timestamp.dt.tz_convert("UTC").astype(str)
     rows["snapshot_id"] = snapshot_id
     rows["data_source"] = "olx_refresh"
-    payload = rows.reindex(columns=FIELDS).astype(object).where(pd.notna(rows.reindex(columns=FIELDS)), None)
-    records = payload.to_dict("records")
-    for record in records:
-        for key, value in record.items():
-            if hasattr(value, "item"):
-                record[key] = value.item()
+    records = _records_for_insert(rows)
     endpoint, headers = _headers("return=minimal")
     response = requests.post(endpoint, params={"on_conflict": "snapshot_id,listing_id"}, json=records, headers=headers, timeout=45)
     if not response.ok:
@@ -117,12 +129,7 @@ def import_excel_seed(data: pd.DataFrame) -> int:
     rows["snapshot_id"] = EXCEL_SEED_SNAPSHOT
     rows["fetched_at"] = None
     rows["data_source"] = "excel_scrape"
-    payload = rows.reindex(columns=FIELDS).astype(object).where(pd.notna(rows.reindex(columns=FIELDS)), None)
-    records = payload.to_dict("records")
-    for record in records:
-        for key, value in record.items():
-            if hasattr(value, "item"):
-                record[key] = value.item()
+    records = _records_for_insert(rows)
     endpoint, headers = _headers("resolution=ignore-duplicates,return=representation")
     inserted = 0
     for start in range(0, len(records), 500):

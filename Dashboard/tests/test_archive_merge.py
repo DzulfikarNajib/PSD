@@ -41,7 +41,10 @@ def test_excel_seed_import_is_repeatable_and_has_no_capture_date(monkeypatch):
     monkeypatch.setenv("SUPABASE_SECRET_KEY", "test-only-key")
     response = Mock(ok=True, content=b"[]")
     response.json.return_value = []
-    frame = pd.DataFrame([_listing("listing-1", 150_000_000, None, "https://olx.test/car/1")])
+    frame = pd.DataFrame([_listing("listing-1", 150_000_000.0, None, "https://olx.test/car/1")])
+    frame["year"] = 2020.0
+    frame["mileage_km"] = 12500.0
+    frame["engine_cc"] = 2500.0
 
     with patch("src.supabase_store.requests.post", return_value=response) as post:
         supabase_store.import_excel_seed(frame)
@@ -53,10 +56,12 @@ def test_excel_seed_import_is_repeatable_and_has_no_capture_date(monkeypatch):
         assert record["snapshot_id"] == supabase_store.EXCEL_SEED_SNAPSHOT
         assert record["fetched_at"] is None
         assert call.kwargs["params"]["on_conflict"] == "snapshot_id,listing_id"
+        for field in ("price", "year", "mileage_km", "engine_cc"):
+            assert isinstance(record[field], int)
 
 
 def test_supabase_rest_url_is_normalized_when_rest_suffix_is_in_env(monkeypatch):
-    monkeypatch.setenv("SUPABASE_URL", "https://project.test/rest/v1/")
+    monkeypatch.setenv("SUPABASE_URL", "https://project.test/rest/v1/rest/v1/")
     monkeypatch.setenv("SUPABASE_SECRET_KEY", "test-only-key")
 
     endpoint, _ = supabase_store._headers()
