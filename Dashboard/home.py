@@ -7,6 +7,7 @@ import streamlit as st
 
 from src.api_handler import safe_refresh_snapshot
 from src.data_loader import get_last_updated_text, load_live_data
+from src.supabase_store import is_configured as supabase_is_configured
 from src.styles import apply_theme
 from src.ui import format_rupiah
 
@@ -54,7 +55,8 @@ with hero_right:
 live = load_live_data()
 st.markdown("---")
 st.subheader("Pilihan yang tersimpan")
-st.caption("Pencarian memakai snapshot ini dan tetap bisa digunakan saat kredit API habis. Data baru hanya diambil saat refresh manual.")
+storage_note = "Snapshot refresh disimpan ke Supabase." if supabase_is_configured() else "Supabase belum diatur; refresh hanya tersimpan pada filesystem aplikasi dan belum persisten di Streamlit Cloud."
+st.caption(f"Pencarian memakai snapshot tersimpan dan tetap bisa digunakan saat kredit API habis. Data baru hanya diambil saat refresh manual. {storage_note}")
 
 if live.empty:
     st.info("Belum ada listing tersimpan. Refresh manual dapat mengambil snapshot pertama.")
@@ -120,5 +122,5 @@ if last_refresh:
         st.write(f"Status: **{last_refresh.get('status', 'unknown')}** · Data mentah: **{last_refresh.get('raw_count', '—')}** · Valid: **{last_refresh.get('validated_count', '—')}** · Tersimpan setelah filter DKI: **{last_refresh.get('filtered_count', 0)}**")
         if last_refresh.get("quality"):
             st.caption("Data invalid/kosong: " + " · ".join(f"{key.replace('_', ' ')}: {value}" for key, value in last_refresh["quality"].items()))
-        st.caption(f"Kredit digunakan: {last_refresh.get('used_credits', '—')} · Sisa kredit: {last_refresh.get('remaining_credits', '—')}")
+        st.caption(f"Kredit digunakan: {last_refresh.get('used_credits', '—')} · Sisa kredit: {last_refresh.get('remaining_credits', '—')} · Penyimpanan: {last_refresh.get('storage_backend', 'CSV lokal')}")
         st.caption(last_refresh.get("message", ""))

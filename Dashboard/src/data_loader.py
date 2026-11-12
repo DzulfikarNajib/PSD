@@ -10,6 +10,9 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from src.preprocessing import is_dki_jakarta, parse_mileage_km
+from src.supabase_store import is_configured as supabase_is_configured
+from src.supabase_store import latest_timestamp as supabase_latest_timestamp
+from src.supabase_store import load_latest_snapshot
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT_DIR / "data"
@@ -88,6 +91,16 @@ def ensure_data_files() -> None:
 
 def load_live_data() -> pd.DataFrame:
     """Load the latest valid DKI Jakarta listings."""
+    if supabase_is_configured():
+        try:
+            cloud_data = load_latest_snapshot()
+            if not cloud_data.empty:
+                if "location" in cloud_data:
+                    cloud_data = cloud_data[cloud_data["location"].map(is_dki_jakarta)].copy()
+                return cloud_data.reset_index(drop=True)
+        except Exception:
+            # Keep the saved local snapshot usable if the cloud database is temporarily unavailable.
+            pass
     ensure_data_files()
     try:
         df = pd.read_csv(LIVE_PATH)
@@ -110,6 +123,15 @@ def load_history_data() -> pd.DataFrame:
 
 def get_last_updated_text() -> str:
     """Return the most recent available fetch timestamp or a default message."""
+    if supabase_is_configured():
+        try:
+            timestamp = supabase_latest_timestamp()
+            if timestamp:
+                parsed = pd.to_datetime(timestamp, errors="coerce", utc=True)
+                if pd.notna(parsed):
+                    return parsed.tz_convert(ZoneInfo("Asia/Jakarta")).strftime("%d %b %Y, %H:%M WIB")
+        except Exception:
+            pass
     df = load_history_data()
     if df.empty or "fetched_at" not in df.columns:
         return "Belum ada snapshot history."

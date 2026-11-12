@@ -21,6 +21,8 @@ from src.data_loader import HISTORY_PATH, LIVE_PATH
 from src.preprocessing import (append_history_snapshot, filter_dki_jakarta,
                                parse_api_response_to_dataframe, save_dataframe_atomic,
                                validate_listing_dataframe)
+from src.supabase_store import is_configured as supabase_is_configured
+from src.supabase_store import save_snapshot as save_supabase_snapshot
 
 load_dotenv()
 
@@ -156,6 +158,8 @@ def safe_refresh_snapshot(
     try:
         append_history_snapshot(df, history_path)
         save_dataframe_atomic(df, live_path)
+        if supabase_is_configured():
+            save_supabase_snapshot(df)
     except Exception:
         for path, previous in ((live_path, previous_live), (history_path, previous_history)):
             if previous is None:
@@ -178,4 +182,5 @@ def safe_refresh_snapshot(
         "last_successful_fetch": fetched_at,
         "used_credits": usage_meta.get("used"),
         "remaining_credits": usage_meta.get("remaining"),
+        "storage_backend": "Supabase + CSV lokal" if supabase_is_configured() else "CSV lokal",
     }
