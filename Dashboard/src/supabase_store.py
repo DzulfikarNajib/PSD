@@ -21,7 +21,12 @@ EXCEL_SEED_SNAPSHOT = "00000000-0000-0000-0000-000000000001"
 
 
 def _credentials():
-    return os.getenv("SUPABASE_URL", "").rstrip("/"), os.getenv("SUPABASE_SECRET_KEY", "")
+    url = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+    # Accept either the project root or the REST base URL. All request helpers
+    # append /rest/v1/{table}, so retaining that suffix would create an invalid path.
+    if url.lower().endswith("/rest/v1"):
+        url = url[:-8].rstrip("/")
+    return url, os.getenv("SUPABASE_SECRET_KEY", "").strip()
 
 
 def is_configured() -> bool:

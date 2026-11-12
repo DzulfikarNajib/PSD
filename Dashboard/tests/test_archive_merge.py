@@ -53,3 +53,12 @@ def test_excel_seed_import_is_repeatable_and_has_no_capture_date(monkeypatch):
         assert record["snapshot_id"] == supabase_store.EXCEL_SEED_SNAPSHOT
         assert record["fetched_at"] is None
         assert call.kwargs["params"]["on_conflict"] == "snapshot_id,listing_id"
+
+
+def test_supabase_rest_url_is_normalized_when_rest_suffix_is_in_env(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://project.test/rest/v1/")
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", "test-only-key")
+
+    endpoint, _ = supabase_store._headers()
+
+    assert endpoint == "https://project.test/rest/v1/listing_snapshots"
