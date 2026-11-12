@@ -22,7 +22,7 @@ CSS = """
 }
 
 [data-testid="stAppViewContainer"] { background: var(--dashboard-bg); }
-[data-testid="stMainBlockContainer"] { max-width: 1540px; padding-top: 2rem; padding-bottom: 4rem; }
+[data-testid="stMainBlockContainer"] { max-width: 1540px; padding-top: 1rem; padding-bottom: 4rem; }
 div[class*="st-key-automatch_topnav"] {
     position: sticky;
     /* Streamlit keeps its own toolbar above the page; pin the custom nav below it. */
@@ -30,7 +30,7 @@ div[class*="st-key-automatch_topnav"] {
     z-index: 999;
     background: rgba(255, 255, 255, .97);
     border-bottom: 1px solid #e5eaed;
-    margin: -1.7rem -1.5rem 1.35rem;
+    margin: 0 -1.5rem 1.35rem;
     padding: .55rem 1.3rem .5rem;
     box-shadow: 0 5px 20px rgba(16, 39, 72, .045);
     backdrop-filter: blur(14px);
@@ -166,7 +166,7 @@ div.stAlert { border-radius: 12px; }
 [data-testid="stDataFrame"] { border: 1px solid var(--dashboard-border); border-radius: 12px; }
 [data-testid="stPlotlyChart"] { border-radius: 12px; }
 @media (max-width: 700px) {
-    div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin: -.9rem -1rem 1rem; padding:.4rem .75rem; }
+    div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin: 0 -1rem 1rem; padding:.4rem .75rem; }
     .automatch-tagline { display:none; }
     .car-photo-fallback { min-height: 130px; }
     .car-price { font-size: 1.2rem; }
