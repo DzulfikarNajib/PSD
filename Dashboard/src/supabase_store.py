@@ -15,8 +15,9 @@ TABLE = "listing_snapshots"
 FIELDS = [
     "snapshot_id", "fetched_at", "listing_id", "make", "model", "variant", "price", "year",
     "mileage_km", "engine_cc", "fuel_type", "transmission", "body_type", "color", "location",
-    "location_normalized", "image_url", "url", "posted_at", "seller_type",
+    "location_normalized", "image_url", "url", "posted_at", "seller_type", "data_source",
 ]
+EXCEL_SEED_SNAPSHOT = "00000000-0000-0000-0000-000000000001"
 
 
 def _credentials():
@@ -47,6 +48,7 @@ def save_snapshot(data: pd.DataFrame) -> str:
         timestamp = timestamp.dt.tz_localize(ZoneInfo("Asia/Jakarta"))
     rows["fetched_at"] = timestamp.dt.tz_convert("UTC").astype(str)
     rows["snapshot_id"] = snapshot_id
+    rows["data_source"] = "olx_refresh"
     payload = rows.reindex(columns=FIELDS).astype(object).where(pd.notna(rows.reindex(columns=FIELDS)), None)
     records = payload.to_dict("records")
     for record in records:
@@ -60,8 +62,10 @@ def save_snapshot(data: pd.DataFrame) -> str:
     return snapshot_id
 
 
-def _get(params):
+def _get(params, offset=0, limit=1000):
     endpoint, headers = _headers()
+    headers["Range-Unit"] = "items"
+    headers["Range"] = f"{offset}-{offset + limit - 1}"
     response = requests.get(endpoint, params=params, headers=headers, timeout=30)
     if not response.ok:
         raise RuntimeError(f"Gagal membaca Supabase (HTTP {response.status_code}): {response.text[:400]}")
@@ -69,12 +73,64 @@ def _get(params):
 
 
 def load_latest_snapshot() -> pd.DataFrame:
-    latest = _get({"select": "snapshot_id,fetched_at", "order": "fetched_at.desc", "limit": "1"})
+    latest = _get({"select": "snapshot_id,fetched_at", "data_source": "eq.olx_refresh", "order": "fetched_at.desc.nullslast", "limit": "1"})
     if not latest:
         return pd.DataFrame()
     return pd.DataFrame(_get({"select": "*", "snapshot_id": f"eq.{latest[0]['snapshot_id']}", "order": "listing_id.asc"}))
 
 
+def load_snapshot_archive() -> pd.DataFrame:
+    """Read all saved OLX observations in bounded pages; never calls the paid source."""
+    rows, offset = [], 0
+    while True:
+        batch = _get({
+        "select": "*", "data_source": "eq.olx_refresh",
+            "order": "fetched_at.asc,listing_id.asc",
+        }, offset=offset)
+        rows.extend(batch)
+        if len(batch) < 1000:
+            break
+        offset += len(batch)
+    return pd.DataFrame(rows)
+
+
+def load_excel_seed() -> pd.DataFrame:
+    """Read the idempotently imported Excel archive, if present."""
+    rows, offset = [], 0
+    while True:
+        batch = _get({"select": "*", "data_source": "eq.excel_scrape", "order": "listing_id.asc"}, offset=offset)
+        rows.extend(batch)
+        if len(batch) < 1000:
+            break
+        offset += len(batch)
+    return pd.DataFrame(rows)
+
+
+def import_excel_seed(data: pd.DataFrame) -> int:
+    """Idempotently seed Excel rows; a stable snapshot ID prevents duplicate imports."""
+    rows = data.copy().drop_duplicates("listing_id", keep="first")
+    rows["snapshot_id"] = EXCEL_SEED_SNAPSHOT
+    rows["fetched_at"] = None
+    rows["data_source"] = "excel_scrape"
+    payload = rows.reindex(columns=FIELDS).astype(object).where(pd.notna(rows.reindex(columns=FIELDS)), None)
+    records = payload.to_dict("records")
+    for record in records:
+        for key, value in record.items():
+            if hasattr(value, "item"):
+                record[key] = value.item()
+    endpoint, headers = _headers("resolution=ignore-duplicates,return=representation")
+    inserted = 0
+    for start in range(0, len(records), 500):
+        response = requests.post(
+            endpoint, params={"on_conflict": "snapshot_id,listing_id"}, json=records[start:start + 500],
+            headers=headers, timeout=60,
+        )
+        if not response.ok:
+            raise RuntimeError(f"Gagal mengimpor arsip Excel ke Supabase (HTTP {response.status_code}): {response.text[:400]}")
+        inserted += len(response.json()) if response.content else 0
+    return inserted
+
+
 def latest_timestamp():
-    rows = _get({"select": "fetched_at", "order": "fetched_at.desc", "limit": "1"})
+    rows = _get({"select": "fetched_at", "data_source": "eq.olx_refresh", "order": "fetched_at.desc.nullslast", "limit": "1"})
     return rows[0]["fetched_at"] if rows else None

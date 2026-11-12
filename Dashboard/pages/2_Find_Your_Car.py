@@ -4,23 +4,29 @@ import pandas as pd
 import streamlit as st
 
 from src.car_search import compare_listings, filter_listings
-from src.data_loader import get_last_updated_text, load_historical_data, load_live_data
+from src.data_loader import get_last_updated_text, load_historical_data, load_live_data, load_combined_archive
 from src.styles import apply_theme
 from src.ui import format_km, format_rupiah, render_empty_state
 
 apply_theme()
 st.title("Temukan mobil yang cocok")
-latest, archive = load_live_data(), load_historical_data()
+latest, excel_archive, archive = load_live_data(), load_historical_data(), load_combined_archive()
 if latest.empty and archive.empty:
     render_empty_state("Belum ada data mobil", "Listing terbaru muncul setelah refresh manual; arsip historis memerlukan dataset Excel di folder data.")
     st.stop()
-source_choice = st.radio("Pilih sumber mobil", ["Listing terbaru", "Arsip historis"], horizontal=True, key="car_source_choice")
+source_choice = st.radio("Pilih kumpulan listing", ["Semua arsip", "Listing terbaru", "Dataset Excel"], horizontal=True, key="car_source_choice")
 if source_choice == "Listing terbaru":
     cars = latest.copy()
     st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()}. Listing terlihat saat refresh dan belum tentu masih aktif.")
+elif source_choice == "Dataset Excel":
+    cars = excel_archive.copy()
+    st.caption(f"Dataset hasil scraping Excel · {len(cars):,} listing unik. Tanggal pengambilan tidak tersedia; tautan mungkin sudah tidak aktif.".replace(",", "."))
 else:
     cars = archive.copy()
-    st.caption(f"Arsip dataset historis · {len(cars):,} listing DKI. Tanggal pengambilan tidak tersedia; iklan atau tautan mungkin sudah tidak aktif.".replace(",", "."))
+    origins = cars.get("source_origins", pd.Series("", index=cars.index)).fillna("")
+    excel_count = int(origins.str.contains("Dataset Excel", regex=False).sum())
+    olx_count = int(origins.str.contains("Arsip snapshot OLX", regex=False).sum())
+    st.caption(f"Arsip gabungan · {len(cars):,} listing unik · tercatat di Excel: {excel_count:,} · tercatat di snapshot OLX: {olx_count:,}. Angka sumber bisa tumpang tindih. Listing arsip mungkin sudah tidak aktif.".replace(",", "."))
 if cars.empty:
     st.info("Belum ada data pada sumber ini. Pilih sumber lainnya atau perbarui listing secara manual dari Beranda.")
     st.stop()
@@ -144,7 +150,7 @@ for _, row in filtered.head(30).iterrows():
             else:
                 st.caption("Tautan sumber tidak tersedia pada data ini.")
 
-if source_choice == "Arsip historis":
-    st.warning("Hasil ini adalah referensi arsip, bukan stok aktif. Tanggal pengambilan tidak tersedia dan sebagian tautan mungkin sudah tidak berfungsi.")
+if source_choice in {"Semua arsip", "Dataset Excel"}:
+    st.warning("Hasil arsip bukan jaminan stok aktif. Excel tidak memiliki tanggal pengambilan; snapshot OLX memakai waktu refresh yang tercatat.")
 else:
     st.caption("Listing terlihat pada snapshot terakhir, tetapi ketersediaan dapat berubah. Dashboard tidak memeriksa kondisi fisik, status dokumen, atau harga transaksi.")

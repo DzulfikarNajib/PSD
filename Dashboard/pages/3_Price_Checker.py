@@ -5,7 +5,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from src.data_loader import get_last_updated_text, load_historical_data, load_live_data
+from src.data_loader import (get_last_updated_text, load_historical_data, load_live_data,
+                             load_combined_archive, load_training_archive)
 from src.modeling import (
     MODEL_PATH,
     evaluate_regression_models,
@@ -96,22 +97,26 @@ st.write("Masukkan spesifikasi mobil dan harga yang tercantum di iklan. AutoMatc
 st.caption("Harga yang ditampilkan adalah harga penawaran. Hasil bukan taksiran harga transaksi, pemeriksaan kondisi kendaraan, atau rekomendasi membeli.")
 
 live = load_live_data()
-historical = load_historical_data()
+excel_archive = load_historical_data()
+archive = load_combined_archive()
+training_data = load_training_archive()
 source = st.radio(
     "Sumber pembanding listing",
-    ["Listing terbaru", "Arsip historis"],
+    ["Listing terbaru", "Arsip gabungan", "Dataset Excel"],
     horizontal=True,
     key="price_comparison_source",
     help="Sumber ini hanya mengubah pembanding listing; model tetap dilatih dari arsip historis DKI.",
 )
-comparison_data = live.copy() if source == "Listing terbaru" else historical.copy()
+comparison_data = live.copy() if source == "Listing terbaru" else excel_archive.copy() if source == "Dataset Excel" else archive.copy()
 if source == "Listing terbaru":
     st.caption(f"Pembanding dari snapshot OLX · terakhir diperbarui {get_last_updated_text()}. Listing dapat berubah atau sudah tidak aktif saat dibuka.")
+elif source == "Dataset Excel":
+    st.caption(f"Pembanding dari dataset Excel · {len(comparison_data):,} listing. Tanggal pengambilan tidak tersedia; tautan mungkin sudah tidak aktif.".replace(",", "."))
 else:
-    st.caption(f"Pembanding dari arsip historis · {len(comparison_data):,} baris tersimpan. Tanggal pengambilan tidak tersedia; iklan atau tautannya mungkin sudah tidak aktif.".replace(",", "."))
+    st.caption(f"Pembanding dari arsip gabungan · {len(comparison_data):,} listing unik. Iklan arsip mungkin sudah tidak aktif.".replace(",", "."))
 
 # Use archive specifications to keep the calculator usable if a live snapshot is empty.
-input_data = comparison_data if not comparison_data.empty else historical
+input_data = comparison_data if not comparison_data.empty else training_data
 for column in ("price", "year", "mileage_km", "engine_cc"):
     if column in input_data:
         input_data[column] = pd.to_numeric(input_data[column], errors="coerce")
@@ -231,16 +236,22 @@ else:
 
 with st.expander("Metode dan evaluasi model"):
     st.write("Model menggunakan **supervised learning (regresi)**: spesifikasi kendaraan menjadi masukan, sedangkan harga iklan historis menjadi target yang dipelajari. Data evaluasi ditahan dari proses pelatihan untuk mengukur kemampuan model pada data yang belum dilihat.")
-    eligible, eligibility_message, model_data = training_eligibility(historical)
+    eligible, eligibility_message, model_data = training_eligibility(training_data)
     st.caption(f"Data latihan: {len(model_data):,} listing historis unik yang lolos validasi. {eligibility_message}".replace(",", "."))
-    if st.button("Latih dan evaluasi model", disabled=not eligible, help="Menggunakan dataset historis lokal; tidak memanggil API."):
+    if st.button("Latih dan evaluasi model", disabled=not eligible, help="Menggunakan arsip Excel dan snapshot OLX tersimpan; tidak memanggil API."):
         with st.spinner("Melatih tiga model regresi dan mengevaluasi data uji…"):
-            training_result = evaluate_regression_models(historical)
+            training_result = evaluate_regression_models(training_data)
         if training_result.get("status") == "ready":
             st.success(f"Evaluasi selesai. Model dengan MAE terendah: {training_result['best_model']}.")
         else:
             st.warning(training_result.get("message", "Model belum dapat dilatih."))
     metadata = load_model_metadata()
+    trained_count = int(metadata.get("training_unique_listings", 0) or 0)
+    if model_is_validated(metadata) and len(model_data) > trained_count:
+        st.warning(
+            f"Arsip kini berisi {len(model_data):,} listing unik yang layak, sedangkan model terakhir dilatih dengan {trained_count:,}. "
+            "Refresh tidak melatih ulang model; tekan tombol di atas untuk memasukkan data baru.".replace(",", ".")
+        )
     if metadata.get("models"):
         model_table = pd.DataFrame([{"Model": name, **metrics} for name, metrics in metadata["models"].items()])
         for column in ("MAE", "RMSE"):
@@ -258,6 +269,6 @@ with st.expander("Metode dan evaluasi model"):
             importance = importance.head(15).rename(columns={"feature": "Fitur", "importance": "Skor relatif"})
             st.caption("Informasi untuk laporan: skor relatif menunjukkan fitur yang sering dipakai model. Ini bukan persentase perubahan harga dan bukan bukti sebab-akibat.")
             st.dataframe(importance, hide_index=True, width="stretch", alt="Urutan skor relatif fitur pada model regresi")
-        st.caption(f"Model aktif: {metadata.get('best_model', '—')} · {metadata.get('training_unique_listings', 0):,} listing historis unik. Target model adalah harga iklan historis, bukan harga transaksi.".replace(",", "."))
+        st.caption(f"Model aktif: {metadata.get('best_model', '—')} · {metadata.get('training_unique_listings', 0):,} listing unik saat pelatihan. Target model adalah harga iklan historis, bukan harga transaksi.".replace(",", "."))
     else:
         st.info("Prediksi tidak ditampilkan sampai model dan evaluasinya tersedia serta lolos kriteria validasi.")

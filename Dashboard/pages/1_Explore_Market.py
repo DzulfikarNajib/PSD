@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from src.data_loader import load_historical_data, load_history_data, load_live_data
+from src.data_loader import load_historical_data, load_history_data, load_live_data, load_combined_archive
 from src.styles import apply_theme
 from src.ui import format_rupiah, render_empty_state
 
@@ -12,15 +12,15 @@ apply_theme()
 st.title("Pahami pilihan yang tersedia")
 st.caption("Ringkasan ini membaca iklan OLX yang tersimpan. Harga adalah harga penawaran, bukan harga transaksi.")
 
-history, live, historical = load_history_data(), load_live_data(), load_historical_data()
+history, live, excel, historical = load_history_data(), load_live_data(), load_historical_data(), load_combined_archive()
 if historical.empty and history.empty and live.empty:
     render_empty_state("Belum ada snapshot", "Listing akan muncul setelah tombol refresh manual digunakan. Tidak ada data contoh.")
     st.stop()
 
 if not historical.empty:
     source = historical.copy()
-    source_label = "dataset historis DKI Jakarta"
-    snapshots = 1
+    source_label = "arsip gabungan dataset Excel + snapshot OLX"
+    snapshots = history["snapshot_id"].nunique() if "snapshot_id" in history else 0
 elif not live.empty:
     source = live.copy()
     source_label = "snapshot live DKI Jakarta"
@@ -47,6 +47,11 @@ with st.container(horizontal=True):
     st.metric("Jenis bahan bakar", source["fuel_type"].nunique() if "fuel_type" in source else 0, border=True)
     st.metric("Median harga iklan", format_rupiah(priced["price"].median()) if not priced.empty else "-", border=True)
 st.caption(f"Sumber: {source_label} · {len(source):,} baris · listing unik {unique_count:,}".replace(",", "."))
+if not historical.empty:
+    origins = source.get("source_origins", pd.Series("", index=source.index)).fillna("")
+    excel_count = int(origins.str.contains("Dataset Excel", regex=False).sum())
+    olx_count = int(origins.str.contains("Arsip snapshot OLX", regex=False).sum())
+    st.caption(f"Tercatat di Excel: {excel_count:,} listing unik · tercatat di snapshot OLX: {olx_count:,} listing unik · {snapshots:,} snapshot OLX. Hitungan sumber bisa tumpang tindih; pengulangan antar-snapshot tetap dihitung satu mobil unik.".replace(",", "."))
 if not historical.empty:
     st.caption("Dataset historis digunakan untuk analisis. Listing pada file ini belum tentu masih aktif; data didominasi DKI Jakarta.")
 if unique_count < 30:
