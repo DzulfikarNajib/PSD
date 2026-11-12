@@ -22,11 +22,12 @@ CSS = """
 }
 
 [data-testid="stAppViewContainer"] { background: var(--dashboard-bg); }
-[data-testid="stMainBlockContainer"] { max-width: 1540px; padding-top: 1rem; padding-bottom: 4rem; }
+[data-testid="stMainBlockContainer"] { max-width: 1540px; padding-top: 4rem; padding-bottom: 4rem; }
 div[class*="st-key-automatch_topnav"] {
-    position: sticky;
-    /* Streamlit keeps its own toolbar above the page; pin the custom nav below it. */
-    top: 3.75rem;
+    /* Keep this in document flow below Streamlit's fixed toolbar. A sticky bar
+       can slide underneath that toolbar on Community Cloud. */
+    position: relative;
+    top: auto;
     z-index: 999;
     background: rgba(255, 255, 255, .97);
     border-bottom: 1px solid #e5eaed;
@@ -166,6 +167,7 @@ div.stAlert { border-radius: 12px; }
 [data-testid="stDataFrame"] { border: 1px solid var(--dashboard-border); border-radius: 12px; }
 [data-testid="stPlotlyChart"] { border-radius: 12px; }
 @media (max-width: 700px) {
+    [data-testid="stMainBlockContainer"] { padding-top: 3.5rem; }
     div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin: 0 -1rem 1rem; padding:.4rem .75rem; }
     .automatch-tagline { display:none; }
     .car-photo-fallback { min-height: 130px; }
