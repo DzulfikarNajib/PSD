@@ -18,8 +18,8 @@ from src.ui import format_rupiah, render_empty_state
 
 DEFAULT_SEARCH_URL = "https://www.olx.co.id/mobil-bekas_c198/q-mobil"
 HERO_IMAGE = (
-    "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2"
-    "?auto=format&fit=crop&w=1600&q=85"
+    "https://images.unsplash.com/photo-1555215695-3004980ad54e"
+    "?auto=format&fit=crop&w=2000&q=90"
 )
 
 
@@ -38,18 +38,17 @@ archive = load_combined_archive()
 with st.container(key="home_hero"):
     hero_copy, hero_visual = st.columns([1.05, 1.25], gap="large", vertical_alignment="center")
     with hero_copy:
-        st.caption("PANDUAN MEMILIH MOBIL BEKAS")
+        st.caption("TEMUKAN PILIHANMU")
         st.markdown("# AutoMatch")
         st.markdown("### Find the car that fits you.")
         st.write("Cari dan bandingkan mobil bekas berdasarkan kebutuhan serta anggaranmu. Pahami harga iklannya, lalu periksa langsung sebelum memutuskan.")
         if st.button("Mulai cari mobil", icon=":material/search:", type="primary", key="home_start_search"):
             st.switch_page("pages/2_Find_Your_Car.py")
-        st.caption("Cari dari arsip tersimpan; pembaruan listing hanya saat refresh manual.")
+        st.caption("Telusuri arsip mobil tersimpan. Listing OLX diperbarui hanya saat refresh manual.")
     with hero_visual:
         st.image(
             HERO_IMAGE,
-            caption="Ilustrasi · bukan listing jual AutoMatch",
-            alt="Sedan kota berwarna pucat di lingkungan perkotaan, sebagai ilustrasi AutoMatch",
+            alt="BMW sedan elegan di lingkungan perkotaan",
             width="stretch",
         )
 
@@ -76,10 +75,10 @@ else:
     last_update = get_last_updated_text() if not timestamps.empty else "Belum ada snapshot OLX"
 
     metric_cols = st.columns(4)
-    metric_cols[0].metric("🚘 Mobil unik", f"{unique_count:,}".replace(",", "."), border=True)
-    metric_cols[1].metric("✦ Jumlah merek", f"{brands.nunique():,}".replace(",", "."), border=True)
-    metric_cols[2].metric("◉ Median harga iklan", _compact_rupiah(prices.median()) if not prices.empty else "—", border=True)
-    metric_cols[3].metric("◷ Snapshot OLX terbaru", last_update.split(",")[0] if not timestamps.empty else "—", border=True)
+    metric_cols[0].metric("Mobil unik", f"{unique_count:,}".replace(",", "."), border=True)
+    metric_cols[1].metric("Merek tersedia", f"{brands.nunique():,}".replace(",", "."), border=True)
+    metric_cols[2].metric("Median harga iklan", _compact_rupiah(prices.median()) if not prices.empty else "—", border=True)
+    metric_cols[3].metric("Snapshot OLX terbaru", last_update.split(",")[0] if not timestamps.empty else "—", border=True)
     if not prices.empty:
         median_price = prices.median()
         st.caption(f"Rentang harga iklan tersimpan: {_compact_rupiah(prices.min())} – {_compact_rupiah(prices.max())} · Median: {_compact_rupiah(median_price)}.")
@@ -88,11 +87,11 @@ else:
         "Arsip penuh menghitung satu listing unik; iklan historis belum tentu masih aktif dan sampel bukan seluruh pasar."
     )
 
-    st.markdown("### Apa yang tersedia untuk dicari?")
+    st.markdown("### Kenali pilihan dalam arsip")
     brand_col, fuel_col = st.columns([1.2, 1], gap="large")
     with brand_col:
         with st.container(border=True):
-            st.markdown("**Merek apa yang paling banyak punya pilihan?**")
+            st.markdown("**Jelajahi merek yang tersedia**")
             brand_counts = brands[brands.ne("")].value_counts().head(8)
             if not brand_counts.empty:
                 plot_data = brand_counts.rename_axis("Merek").rename("Listing unik").reset_index()
@@ -122,7 +121,7 @@ else:
                 st.caption("Informasi merek belum tersedia di arsip ini.")
     with fuel_col:
         with st.container(border=True):
-            st.markdown("**Jumlah listing berdasarkan bahan bakar**")
+            st.markdown("**Pilih jenis bahan bakar**")
             if not fuels.empty:
                 fuel_data = fuels.rename_axis("Bahan bakar").rename("Listing unik").reset_index()
                 chart = px.pie(fuel_data, values="Listing unik", names="Bahan bakar", hole=.68, color_discrete_sequence=["#102748", "#109fa4", "#67c7c8", "#e4b76d", "#99a9b7"])
@@ -139,11 +138,26 @@ else:
             else:
                 st.caption("Data bahan bakar belum tersedia di arsip ini.")
 
-st.markdown("### Mulai dari kebutuhanmu")
+st.markdown("### Dari pencarian sampai keputusan")
+st.caption("Gunakan AutoMatch untuk menyaring pilihan dan memahami konteks harga. Pemeriksaan kendaraan tetap dilakukan langsung.")
 steps = st.columns(3, gap="medium")
-steps[0].markdown("**01 · Cari**\n\nAtur budget dan spesifikasi di Cari Mobil.")
-steps[1].markdown("**02 · Bandingkan**\n\nPilih dua atau tiga listing yang sesuai.")
-steps[2].markdown("**03 · Periksa langsung**\n\nBuka iklan sumber dan verifikasi kondisi serta dokumennya.")
+with steps[0]:
+    with st.container(border=True):
+        st.markdown("#### 01 · Temukan")
+        st.write("Atur anggaran dan spesifikasi untuk menyaring arsip mobil.")
+        if st.button("Cari mobil", icon=":material/search:", key="home_flow_find"):
+            st.switch_page("pages/2_Find_Your_Car.py")
+with steps[1]:
+    with st.container(border=True):
+        st.markdown("#### 02 · Bandingkan")
+        st.write("Pilih dua atau tiga listing, lalu lihat perbedaan spesifikasinya.")
+        if st.button("Cara membandingkan", icon=":material/compare:", key="home_flow_compare"):
+            st.switch_page("pages/2_Find_Your_Car.py")
+with steps[2]:
+    with st.container(border=True):
+        st.markdown("#### 03 · Periksa")
+        st.write("Buka iklan sumber dan periksa kondisi, riwayat servis, serta dokumen.")
+        st.link_button("Lihat konteks harga", "?page=cek-harga-iklan", icon=":material/price_check:")
 
 with st.expander("Perbarui listing OLX (manual)", expanded=st.session_state.pop("open_refresh_panel", False)):
     st.caption("Refresh memakai kredit API bersama. Hanya tombol di bawah yang mengirim permintaan; pencarian arsip tetap dapat digunakan tanpa refresh.")
