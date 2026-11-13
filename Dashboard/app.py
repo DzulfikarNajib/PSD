@@ -5,7 +5,7 @@ import streamlit as st
 from src.styles import apply_theme
 
 
-st.set_page_config(page_title="AutoMatch", page_icon="🚘", layout="wide")
+st.set_page_config(page_title="AutoMatch", page_icon="assets/automatch-mark.svg", layout="wide")
 apply_theme()
 
 home_page = st.Page("home.py", title="Beranda", url_path="beranda", icon=":material/home:", default=True)
@@ -26,7 +26,7 @@ with st.container(key="automatch_topnav"):
     nav = st.columns([1.05, 1.18, .68, .87, 1.16, .98, 1.18, .62], gap="small", vertical_alignment="center")
     with nav[0]:
         st.markdown(
-            """<div class="automatch-wordmark"><svg viewBox="0 0 64 32" role="img" aria-label="AutoMatch"><path d="M7 22h50l-4-10a5 5 0 0 0-5-3H20a7 7 0 0 0-6 3L7 22Z"/><path d="M4 22v4h5m46-4v4h-5M19 22a4 4 0 1 0 8 0m15 0a4 4 0 1 0 8 0M22 9l-5 10m12-10h13m-2 0 7 10"/></svg><span>AutoMatch</span></div>""",
+            """<div class="automatch-wordmark"><svg viewBox="0 0 40 40" role="img" aria-label="AutoMatch"><path d="M8 29 20 7l12 22M13 21h14"/><circle cx="20" cy="21" r="3"/></svg><span>AutoMatch</span></div>""",
             unsafe_allow_html=True,
         )
     with nav[1]:

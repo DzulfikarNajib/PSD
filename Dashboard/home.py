@@ -17,12 +17,6 @@ from src.ui import format_rupiah, render_empty_state
 
 
 DEFAULT_SEARCH_URL = "https://www.olx.co.id/mobil-bekas_c198/q-mobil"
-HERO_IMAGE = (
-    "https://images.unsplash.com/photo-1555215695-3004980ad54e"
-    "?auto=format&fit=crop&w=2000&q=90"
-)
-
-
 def _compact_rupiah(value: float) -> str:
     value = float(value)
     if value >= 1_000_000_000:
@@ -36,27 +30,19 @@ apply_theme()
 archive = load_combined_archive()
 
 with st.container(key="home_hero"):
-    hero_copy, hero_visual = st.columns([1.05, 1.25], gap="large", vertical_alignment="center")
-    with hero_copy:
-        st.caption("TEMUKAN PILIHANMU")
-        st.markdown("# AutoMatch")
-        st.markdown("### Find the car that fits you.")
-        st.write("Cari dan bandingkan mobil bekas berdasarkan kebutuhan serta anggaranmu. Pahami harga iklannya, lalu periksa langsung sebelum memutuskan.")
-        if st.button("Mulai cari mobil", icon=":material/search:", type="primary", key="home_start_search"):
-            st.switch_page("pages/2_Find_Your_Car.py")
-        st.caption("Telusuri arsip mobil tersimpan. Listing OLX diperbarui hanya saat refresh manual.")
-    with hero_visual:
-        st.image(
-            HERO_IMAGE,
-            alt="BMW sedan elegan di lingkungan perkotaan",
-            width="stretch",
-        )
+    st.caption("TEMUKAN PILIHANMU")
+    st.markdown("# AutoMatch")
+    st.markdown("### Find the car that fits you.")
+    st.write("Cari dan bandingkan mobil bekas berdasarkan kebutuhan serta anggaranmu. Pahami harga iklannya, lalu periksa langsung sebelum memutuskan.")
+    if st.button("Mulai cari mobil", icon=":material/search:", type="primary", key="home_start_search"):
+        st.switch_page("pages/2_Find_Your_Car.py")
+    st.caption("Telusuri arsip mobil tersimpan. Listing OLX diperbarui hanya saat refresh manual.")
 
 st.markdown("## Pilihan di arsip AutoMatch")
 if archive.empty:
     empty_metrics = st.columns(4)
     for col, label in zip(empty_metrics, ["Mobil unik", "Jumlah merek", "Median harga iklan", "Snapshot OLX terbaru"]):
-        col.metric(label, "—", border=True)
+        col.metric(label, "â€”", border=True)
     render_empty_state(
         "Arsip mobil belum tersedia",
         "Dataset Excel atau snapshot OLX yang tersimpan akan tampil di sini. AutoMatch tidak membuat data contoh.",
@@ -77,13 +63,13 @@ else:
     metric_cols = st.columns(4)
     metric_cols[0].metric("Mobil unik", f"{unique_count:,}".replace(",", "."), border=True)
     metric_cols[1].metric("Merek tersedia", f"{brands.nunique():,}".replace(",", "."), border=True)
-    metric_cols[2].metric("Median harga iklan", _compact_rupiah(prices.median()) if not prices.empty else "—", border=True)
-    metric_cols[3].metric("Snapshot OLX terbaru", last_update.split(",")[0] if not timestamps.empty else "—", border=True)
+    metric_cols[2].metric("Median harga iklan", _compact_rupiah(prices.median()) if not prices.empty else "â€”", border=True)
+    metric_cols[3].metric("Snapshot OLX terbaru", last_update.split(",")[0] if not timestamps.empty else "â€”", border=True)
     if not prices.empty:
         median_price = prices.median()
-        st.caption(f"Rentang harga iklan tersimpan: {_compact_rupiah(prices.min())} – {_compact_rupiah(prices.max())} · Median: {_compact_rupiah(median_price)}.")
+        st.caption(f"Rentang harga iklan tersimpan: {_compact_rupiah(prices.min())} â€“ {_compact_rupiah(prices.max())} Â· Median: {_compact_rupiah(median_price)}.")
     st.caption(
-        f"Sumber: arsip Excel + snapshot OLX tersimpan · waktu snapshot OLX terbaru: {last_update}. "
+        f"Sumber: arsip Excel + snapshot OLX tersimpan Â· waktu snapshot OLX terbaru: {last_update}. "
         "Arsip penuh menghitung satu listing unik; iklan historis belum tentu masih aktif dan sampel bukan seluruh pasar."
     )
 
@@ -143,19 +129,19 @@ st.caption("Gunakan AutoMatch untuk menyaring pilihan dan memahami konteks harga
 steps = st.columns(3, gap="medium")
 with steps[0]:
     with st.container(border=True):
-        st.markdown("#### 01 · Temukan")
+        st.markdown("#### 01 Â· Temukan")
         st.write("Atur anggaran dan spesifikasi untuk menyaring arsip mobil.")
         if st.button("Cari mobil", icon=":material/search:", key="home_flow_find"):
             st.switch_page("pages/2_Find_Your_Car.py")
 with steps[1]:
     with st.container(border=True):
-        st.markdown("#### 02 · Bandingkan")
+        st.markdown("#### 02 Â· Bandingkan")
         st.write("Pilih dua atau tiga listing, lalu lihat perbedaan spesifikasinya.")
         if st.button("Cara membandingkan", icon=":material/compare:", key="home_flow_compare"):
             st.switch_page("pages/2_Find_Your_Car.py")
 with steps[2]:
     with st.container(border=True):
-        st.markdown("#### 03 · Periksa")
+        st.markdown("#### 03 Â· Periksa")
         st.write("Buka iklan sumber dan periksa kondisi, riwayat servis, serta dokumen.")
         st.link_button("Lihat konteks harga", "?page=cek-harga-iklan", icon=":material/price_check:")
 
@@ -168,7 +154,7 @@ with st.expander("Perbarui listing OLX (manual)", expanded=st.session_state.pop(
     st.caption("Aplikasi menyimpan listing yang lokasinya dapat dikenali sebagai lima wilayah DKI Jakarta. Hasil API bukan seluruh stok Jakarta. Snapshot baru ditambahkan ke arsip; kredit digunakan sesuai halaman yang berhasil diambil.")
     if refresh:
         try:
-            with st.spinner("Mengambil snapshot dari Datawebot…"):
+            with st.spinner("Mengambil snapshot dari Datawebotâ€¦"):
                 result = safe_refresh_snapshot(search_url, max_pages=max_pages)
             st.session_state["last_refresh"] = result
             if result["status"] == "success":
@@ -182,8 +168,8 @@ with st.expander("Perbarui listing OLX (manual)", expanded=st.session_state.pop(
 last_refresh = st.session_state.get("last_refresh")
 if last_refresh:
     with st.expander("Detail refresh terakhir"):
-        st.write(f"Status: **{last_refresh.get('status', 'unknown')}** · Mentah: **{last_refresh.get('raw_count', '—')}** · Valid: **{last_refresh.get('validated_count', '—')}** · Tersimpan setelah filter DKI: **{last_refresh.get('filtered_count', 0)}**")
+        st.write(f"Status: **{last_refresh.get('status', 'unknown')}** Â· Mentah: **{last_refresh.get('raw_count', 'â€”')}** Â· Valid: **{last_refresh.get('validated_count', 'â€”')}** Â· Tersimpan setelah filter DKI: **{last_refresh.get('filtered_count', 0)}**")
         if last_refresh.get("quality"):
-            st.caption("Data invalid/kosong: " + " · ".join(f"{key.replace('_', ' ')}: {value}" for key, value in last_refresh["quality"].items()))
-        st.caption(f"Kredit digunakan: {last_refresh.get('used_credits', '—')} · Sisa kredit: {last_refresh.get('remaining_credits', '—')} · Penyimpanan: {last_refresh.get('storage_backend', 'CSV lokal')}")
+            st.caption("Data invalid/kosong: " + " Â· ".join(f"{key.replace('_', ' ')}: {value}" for key, value in last_refresh["quality"].items()))
+        st.caption(f"Kredit digunakan: {last_refresh.get('used_credits', 'â€”')} Â· Sisa kredit: {last_refresh.get('remaining_credits', 'â€”')} Â· Penyimpanan: {last_refresh.get('storage_backend', 'CSV lokal')}")
         st.caption(last_refresh.get("message", ""))

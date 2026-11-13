@@ -54,17 +54,29 @@ div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a {
     border-bottom: 2px solid #109fa4;
 }
 .automatch-wordmark { display:flex; align-items:center; gap:.45rem; color:#102748; font-weight:800; font-size:1.06rem; letter-spacing:-.045em; white-space:nowrap; }
-.automatch-wordmark svg { width:2.4rem; height:1.25rem; fill:none; stroke:#109fa4; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.automatch-wordmark svg { width:2rem; height:2rem; fill:none; stroke:#109fa4; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
 .automatch-tagline { color:#56677a; font-family:"Plus Jakarta Sans",sans-serif; font-size:.72rem; font-style:italic; white-space:nowrap; }
 div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.35rem; border-radius:999px; padding:.2rem .7rem; font-size:.78rem; white-space:nowrap; }
 [data-testid="stAppViewContainer"] h1 { font-size: clamp(2rem, 3.7vw, 3.25rem); }
 div[class*="st-key-home_hero"] {
-    background: linear-gradient(105deg, #fbfcfa 5%, #eef8f6 60%, #dff3f1 100%);
+    position: relative;
+    overflow: hidden;
+    min-height: 410px;
+    display: flex;
+    align-items: center;
+    background-color: #dce8e5;
+    background-image: linear-gradient(90deg, rgba(247,249,247,.98) 0%, rgba(247,249,247,.92) 36%, rgba(247,249,247,.42) 62%, rgba(247,249,247,.04) 100%), url("https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=2200&q=90");
+    background-position: center, center 56%;
+    background-size: cover;
     border: 1px solid #e5eaed;
-    border-radius: 22px;
-    padding: 1.3rem 1.55rem;
-    box-shadow: 0 12px 36px rgba(16, 39, 72, .065);
+    border-radius: 24px;
+    padding: 2.3rem 2.5rem;
+    box-shadow: 0 16px 40px rgba(16, 39, 72, .10);
 }
+div[class*="st-key-home_hero"] .home-hero-copy { max-width: 610px; }
+div[class*="st-key-home_hero"] h1 { font-size: clamp(2.8rem, 5vw, 4.8rem); margin-bottom: .25rem; }
+div[class*="st-key-home_hero"] [data-testid="stCaptionContainer"] { color: #536779; }
+
 div[class*="st-key-project_editorial_hero"] {
     background: linear-gradient(110deg, #edf8f6, #fbfcfa 62%);
     border: 1px solid #e5eaed;
@@ -116,7 +128,7 @@ h1, h2, h3, h4 { letter-spacing: -0.03em; color: var(--dashboard-text); font-fam
 }
 [data-testid="stImage"] img { border-radius: 17px; aspect-ratio: 16 / 9; object-fit: cover; }
 [data-testid="stImage"] figcaption { color: var(--dashboard-muted); font-size: .78rem; }
-div[class*="st-key-home_hero"] [data-testid="stImage"] img { max-height: 330px; }
+
 [data-testid="stPlotlyChart"] { padding: .2rem; }
 .stMarkdown p { line-height: 1.65; }
 .stButton > button[kind="primary"] { box-shadow: 0 7px 18px color-mix(in srgb, var(--dashboard-accent) 20%, transparent); }
@@ -169,6 +181,8 @@ div.stAlert { border-radius: 12px; }
 @media (max-width: 700px) {
     [data-testid="stMainBlockContainer"] { padding-top: 3.5rem; }
     div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin: 0 -1rem 1rem; padding:.4rem .75rem; }
+    div[class*="st-key-home_hero"] { min-height: 470px; align-items:flex-end; padding:1.4rem; background-image:linear-gradient(0deg, rgba(247,249,247,.98) 0%, rgba(247,249,247,.91) 48%, rgba(247,249,247,.10) 100%), url("https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=85"); background-position:center, 58% top; }
+    div[class*="st-key-home_hero"] .home-hero-copy { max-width:100%; }
     .automatch-tagline { display:none; }
     .car-photo-fallback { min-height: 130px; }
     .car-price { font-size: 1.2rem; }
