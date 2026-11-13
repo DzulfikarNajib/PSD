@@ -7,11 +7,11 @@ CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 :root {
-    --dashboard-bg: var(--background-color, #eaf2fb);
+    --dashboard-bg: var(--background-color, #ffffff);
     --dashboard-surface: var(--secondary-background-color, #ffffff);
     --dashboard-text: var(--text-color, #102748);
     --dashboard-accent: var(--primary-color, #1778c8);
-    --dashboard-muted: color-mix(in srgb, var(--dashboard-text) 78%, transparent);
+    --dashboard-muted: #52677d;
     --dashboard-border: #d9e5f2;
 }
 
@@ -33,15 +33,19 @@ div[class*="st-key-automatch_topnav"] {
     border: 1px solid #dce6f1;
     border-radius: 18px;
     margin: 0 -1.5rem 1.35rem;
-    padding: .35rem 1.3rem;
+    padding: .28rem 1.3rem;
     box-shadow: 0 5px 20px rgba(16, 39, 72, .045);
     backdrop-filter: blur(14px);
 }
-div[class*="st-key-automatch_topnav"] [data-testid="stHorizontalBlock"] { gap: .4rem; }
+div[class*="st-key-automatch_topnav"] [data-testid="stHorizontalBlock"] { gap: .4rem; align-items:center !important; }
+div[class*="st-key-automatch_topnav"] [data-testid="stColumn"] { display:flex; align-items:center; }
+div[class*="st-key-automatch_topnav"] [data-testid="stMarkdownContainer"] { margin:0; padding:0; }
 div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] { min-width: max-content; }
 div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a {
-    min-height: 2.6rem;
-    padding: .45rem .45rem .35rem;
+    min-height: 2.65rem;
+    display: flex;
+    align-items: center;
+    padding: .35rem .45rem;
     border-radius: 0;
     color: #41556c;
     font-size: .82rem;
@@ -54,10 +58,33 @@ div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a {
     color: #087f86 !important;
     border-bottom: 2px solid #109fa4;
 }
-.automatch-wordmark { display:flex; align-items:center; justify-content:center; min-height:2.8rem; white-space:nowrap; }
-.automatch-wordmark img { display:block; width:6.4rem; height:2.35rem; object-fit:contain; object-position:center; }
-.automatch-tagline { display:flex; align-items:center; min-height:2.8rem; color:#102748; font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:1rem; font-weight:700; line-height:1.2; letter-spacing:-.015em; white-space:nowrap; }
-div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.35rem; border-radius:999px; padding:.2rem .7rem; font-size:.78rem; white-space:nowrap; }
+.automatch-brand {
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:.8rem;
+    height:2.65rem;
+    min-width:0;
+    white-space:nowrap;
+}
+.automatch-brand img {
+    display:block;
+    flex:0 0 auto;
+    width:7rem;
+    height:1.8rem;
+    object-fit:contain;
+    object-position:left center;
+}
+.automatch-brand span {
+    display:block;
+    color:#102748;
+    font-family:"Plus Jakarta Sans",Inter,sans-serif;
+    font-size:.9rem;
+    font-weight:650;
+    line-height:1;
+    letter-spacing:-.015em;
+}
+div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.65rem; border-radius:999px; padding:.2rem .7rem; font-size:.78rem; white-space:nowrap; }
 [data-testid="stAppViewContainer"] h1 { font-size: clamp(2rem, 3.7vw, 3.25rem); }
 div[class*="st-key-home_hero"] {
     position: relative;
@@ -189,7 +216,8 @@ div.stAlert { border-radius: 12px; }
     div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin: 0 -1rem 1rem; padding:.4rem .75rem; }
     div[class*="st-key-home_hero"] { min-height: 470px; align-items:flex-end; padding:1.4rem; background-image:linear-gradient(0deg, rgba(247,249,247,.98) 0%, rgba(247,249,247,.91) 48%, rgba(247,249,247,.10) 100%), var(--automatch-hero-image); background-position:center, 58% top; }
     div[class*="st-key-home_hero"] .home-hero-copy { max-width:100%; }
-    .automatch-tagline { display:none; }
+    .automatch-brand { gap:0; }
+    .automatch-brand span { display:none; }
     .car-photo-fallback { min-height: 130px; }
     .car-price { font-size: 1.2rem; }
     [data-testid="stMetricValue"] { font-size: 1.15rem !important; }

@@ -128,24 +128,32 @@ with fuel_col:
         fuels = source["fuel_type"].fillna("").astype(str).replace("", "Tidak dicantumkan").value_counts() if "fuel_type" in source else pd.Series(dtype=int)
         if len(fuels):
             fuel_data = fuels.rename_axis("Bahan bakar").rename("Jumlah mobil").reset_index()
-            fig = px.pie(fuel_data, names="Bahan bakar", values="Jumlah mobil", hole=.66, color_discrete_sequence=PALETTE)
-            fig.update_traces(textposition="inside", textinfo="percent", sort=False, marker=dict(line=dict(color="#FFFFFF", width=3)))
-            fig.add_annotation(text=f"{unique_count:,}<br><span style='font-size:11px'>mobil unik</span>".replace(",", "."), x=.5, y=.5, showarrow=False, font=dict(size=18, color=NAVY))
-            fig.update_layout(showlegend=True, legend=dict(orientation="h", y=-.08, x=0, font=dict(size=11)))
-            st.plotly_chart(finish_chart(fig, 330), width="stretch", config={"displayModeBar": False}, key="market_fuel_donut")
-            st.caption("Bagian tiap warna adalah jumlah mobil pada sumber pilihan. Jenis bahan bakar yang tidak dicantumkan tetap dihitung terpisah.")
+            fuel_data = fuel_data.sort_values("Jumlah mobil", ascending=True)
+            fig = go.Figure(go.Bar(
+                x=fuel_data["Jumlah mobil"], y=fuel_data["Bahan bakar"], orientation="h",
+                text=[f"{int(v):,}".replace(",", ".") for v in fuel_data["Jumlah mobil"]],
+                textposition="outside", cliponaxis=False,
+                marker=dict(color=TEAL, line=dict(width=0), cornerradius=7),
+                hovertemplate="%{y}: %{x:,} mobil unik<extra></extra>",
+            ))
+            fig.update_layout(showlegend=False, xaxis=dict(visible=False, range=[0, float(fuel_data["Jumlah mobil"].max()) * 1.2]), yaxis=dict(autorange="reversed", showgrid=False))
+            st.plotly_chart(finish_chart(fig, 330), width="stretch", config={"displayModeBar": False}, key="market_fuel_distribution")
+            st.caption("Panjang batang menunjukkan jumlah mobil pada sumber pilihan. Bahan bakar yang tidak dicantumkan dihitung terpisah.")
             fuel_options = [fuel for fuel in fuels.index if fuel != "Tidak dicantumkan"]
             if fuel_options:
-                selected_fuel = st.selectbox("Lihat pilihan bahan bakar", fuel_options, key="market_fuel_shortcut")
-                if st.button(f"Cari mobil {selected_fuel}", key="market_fuel_link", use_container_width=True):
-                    st.session_state["prefill_fuel"] = selected_fuel
-                    st.session_state["car_source_choice"] = source_choice
-                    st.switch_page("pages/2_Find_Your_Car.py")
+                st.markdown("**Lihat listing menurut bahan bakar**")
+                fuel_button_cols = st.columns(2)
+                for idx, fuel in enumerate(fuel_options):
+                    with fuel_button_cols[idx % 2]:
+                        if st.button(f"{fuel} · {int(fuels[fuel]):,} mobil".replace(",", "."), key=f"market_fuel_link_{idx}", use_container_width=True):
+                            st.session_state["prefill_fuel"] = fuel
+                            st.session_state["car_source_choice"] = source_choice
+                            st.switch_page("pages/2_Find_Your_Car.py")
         else:
             st.caption("Informasi bahan bakar belum tersedia pada sumber ini.")
 
 st.markdown("### Harga dan spesifikasi yang tercatat")
-price_col, engine_col = st.columns(2, gap="medium")
+price_col, year_col = st.columns(2, gap="medium")
 with price_col:
     with st.container(border=True):
         st.markdown("**Di rentang berapa harga iklan terkumpul?**")
@@ -160,19 +168,58 @@ with price_col:
             st.caption(f"Separuh iklan valid berada sekitar {format_rupiah(q1)}–{format_rupiah(q3)}. Nilai ekstrem bisa memperlebar rentang.")
         else:
             st.caption("Grafik menunggu setidaknya 5 harga iklan yang valid.")
-with engine_col:
+with year_col:
     with st.container(border=True):
-        st.markdown("**Kapasitas mesin (CC) seperti apa yang sering muncul?**")
-        engines = source.dropna(subset=["engine_cc"]) if "engine_cc" in source else pd.DataFrame()
-        if len(engines) >= 5 and engines["engine_cc"].nunique() >= 3:
-            fig = px.histogram(engines, x="engine_cc", nbins=min(18, max(6, len(engines) // 3)), labels={"engine_cc": "Kapasitas mesin (cc)", "count": "Jumlah mobil"})
-            fig.update_traces(marker_color="#345B86", marker_line_color="#FFFFFF", marker_line_width=1)
-            fig.update_xaxes(title="Kapasitas mesin (cc)")
+        st.markdown("**Tahun kendaraan apa yang paling banyak tercatat?**")
+        years = source.dropna(subset=["year"]) if "year" in source else pd.DataFrame()
+        if len(years) >= 5 and years["year"].nunique() >= 3:
+            year_counts = years["year"].astype(int).value_counts().sort_index().rename_axis("Tahun kendaraan").rename("Jumlah mobil").reset_index()
+            fig = px.bar(year_counts, x="Tahun kendaraan", y="Jumlah mobil", color_discrete_sequence=[TEAL], text="Jumlah mobil")
+            fig.update_traces(textposition="outside", cliponaxis=False, marker_cornerradius=7)
+            fig.update_xaxes(title="Tahun kendaraan", dtick=max(1, int((year_counts["Tahun kendaraan"].max() - year_counts["Tahun kendaraan"].min()) / 8)))
             fig.update_yaxes(title="Jumlah mobil")
-            st.plotly_chart(finish_chart(fig, 310), width="stretch", config={"displayModeBar": False}, key="market_engine_histogram")
-            st.caption(f"CC tercatat pada {len(engines):,} dari {len(source):,} mobil. Rentang ini membantu membandingkan spesifikasi, bukan langsung menentukan biaya operasional.".replace(",", "."))
+            st.plotly_chart(finish_chart(fig, 310), width="stretch", config={"displayModeBar": False}, key="market_vehicle_year_distribution")
+            st.caption(f"Tahun kendaraan tercatat pada {len(years):,} dari {len(source):,} mobil. Ini tahun model kendaraan dari iklan, bukan tahun iklan dipasang.".replace(",", "."))
         else:
-            st.caption("Grafik CC baru berguna setelah tersedia 5 nilai valid dari setidaknya 3 kapasitas berbeda.")
+            st.caption("Belum cukup data tahun kendaraan yang valid untuk menampilkan distribusi.")
+
+spec_cols = st.columns(2, gap="medium")
+with spec_cols[0]:
+    with st.container(border=True):
+        st.markdown("**Kilometer berapa yang banyak tersedia?**")
+        mileage = source.dropna(subset=["mileage_km"]).copy() if "mileage_km" in source else pd.DataFrame()
+        if len(mileage) >= 5 and mileage["mileage_km"].nunique() >= 3:
+            mileage["Rentang odometer"] = pd.cut(
+                mileage["mileage_km"], bins=[-1, 25_000, 50_000, 100_000, 150_000, 250_000, float("inf")],
+                labels=["≤25 rb", "25–50 rb", "50–100 rb", "100–150 rb", "150–250 rb", ">250 rb"],
+            )
+            mileage_counts = mileage["Rentang odometer"].value_counts(sort=False).rename_axis("Rentang odometer").rename("Jumlah mobil").reset_index()
+            fig = px.bar(mileage_counts, x="Rentang odometer", y="Jumlah mobil", color_discrete_sequence=[TEAL], text="Jumlah mobil")
+            fig.update_traces(textposition="outside", cliponaxis=False, marker_cornerradius=7)
+            fig.update_xaxes(title="Odometer (ribu km)", showgrid=False)
+            fig.update_yaxes(title="Jumlah mobil")
+            st.plotly_chart(finish_chart(fig, 310), width="stretch", config={"displayModeBar": False}, key="market_mileage_distribution")
+            st.caption(f"Kilometer tercatat pada {len(mileage):,} dari {len(source):,} mobil. Angka odometer perlu diverifikasi langsung.".replace(",", "."))
+        else:
+            st.caption("Belum cukup data kilometer yang valid untuk menampilkan distribusi.")
+with spec_cols[1]:
+    with st.container(border=True):
+        st.markdown("**Kapasitas mesin (CC) seperti apa yang tersedia?**")
+        engines = source.dropna(subset=["engine_cc"]).copy() if "engine_cc" in source else pd.DataFrame()
+        if len(engines) >= 5 and engines["engine_cc"].nunique() >= 3:
+            engines["Rentang kapasitas"] = pd.cut(
+                engines["engine_cc"], bins=[0, 1000, 1500, 2000, 3000, 5000, float("inf")],
+                labels=["≤1.000", "1.001–1.500", "1.501–2.000", "2.001–3.000", "3.001–5.000", ">5.000"],
+            )
+            engine_counts = engines["Rentang kapasitas"].value_counts(sort=False).rename_axis("Rentang kapasitas (cc)").rename("Jumlah mobil").reset_index()
+            fig = px.bar(engine_counts, x="Rentang kapasitas (cc)", y="Jumlah mobil", color_discrete_sequence=[TEAL], text="Jumlah mobil")
+            fig.update_traces(textposition="outside", cliponaxis=False, marker_cornerradius=7)
+            fig.update_xaxes(title="Kapasitas mesin (cc)", showgrid=False)
+            fig.update_yaxes(title="Jumlah mobil")
+            st.plotly_chart(finish_chart(fig, 310), width="stretch", config={"displayModeBar": False}, key="market_engine_distribution")
+            st.caption(f"CC tercatat pada {len(engines):,} dari {len(source):,} mobil. Kapasitas membantu membandingkan spesifikasi, bukan langsung menentukan biaya operasional.".replace(",", "."))
+        else:
+            st.caption("Belum cukup data CC valid dengan variasi yang memadai untuk distribusi.")
 
 st.markdown("### Apakah tahun atau kilometer berkaitan dengan harga iklan?")
 scatter_features = [("year", "Tahun kendaraan", "Tahun"), ("mileage_km", "Kilometer", "Kilometer")]
@@ -199,29 +246,6 @@ if scatter_candidates:
                 st.caption(f"{len(points):,} mobil memiliki kedua nilai. Korelasi linear sampel {corr:.2f}; hubungan ini deskriptif, bukan bukti sebab-akibat.".replace(",", "."))
 else:
     st.info("Hubungan harga dengan tahun/kilometer belum ditampilkan: perlu sedikitnya 10 pasangan nilai dan 4 nilai fitur berbeda.", icon=":material/info:")
-
-with st.container(border=True):
-    st.markdown("**Bagaimana data listing berubah antar-refresh?**")
-    st.caption("Grafik ini khusus snapshot OLX yang memiliki waktu pengambilan. Dataset Excel tidak memiliki tanggal, jadi tidak masuk ke tren.")
-    h = history.copy()
-    if not h.empty and "fetched_at" in h:
-        h["price"] = pd.to_numeric(h.get("price"), errors="coerce")
-        h["fetched_at"] = pd.to_datetime(h["fetched_at"], errors="coerce", utc=True)
-        h = h.dropna(subset=["fetched_at"])
-    if not h.empty and "snapshot_id" in h:
-        trend = h.groupby("snapshot_id", dropna=False).agg(fetched_at=("fetched_at", "min"), median_asking_price=("price", "median"), unique_listings=("listing_id", "nunique")).reset_index()
-        trend = trend.dropna(subset=["median_asking_price"]).sort_values("fetched_at")
-    else:
-        trend = pd.DataFrame()
-    if len(trend) >= 2:
-        trend["fetched_local"] = trend["fetched_at"].dt.tz_convert("Asia/Jakarta")
-        fig = px.line(trend, x="fetched_local", y="median_asking_price", markers=True, hover_data=["unique_listings"], labels={"fetched_local": "Waktu snapshot", "median_asking_price": "Median harga penawaran (Rp)", "unique_listings": "Mobil unik dalam snapshot"})
-        fig.update_traces(line_color=TEAL, line_width=3, marker_size=8)
-        fig.update_yaxes(tickformat="~s", title="Harga iklan (Rp)")
-        st.plotly_chart(finish_chart(fig, 300), width="stretch", config={"displayModeBar": False}, key="market_snapshot_trend")
-        st.caption("Perubahan mencerminkan iklan yang terkumpul di tiap snapshot—bukan perubahan harga transaksi atau seluruh pasar.")
-    else:
-        st.caption("Belum cukup snapshot OLX bertanggal untuk membentuk tren. Perlu setidaknya dua snapshot berhasil.")
 
 with st.expander("Tentang sumber dan batasan data"):
     st.write(f"Sumber yang dipilih: **{source_label}**. Angka halaman ini menghitung {unique_count:,} mobil unik dari {len(source):,} baris yang ditampilkan. Pada arsip penuh, kemunculan listing pada beberapa sumber atau snapshot diringkas menjadi satu mobil unik; jumlah snapshot dilaporkan terpisah.".replace(",", "."))
