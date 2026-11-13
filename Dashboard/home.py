@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import base64
+from pathlib import Path
+
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -17,6 +20,7 @@ from src.ui import format_rupiah, render_empty_state
 
 
 DEFAULT_SEARCH_URL = "https://www.olx.co.id/mobil-bekas_c198/q-mobil"
+HERO_IMAGE_DATA = base64.b64encode((Path(__file__).parent / "assets" / "hero-bmw.jpg").read_bytes()).decode("ascii")
 def _compact_rupiah(value: float) -> str:
     value = float(value)
     if value >= 1_000_000_000:
@@ -28,6 +32,11 @@ def _compact_rupiah(value: float) -> str:
 
 apply_theme()
 archive = load_combined_archive()
+
+st.markdown(
+    f'<style>div[class*="st-key-home_hero"] {{ --automatch-hero-image: url("data:image/jpeg;base64,{HERO_IMAGE_DATA}"); }}</style>',
+    unsafe_allow_html=True,
+)
 
 with st.container(key="home_hero"):
     st.caption("TEMUKAN PILIHANMU")

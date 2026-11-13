@@ -1,5 +1,8 @@
 """AutoMatch application shell with a compact, persistent top navigation."""
 
+import base64
+from pathlib import Path
+
 import streamlit as st
 
 from src.styles import apply_theme
@@ -22,11 +25,13 @@ active_page = st.navigation(
     position="hidden",
 )
 
+logo_data = base64.b64encode((Path(__file__).parent / "assets" / "automatch-logo.png").read_bytes()).decode("ascii")
+
 with st.container(key="automatch_topnav"):
-    nav = st.columns([1.05, 1.18, .68, .87, 1.16, .98, 1.18, .62], gap="small", vertical_alignment="center")
+    nav = st.columns([1.28, 1.24, .68, .87, 1.16, .98, 1.18, .62], gap="small", vertical_alignment="center")
     with nav[0]:
         st.markdown(
-            """<div class="automatch-wordmark"><svg viewBox="0 0 40 40" role="img" aria-label="AutoMatch"><path d="M8 29 20 7l12 22M13 21h14"/><circle cx="20" cy="21" r="3"/></svg><span>AutoMatch</span></div>""",
+            f'<div class="automatch-wordmark"><img src="data:image/png;base64,{logo_data}" alt="AutoMatch" /></div>',
             unsafe_allow_html=True,
         )
     with nav[1]:

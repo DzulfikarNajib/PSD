@@ -53,9 +53,9 @@ div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a {
     color: #087f86 !important;
     border-bottom: 2px solid #109fa4;
 }
-.automatch-wordmark { display:flex; align-items:center; gap:.45rem; color:#102748; font-weight:800; font-size:1.06rem; letter-spacing:-.045em; white-space:nowrap; }
-.automatch-wordmark svg { width:2rem; height:2rem; fill:none; stroke:#109fa4; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
-.automatch-tagline { color:#56677a; font-family:"Plus Jakarta Sans",sans-serif; font-size:.72rem; font-style:italic; white-space:nowrap; }
+.automatch-wordmark { display:flex; align-items:center; white-space:nowrap; }
+.automatch-wordmark img { display:block; width:8.8rem; height:auto; object-fit:contain; }
+.automatch-tagline { color:#102748; font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:.91rem; font-weight:700; letter-spacing:-.015em; white-space:nowrap; }
 div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.35rem; border-radius:999px; padding:.2rem .7rem; font-size:.78rem; white-space:nowrap; }
 [data-testid="stAppViewContainer"] h1 { font-size: clamp(2rem, 3.7vw, 3.25rem); }
 div[class*="st-key-home_hero"] {
@@ -65,7 +65,7 @@ div[class*="st-key-home_hero"] {
     display: flex;
     align-items: center;
     background-color: #dce8e5;
-    background-image: linear-gradient(90deg, rgba(247,249,247,.98) 0%, rgba(247,249,247,.92) 36%, rgba(247,249,247,.42) 62%, rgba(247,249,247,.04) 100%), url("https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=2200&q=90");
+    background-image: linear-gradient(90deg, rgba(247,249,247,.98) 0%, rgba(247,249,247,.92) 36%, rgba(247,249,247,.42) 62%, rgba(247,249,247,.04) 100%), var(--automatch-hero-image);
     background-position: center, center 56%;
     background-size: cover;
     border: 1px solid #e5eaed;
@@ -181,7 +181,7 @@ div.stAlert { border-radius: 12px; }
 @media (max-width: 700px) {
     [data-testid="stMainBlockContainer"] { padding-top: 3.5rem; }
     div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin: 0 -1rem 1rem; padding:.4rem .75rem; }
-    div[class*="st-key-home_hero"] { min-height: 470px; align-items:flex-end; padding:1.4rem; background-image:linear-gradient(0deg, rgba(247,249,247,.98) 0%, rgba(247,249,247,.91) 48%, rgba(247,249,247,.10) 100%), url("https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=85"); background-position:center, 58% top; }
+    div[class*="st-key-home_hero"] { min-height: 470px; align-items:flex-end; padding:1.4rem; background-image:linear-gradient(0deg, rgba(247,249,247,.98) 0%, rgba(247,249,247,.91) 48%, rgba(247,249,247,.10) 100%), var(--automatch-hero-image); background-position:center, 58% top; }
     div[class*="st-key-home_hero"] .home-hero-copy { max-width:100%; }
     .automatch-tagline { display:none; }
     .car-photo-fallback { min-height: 130px; }
