@@ -53,9 +53,9 @@ div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a {
     color: #087f86 !important;
     border-bottom: 2px solid #109fa4;
 }
-.automatch-wordmark { display:flex; align-items:center; white-space:nowrap; }
-.automatch-wordmark img { display:block; width:8.8rem; height:auto; object-fit:contain; }
-.automatch-tagline { color:#102748; font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:.91rem; font-weight:700; letter-spacing:-.015em; white-space:nowrap; }
+.automatch-wordmark { display:flex; align-items:center; justify-content:center; min-height:2.8rem; white-space:nowrap; }
+.automatch-wordmark img { display:block; width:7.1rem; max-height:2.45rem; height:auto; object-fit:contain; }
+.automatch-tagline { display:flex; align-items:center; min-height:2.8rem; color:#102748; font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:1rem; font-weight:700; line-height:1.2; letter-spacing:-.015em; white-space:nowrap; }
 div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.35rem; border-radius:999px; padding:.2rem .7rem; font-size:.78rem; white-space:nowrap; }
 [data-testid="stAppViewContainer"] h1 { font-size: clamp(2rem, 3.7vw, 3.25rem); }
 div[class*="st-key-home_hero"] {
