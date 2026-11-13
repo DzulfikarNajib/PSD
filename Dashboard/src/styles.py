@@ -7,12 +7,12 @@ CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 :root {
-    --dashboard-bg: var(--background-color, #f5f5f1);
+    --dashboard-bg: var(--background-color, #eaf2fb);
     --dashboard-surface: var(--secondary-background-color, #ffffff);
     --dashboard-text: var(--text-color, #102748);
-    --dashboard-accent: var(--primary-color, #109fa4);
+    --dashboard-accent: var(--primary-color, #1778c8);
     --dashboard-muted: color-mix(in srgb, var(--dashboard-text) 78%, transparent);
-    --dashboard-border: color-mix(in srgb, var(--dashboard-text) 12%, transparent);
+    --dashboard-border: #d9e5f2;
 }
 
 .stApp {
@@ -29,10 +29,11 @@ div[class*="st-key-automatch_topnav"] {
     position: relative;
     top: auto;
     z-index: 999;
-    background: rgba(255, 255, 255, .97);
-    border-bottom: 1px solid #e5eaed;
+    background: rgba(255, 255, 255, .98);
+    border: 1px solid #dce6f1;
+    border-radius: 18px;
     margin: 0 -1.5rem 1.35rem;
-    padding: .55rem 1.3rem .5rem;
+    padding: .35rem 1.3rem;
     box-shadow: 0 5px 20px rgba(16, 39, 72, .045);
     backdrop-filter: blur(14px);
 }
@@ -54,7 +55,7 @@ div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a {
     border-bottom: 2px solid #109fa4;
 }
 .automatch-wordmark { display:flex; align-items:center; justify-content:center; min-height:2.8rem; white-space:nowrap; }
-.automatch-wordmark img { display:block; width:7.1rem; max-height:2.45rem; height:auto; object-fit:contain; }
+.automatch-wordmark img { display:block; width:6.4rem; height:2.35rem; object-fit:contain; object-position:center; }
 .automatch-tagline { display:flex; align-items:center; min-height:2.8rem; color:#102748; font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:1rem; font-weight:700; line-height:1.2; letter-spacing:-.015em; white-space:nowrap; }
 div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.35rem; border-radius:999px; padding:.2rem .7rem; font-size:.78rem; white-space:nowrap; }
 [data-testid="stAppViewContainer"] h1 { font-size: clamp(2rem, 3.7vw, 3.25rem); }
@@ -107,9 +108,9 @@ h1, h2, h3, h4 { letter-spacing: -0.03em; color: var(--dashboard-text); font-fam
 .stMetric {
     background: var(--dashboard-surface);
     border: 1px solid var(--dashboard-border);
-    border-radius: 17px;
+    border-radius: 20px;
     padding: .8rem .95rem;
-    box-shadow: 0 3px 14px color-mix(in srgb, var(--dashboard-text) 5%, transparent);
+    box-shadow: 0 6px 20px rgba(29, 64, 108, .07);
 }
 .stMetric label, .stMetric [data-testid="stMetricLabel"] { color: var(--dashboard-muted); }
 .stMetric [data-testid="stMetricValue"] { color: var(--dashboard-text); }
@@ -118,7 +119,12 @@ h1, h2, h3, h4 { letter-spacing: -0.03em; color: var(--dashboard-text); font-fam
 
 .card, [data-testid="stVerticalBlockBorderWrapper"] {
     border-color: var(--dashboard-border);
-    border-radius: 17px;
+    border-radius: 22px;
+}
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: #fff;
+    border: 1px solid #dce6f1;
+    box-shadow: 0 8px 24px rgba(29, 64, 108, .075);
 }
 .card {
     background: var(--dashboard-surface);
@@ -129,7 +135,7 @@ h1, h2, h3, h4 { letter-spacing: -0.03em; color: var(--dashboard-text); font-fam
 [data-testid="stImage"] img { border-radius: 17px; aspect-ratio: 16 / 9; object-fit: cover; }
 [data-testid="stImage"] figcaption { color: var(--dashboard-muted); font-size: .78rem; }
 
-[data-testid="stPlotlyChart"] { padding: .2rem; }
+[data-testid="stPlotlyChart"] { padding: .35rem; border-radius: 18px; background:#fff; }
 .stMarkdown p { line-height: 1.65; }
 .stButton > button[kind="primary"] { box-shadow: 0 7px 18px color-mix(in srgb, var(--dashboard-accent) 20%, transparent); }
 .stButton > button:hover { transform: translateY(-1px); transition: transform .15s ease, box-shadow .15s ease; }

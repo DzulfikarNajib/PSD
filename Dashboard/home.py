@@ -91,7 +91,7 @@ else:
             if not brand_counts.empty:
                 plot_data = brand_counts.rename_axis("Merek").rename("Listing unik").reset_index()
                 chart = px.bar(plot_data, x="Merek", y="Listing unik", text="Listing unik", color_discrete_sequence=["#19a7ad"])
-                chart.update_layout(height=300, margin=dict(l=4, r=8, t=10, b=5), xaxis_title=None, yaxis_title=None, yaxis=dict(gridcolor="#e5eaed"), xaxis=dict(tickangle=-18))
+                chart.update_layout(height=300, margin=dict(l=4, r=8, t=10, b=5), paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", xaxis_title=None, yaxis_title=None, yaxis=dict(gridcolor="#e5eaf1"), xaxis=dict(tickangle=-18))
                 chart.update_traces(textposition="outside", cliponaxis=False, marker_line_width=0)
                 st.plotly_chart(chart, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="home_brands")
                 st.caption(f"{brand_counts.index[0]} paling sering muncul di arsip ini ({brand_counts.iloc[0]} listing unik). Ini menunjukkan jumlah pilihan yang tersimpan, bukan rekomendasi kualitas.")
@@ -120,7 +120,7 @@ else:
             if not fuels.empty:
                 fuel_data = fuels.rename_axis("Bahan bakar").rename("Listing unik").reset_index()
                 chart = px.pie(fuel_data, values="Listing unik", names="Bahan bakar", hole=.68, color_discrete_sequence=["#102748", "#109fa4", "#67c7c8", "#e4b76d", "#99a9b7"])
-                chart.update_layout(height=300, margin=dict(l=0, r=0, t=4, b=0), legend=dict(orientation="v", x=1.0, y=.5), showlegend=True, annotations=[dict(text=f"{int(fuels.sum()):,}".replace(",", "."), x=.43, y=.5, font_size=20, showarrow=False)])
+                chart.update_layout(height=300, paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", margin=dict(l=0, r=0, t=4, b=0), legend=dict(orientation="v", x=1.0, y=.5), showlegend=True, annotations=[dict(text=f"{int(fuels.sum()):,}".replace(",", "."), x=.43, y=.5, font_size=20, showarrow=False)])
                 chart.update_traces(textinfo="none", marker=dict(line=dict(color="white", width=3)))
                 st.plotly_chart(chart, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="home_fuels")
                 st.caption("Jumlah listing per kategori bahan bakar pada arsip. Ketersediaan tidak menggambarkan seluruh pasar.")
