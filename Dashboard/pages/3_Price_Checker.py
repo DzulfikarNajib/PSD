@@ -89,6 +89,22 @@ st.title("Cek Harga Iklan")
 st.caption("Periksa posisi penawaran harga mobil terhadap median pasar unit sejenis dan estimasi model regresi machine learning.")
 st.caption("Hasil analisis memberikan konteks harga iklan awal; bukan jaminan harga transaksi final atau kelayakan fisik unit.")
 
+prefill = st.session_state.pop("price_checker_prefill", {})
+auto_check_prefill = bool(prefill.pop("_auto_calculate", False))
+prefill_source = prefill.pop("_comparison_source", None)
+if prefill:
+    if prefill_source in {"Arsip Penuh", "Listing Terbaru"}:
+        st.session_state["price_comparison_source"] = prefill_source
+    for widget_key in (
+        "calculator_make", "calculator_model", "calculator_year", "calculator_mileage",
+        "calculator_engine_cc", "calculator_transmission", "calculator_fuel_type",
+        "calculator_body_type", "calculator_asking_price",
+    ):
+        st.session_state.pop(widget_key, None)
+    if prefill.get("make"):
+        st.session_state["calculator_make"] = prefill["make"]
+    st.session_state.pop("price_calculation_result", None)
+
 live = load_live_data()
 archive = load_combined_archive()
 training_data = load_training_archive()
@@ -139,7 +155,10 @@ else:
                     return
                 chosen = chosen_rows.iloc[0]
                 fields = ["make", "model", "year", "mileage_km", "engine_cc", "fuel_type", "transmission", "body_type", "price"]
-                st.session_state["price_checker_prefill"] = {key: (None if pd.isna(chosen.get(key)) else chosen.get(key)) for key in fields}
+                st.session_state["price_checker_prefill"] = {
+                    **{key: (None if pd.isna(chosen.get(key)) else chosen.get(key)) for key in fields},
+                    "_comparison_source": source,
+                }
 
             if option_ids:
                 st.selectbox(
@@ -155,9 +174,6 @@ else:
             else:
                 st.caption("Belum ada listing pada sumber ini. Spesifikasi dapat dimasukkan secara manual.")
 
-            prefill = st.session_state.pop("price_checker_prefill", {})
-            if prefill.get("make") in makes:
-                st.session_state["calculator_make"] = prefill["make"]
             if st.session_state.get("calculator_make") not in makes:
                 st.session_state["calculator_make"] = makes[0]
             start_make = st.session_state["calculator_make"]
@@ -169,39 +185,39 @@ else:
                 available_models = sorted(input_data.loc[input_data["make"].astype(str).eq(make), "model"].dropna().astype(str).unique())
                 available_models = available_models or start_models
                 default_model = prefill.get("model") if prefill.get("model") in available_models else available_models[0]
-                model = st.selectbox("Model", available_models, index=available_models.index(default_model))
+                model = st.selectbox("Model", available_models, index=available_models.index(default_model), key="calculator_model")
                 model_rows = input_data[input_data["make"].fillna("").astype(str).eq(make) & input_data["model"].fillna("").astype(str).eq(model)]
                 years_available = input_data.get("year", pd.Series(dtype=float)).dropna()
                 min_year = max(1950, int(years_available.min()) if not years_available.empty else 1990)
                 max_year = max(min_year, int(years_available.max()) if not years_available.empty else pd.Timestamp.now().year)
                 year_value = int(_number(prefill.get("year", 2020), 2020))
-                year = st.number_input("Tahun kendaraan", min_value=min_year, max_value=max(max_year, year_value), value=min(max(year_value, min_year), max(max_year, year_value)), step=1)
+                year = st.number_input("Tahun kendaraan", min_value=min_year, max_value=max(max_year, year_value), value=min(max(year_value, min_year), max(max_year, year_value)), step=1, key="calculator_year")
                 km_default = int(model_rows["mileage_km"].median()) if "mileage_km" in model_rows and model_rows["mileage_km"].notna().any() else 50_000
-                mileage = st.number_input("Kilometer", 0, 1_000_000, int(_number(prefill.get("mileage_km", km_default), km_default)), step=5_000)
+                mileage = st.number_input("Kilometer", 0, 1_000_000, int(_number(prefill.get("mileage_km", km_default), km_default)), step=5_000, key="calculator_mileage")
                 cc_default = int(model_rows["engine_cc"].median()) if "engine_cc" in model_rows and model_rows["engine_cc"].notna().any() else 1_300
-                engine_cc = st.number_input("Kapasitas mesin (cc)", 0, 10_000, int(_number(prefill.get("engine_cc", cc_default), cc_default)), step=100)
+                engine_cc = st.number_input("Kapasitas mesin (cc)", 0, 10_000, int(_number(prefill.get("engine_cc", cc_default), cc_default)), step=100, key="calculator_engine_cc")
                 cat_a, cat_b = st.columns(2)
                 transmission_options = ["Semua", *sorted(input_data.get("transmission", pd.Series(dtype=str)).dropna().astype(str).unique())]
                 fuel_options = ["Semua", *sorted(input_data.get("fuel_type", pd.Series(dtype=str)).dropna().astype(str).unique())]
                 body_options = ["Semua", *sorted(input_data.get("body_type", pd.Series(dtype=str)).dropna().astype(str).unique())]
                 with cat_a:
                     trans_default = prefill.get("transmission") if prefill.get("transmission") in transmission_options else "Semua"
-                    transmission = st.selectbox("Transmisi", transmission_options, index=transmission_options.index(trans_default))
+                    transmission = st.selectbox("Transmisi", transmission_options, index=transmission_options.index(trans_default), key="calculator_transmission")
                     fuel_default = prefill.get("fuel_type") if prefill.get("fuel_type") in fuel_options else "Semua"
-                    fuel_type = st.selectbox("Bahan bakar", fuel_options, index=fuel_options.index(fuel_default))
+                    fuel_type = st.selectbox("Bahan bakar", fuel_options, index=fuel_options.index(fuel_default), key="calculator_fuel_type")
                 with cat_b:
                     body_default = prefill.get("body_type") if prefill.get("body_type") in body_options else "Semua"
-                    body_type = st.selectbox("Tipe bodi", body_options, index=body_options.index(body_default))
+                    body_type = st.selectbox("Tipe bodi", body_options, index=body_options.index(body_default), key="calculator_body_type")
                     price_max = max(50_000_000_000, int(_number(input_data.get("price", pd.Series(dtype=float)).max(), 0)))
                     asking_default = int(_number(prefill.get("price", 150_000_000), 150_000_000))
-                asking_price = st.number_input("Harga iklan yang ingin dicek (Rp)", 1, price_max, min(max(asking_default, 1), price_max), step=5_000_000)
+                asking_price = st.number_input("Harga iklan yang ingin dicek (Rp)", 1, price_max, min(max(asking_default, 1), price_max), step=5_000_000, key="calculator_asking_price")
                 submitted = st.form_submit_button("Cek harga", type="primary", icon=":material/price_check:", use_container_width=True)
 
             features = {
                 "make": make, "model": model, "year": int(year), "mileage_km": int(mileage), "engine_cc": int(engine_cc),
                 "transmission": transmission, "fuel_type": fuel_type, "body_type": body_type,
             }
-            if submitted:
+            if submitted or auto_check_prefill:
                 peers = _find_comparables(comparison_data, features)
                 estimate, model_message = None, None
                 metadata = load_model_metadata()
@@ -240,7 +256,7 @@ else:
             estimate = result["estimate"]
 
             # Hitung Status Badge (Underpriced, Harga Wajar, Overpriced)
-            ref_median = float(peers["price"].median()) if not peers.empty else (estimate if estimate else None)
+            ref_median = float(peers["price"].median()) if not peers.empty else None
             badge_html = ""
             kesimpulan_text = ""
 
@@ -273,7 +289,7 @@ else:
                     st.markdown("**Listing Serupa**")
                     if peers.empty:
                         st.metric("Jumlah pembanding", "0")
-                        st.caption(f"Tidak ada listing dari {source} yang cocok dengan rentang spesifikasi ini.")
+                        st.caption(f"Tidak ada listing {source.lower()} yang cocok. Status harga pasar tidak ditampilkan; gunakan estimasi model sebagai konteks umum saja.")
                     else:
                         median = float(peers["price"].median())
                         low, high = float(peers["price"].min()), float(peers["price"].max())

@@ -172,7 +172,11 @@ with right:
     if check_clicked:
         chosen = filtered[filtered["listing_id"].astype(str).eq(selected[0])].iloc[0]
         fields = ["make", "model", "year", "mileage_km", "engine_cc", "fuel_type", "transmission", "body_type", "price"]
-        st.session_state["price_checker_prefill"] = {key: (None if pd.isna(chosen.get(key)) else chosen.get(key)) for key in fields}
+        st.session_state["price_checker_prefill"] = {
+            **{key: (None if pd.isna(chosen.get(key)) else chosen.get(key)) for key in fields},
+            "_comparison_source": source_choice,
+            "_auto_calculate": True,
+        }
         st.switch_page("pages/3_Price_Checker.py")
 
     st.markdown("### Pilihan Mobil")
