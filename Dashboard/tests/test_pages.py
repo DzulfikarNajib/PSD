@@ -175,9 +175,11 @@ class TestExploreMarketLogic:
 
     def test_no_si_prefix_in_rupiah_ticks(self):
         from src.ui import apply_rupiah_ticks
-        prices = pd.Series([100_000_000, 200_000_000, 500_000_000, 1_000_000_000])
-        ticks = apply_rupiah_ticks(prices)
-        for label in ticks.get("ticktext", []):
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+        apply_rupiah_ticks(fig, axis="x", min_val=100_000_000, max_val=1_000_000_000)
+        for label in fig.layout.xaxis.ticktext:
             assert "G" not in label, f"SI prefix 'G' found in tick label: {label}"
             assert "M" not in label or "Rp" in label, f"Ambiguous 'M' in label: {label}"
 
@@ -255,8 +257,8 @@ class TestPriceCheckerLogic:
     def test_clean_feature_name(self):
         from src.modeling import clean_feature_name
         assert clean_feature_name("make_Toyota") == "Merek: Toyota"
-        assert clean_feature_name("year") == "Tahun"
-        assert clean_feature_name("mileage_km") == "Kilometer"
+        assert clean_feature_name("year") == "Tahun Kendaraan"
+        assert clean_feature_name("mileage_km") == "Kilometer (Odometer)"
 
 
 # ---------------------------------------------------------------------------

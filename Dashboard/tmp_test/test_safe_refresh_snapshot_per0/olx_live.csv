@@ -1,2 +1,0 @@
-listing_id,make,model,variant,price,price_text,year,mileage_range,mileage_km,engine_capacity,engine_cc,fuel_type,transmission,body_type,color,location,location_normalized,image_url,url,posted_at,seller_type,fetched_at
-abc-1,Toyota,Agya,1.0 E,130000000.0,Rp 130.000.000,2020.0,30.000 - 40.000 km,35000.0,1.0 L,1000.0,Bensin,Manual,Hatchback,Putih,Jakarta Selatan,jakarta selatan,https://example.com/a.jpg,https://example.com/iklan,2024-01-02,Private,2026-11-16 22:12:48
