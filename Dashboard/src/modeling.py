@@ -53,11 +53,12 @@ def prepare_model_data(df: pd.DataFrame) -> pd.DataFrame:
     return prepared.drop(columns=["fetched_at"], errors="ignore").reset_index(drop=True)
 
 
-def load_model_metadata() -> dict:
-    if not MODEL_METADATA_PATH.exists():
+def load_model_metadata(metadata_path: str | Path | None = None) -> dict:
+    path = Path(metadata_path) if metadata_path else MODEL_METADATA_PATH
+    if not path.exists():
         return {}
     try:
-        return json.loads(MODEL_METADATA_PATH.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return {}
 
@@ -147,8 +148,30 @@ def predict_asking_price(features: dict, model_path: str | Path | None = None) -
     return float(pipeline.predict(row)[0])
 
 
+def clean_feature_name(name: str) -> str:
+    """Translate technical feature names to human-readable Indonesian labels."""
+    clean = name.replace("num__", "").replace("cat__", "")
+    mapping = {
+        "year": "Tahun Kendaraan",
+        "engine_cc": "Kapasitas Mesin (CC)",
+        "mileage_km": "Kilometer (Odometer)",
+    }
+    if clean in mapping:
+        return mapping[clean]
+    for prefix, label in [
+        ("make_", "Merek: "),
+        ("model_", "Model: "),
+        ("transmission_", "Transmisi: "),
+        ("fuel_type_", "Bahan Bakar: "),
+        ("body_type_", "Bodi: "),
+    ]:
+        if clean.startswith(prefix):
+            return label + clean[len(prefix):]
+    return clean.replace("_", " ").title()
+
+
 def get_feature_importance(model_path: str | Path | None = None) -> pd.DataFrame:
-    """Return tree importances or absolute linear coefficients, not causal effects."""
+    """Return tree importances or absolute linear coefficients with clean labels."""
     path = Path(model_path) if model_path else MODEL_PATH
     if not path.exists() or not model_is_validated(load_model_metadata()):
         return pd.DataFrame(columns=["feature", "importance"])
@@ -161,4 +184,30 @@ def get_feature_importance(model_path: str | Path | None = None) -> pd.DataFrame
     else:
         return pd.DataFrame(columns=["feature", "importance"])
     names = pipeline.named_steps["preprocessor"].get_feature_names_out()
-    return pd.DataFrame({"feature": names, "importance": values}).sort_values("importance", ascending=False)
+    df = pd.DataFrame({"raw_feature": names, "importance": values})
+    df["feature"] = df["raw_feature"].map(clean_feature_name)
+    return df.sort_values("importance", ascending=False)
+
+
+def get_test_predictions(df: pd.DataFrame | None = None, model_path: str | Path | None = None) -> pd.DataFrame:
+    """Return DataFrame of test-set actual vs predicted prices."""
+    path = Path(model_path) if model_path else MODEL_PATH
+    metadata = load_model_metadata()
+    if not path.exists() or not model_is_validated(metadata):
+        return pd.DataFrame(columns=["actual", "predicted"])
+    if df is None:
+        from src.data_loader import load_training_archive
+        df = load_training_archive()
+    prepared = prepare_model_data(df)
+    if len(prepared) < MINIMUM_UNIQUE_LISTINGS:
+        return pd.DataFrame(columns=["actual", "predicted"])
+    X, y = prepared[FEATURES], prepared["price"]
+    _, X_test, _, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    pipeline = joblib.load(path)
+    preds = pipeline.predict(X_test)
+    return pd.DataFrame({
+        "actual": y_test.values,
+        "predicted": preds,
+        "make": X_test["make"].values if "make" in X_test else "",
+        "year": X_test["year"].values if "year" in X_test else 0,
+    })

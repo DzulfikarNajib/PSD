@@ -21,12 +21,14 @@ from src.ui import format_rupiah, render_empty_state
 
 DEFAULT_SEARCH_URL = "https://www.olx.co.id/mobil-bekas_c198/q-mobil"
 HERO_IMAGE_DATA = base64.b64encode((Path(__file__).parent / "assets" / "hero-bmw.jpg").read_bytes()).decode("ascii")
+
+
 def _compact_rupiah(value: float) -> str:
     value = float(value)
     if value >= 1_000_000_000:
         return f"Rp {value / 1_000_000_000:.1f} M".replace(".0 M", " M").replace(".", ",")
     if value >= 1_000_000:
-        return f"Rp {value / 1_000_000:.0f} jt" if value % 1_000_000 == 0 else f"Rp {value / 1_000_000:.1f} jt".replace(".", ",")
+        return f"Rp {value / 1_000_000:.0f} Jt" if value % 1_000_000 == 0 else f"Rp {value / 1_000_000:.1f} Jt".replace(".", ",")
     return format_rupiah(value)
 
 
@@ -51,7 +53,7 @@ st.markdown("## Pilihan di arsip AutoMatch")
 if archive.empty:
     empty_metrics = st.columns(4)
     for col, label in zip(empty_metrics, ["Mobil unik", "Jumlah merek", "Median harga iklan", "Snapshot OLX terbaru"]):
-        col.metric(label, "—", border=True)
+        col.metric(label, "-", border=True)
     render_empty_state(
         "Arsip mobil belum tersedia",
         "Dataset Excel atau snapshot OLX yang tersimpan akan tampil di sini. AutoMatch tidak membuat data contoh.",
@@ -72,11 +74,11 @@ else:
     metric_cols = st.columns(4)
     metric_cols[0].metric("Mobil unik", f"{unique_count:,}".replace(",", "."), border=True)
     metric_cols[1].metric("Merek tersedia", f"{brands.nunique():,}".replace(",", "."), border=True)
-    metric_cols[2].metric("Median harga iklan", _compact_rupiah(prices.median()) if not prices.empty else "—", border=True)
-    metric_cols[3].metric("Snapshot OLX terbaru", last_update.split(",")[0] if not timestamps.empty else "—", border=True)
+    metric_cols[2].metric("Median harga iklan", _compact_rupiah(prices.median()) if not prices.empty else "-", border=True)
+    metric_cols[3].metric("Snapshot OLX terbaru", last_update.split(",")[0] if not timestamps.empty else "-", border=True)
     if not prices.empty:
         median_price = prices.median()
-        st.caption(f"Rentang harga iklan tersimpan: {_compact_rupiah(prices.min())} – {_compact_rupiah(prices.max())} · Median: {_compact_rupiah(median_price)}.")
+        st.caption(f"Rentang harga iklan tersimpan: {_compact_rupiah(prices.min())} s/d {_compact_rupiah(prices.max())} · Median: {_compact_rupiah(median_price)}.")
     st.caption(
         f"Sumber: arsip Excel + snapshot OLX tersimpan · waktu snapshot OLX terbaru: {last_update}. "
         "Arsip penuh menghitung satu listing unik; iklan historis belum tentu masih aktif dan sampel bukan seluruh pasar."
@@ -96,7 +98,7 @@ else:
                     text=[f"{value:,}".replace(",", ".") for value in brand_counts.values],
                     textposition="outside",
                     cliponaxis=False,
-                    marker=dict(color="#109FA4", line=dict(width=0), cornerradius=7),
+                    marker=dict(color="#008B8B", line=dict(width=0), cornerradius=6),
                     hovertemplate="%{y}: %{x:,} listing unik<extra></extra>",
                 ))
                 chart.update_layout(
@@ -104,13 +106,13 @@ else:
                     margin=dict(l=4, r=34, t=12, b=8),
                     paper_bgcolor="#FFFFFF",
                     plot_bgcolor="#FFFFFF",
-                    font=dict(family="Inter, sans-serif", color="#243b53", size=12),
+                    font=dict(family="Inter, sans-serif", color="#0F172A", size=12),
                     xaxis=dict(visible=False, range=[0, float(brand_counts.max()) * 1.17]),
-                    yaxis=dict(autorange="reversed", showgrid=False, tickfont=dict(size=12, color="#344c64")),
+                    yaxis=dict(autorange="reversed", showgrid=False, tickfont=dict(size=12, color="#475569")),
                     bargap=.34,
                 )
                 st.plotly_chart(chart, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="home_brands")
-                st.markdown(f"**{brand_counts.index[0]} paling banyak di arsip** — {brand_counts.iloc[0]:,} mobil unik. Jumlah ini menunjukkan banyaknya pilihan tersimpan, bukan kualitas mobil.".replace(",", "."))
+                st.markdown(f"**{brand_counts.index[0]} paling banyak di arsip:** {brand_counts.iloc[0]:,} mobil unik. Jumlah ini menunjukkan banyaknya pilihan tersimpan, bukan kualitas mobil.".replace(",", "."))
                 popular = [make for make in ["BMW", "Toyota", "Honda", "Daihatsu", "Suzuki", "Mercedes-Benz"] if make.casefold() in {v.casefold() for v in brands.unique()}]
                 if popular:
                     st.caption("Pilih merek untuk melihat listing:")
@@ -139,7 +141,7 @@ else:
                     x=fuel_data["Listing unik"], y=fuel_data["Bahan bakar"], orientation="h",
                     text=[f"{value:,}".replace(",", ".") for value in fuel_data["Listing unik"]],
                     textposition="outside", cliponaxis=False,
-                    marker=dict(color="#109FA4", line=dict(width=0), cornerradius=7),
+                    marker=dict(color="#008B8B", line=dict(width=0), cornerradius=6),
                     hovertemplate="%{y}: %{x:,} mobil unik<extra></extra>",
                 ))
                 chart.update_layout(
@@ -148,15 +150,15 @@ else:
                     plot_bgcolor="#FFFFFF",
                     margin=dict(l=4, r=34, t=12, b=8),
                     showlegend=False,
-                    font=dict(family="Inter, sans-serif", color="#243b53", size=12),
+                    font=dict(family="Inter, sans-serif", color="#0F172A", size=12),
                     xaxis=dict(visible=False, range=[0, float(fuel_data["Listing unik"].max()) * 1.2]),
-                    yaxis=dict(autorange="reversed", showgrid=False, tickfont=dict(size=12, color="#344c64")),
+                    yaxis=dict(autorange="reversed", showgrid=False, tickfont=dict(size=12, color="#475569")),
                     bargap=.34,
                 )
                 st.plotly_chart(chart, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="home_fuels")
                 dominant_fuel = str(fuels.index[0])
                 dominant_count = int(fuels.iloc[0])
-                st.markdown(f"**{dominant_fuel} paling banyak tercatat** — {dominant_count:,} mobil. Komposisi ini hanya mewakili arsip tersimpan.".replace(",", "."))
+                st.markdown(f"**{dominant_fuel} paling banyak tercatat:** {dominant_count:,} mobil. Komposisi ini mewakili arsip tersimpan.".replace(",", "."))
                 fuel_choices = sorted(fuels.items(), key=lambda item: str(item[0]).casefold())
                 st.markdown("**Lihat pilihan berdasarkan bahan bakar**")
                 for idx, (fuel, count) in enumerate(fuel_choices):
@@ -176,7 +178,7 @@ with st.expander("Perbarui listing OLX (manual)", expanded=st.session_state.pop(
     st.caption("Aplikasi menyimpan listing yang lokasinya dapat dikenali sebagai lima wilayah DKI Jakarta. Hasil API bukan seluruh stok Jakarta. Snapshot baru ditambahkan ke arsip; kredit digunakan sesuai halaman yang berhasil diambil.")
     if refresh:
         try:
-            with st.spinner("Mengambil snapshot dari Datawebot…"):
+            with st.spinner("Mengambil snapshot dari Datawebot..."):
                 result = safe_refresh_snapshot(search_url, max_pages=max_pages)
             st.session_state["last_refresh"] = result
             if result["status"] == "success":
@@ -190,8 +192,8 @@ with st.expander("Perbarui listing OLX (manual)", expanded=st.session_state.pop(
 last_refresh = st.session_state.get("last_refresh")
 if last_refresh:
     with st.expander("Detail refresh terakhir"):
-        st.write(f"Status: **{last_refresh.get('status', 'unknown')}** · Mentah: **{last_refresh.get('raw_count', '—')}** · Valid: **{last_refresh.get('validated_count', '—')}** · Tersimpan setelah filter DKI: **{last_refresh.get('filtered_count', 0)}**")
+        st.write(f"Status: **{last_refresh.get('status', 'unknown')}** · Mentah: **{last_refresh.get('raw_count', '-')}** · Valid: **{last_refresh.get('validated_count', '-')}** · Tersimpan setelah filter DKI: **{last_refresh.get('filtered_count', 0)}**")
         if last_refresh.get("quality"):
             st.caption("Data invalid/kosong: " + " · ".join(f"{key.replace('_', ' ')}: {value}" for key, value in last_refresh["quality"].items()))
-        st.caption(f"Kredit digunakan: {last_refresh.get('used_credits', '—')} · Sisa kredit: {last_refresh.get('remaining_credits', '—')} · Penyimpanan: {last_refresh.get('storage_backend', 'CSV lokal')}")
+        st.caption(f"Kredit digunakan: {last_refresh.get('used_credits', '-')} · Sisa kredit: {last_refresh.get('remaining_credits', '-')} · Penyimpanan: {last_refresh.get('storage_backend', 'CSV lokal')}")
         st.caption(last_refresh.get("message", ""))

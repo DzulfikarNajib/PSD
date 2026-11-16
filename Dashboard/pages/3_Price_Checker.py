@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.data_loader import get_last_updated_text, load_combined_archive, load_live_data, load_training_archive
@@ -16,7 +17,7 @@ from src.modeling import (
     training_eligibility,
 )
 from src.styles import apply_theme
-from src.ui import format_rupiah
+from src.ui import format_rupiah, format_rupiah_compact
 
 
 def _number(value, default=0):
@@ -26,7 +27,7 @@ def _number(value, default=0):
 
 def _format_number(value, suffix=""):
     number = _number(value, default=None)
-    return "—" if number is None else f"{number:,.0f}".replace(",", ".") + suffix
+    return "-" if number is None else f"{number:,.0f}".replace(",", ".") + suffix
 
 
 def _find_comparables(data, features):
@@ -85,8 +86,8 @@ def _delta_text(value, reference):
 
 apply_theme()
 st.title("Cek Harga Iklan")
-st.caption("Masukkan harga dan detail mobil. AutoMatch membandingkan iklan serupa dan menampilkan estimasi model jika model tervalidasi tersedia.")
-st.caption("Hasil adalah konteks harga penawaran, bukan taksiran harga transaksi, pemeriksaan kondisi, atau rekomendasi membeli.")
+st.caption("Periksa posisi penawaran harga mobil terhadap median pasar unit sejenis dan estimasi model regresi machine learning.")
+st.caption("Hasil analisis memberikan konteks harga iklan awal; bukan jaminan harga transaksi final atau kelayakan fisik unit.")
 
 live = load_live_data()
 archive = load_combined_archive()
@@ -96,7 +97,7 @@ source = st.radio(
     ["Arsip Penuh", "Listing Terbaru"],
     horizontal=True,
     key="price_comparison_source",
-    help="Sumber ini mengubah pembanding listing. Model tetap memakai arsip historis tervalidasi.",
+    help="Sumber ini mengubah data pembanding listing serupa. Model machine learning tetap menggunakan arsip historis tervalidasi.",
 )
 comparison_data = live.copy() if source == "Listing Terbaru" else archive.copy()
 if source == "Listing Terbaru":
@@ -125,7 +126,7 @@ else:
                         continue
                     option_ids.append(listing_id)
                     year = pd.to_numeric(row.get("year"), errors="coerce")
-                    year_text = str(int(year)) if pd.notna(year) else "tahun —"
+                    year_text = str(int(year)) if pd.notna(year) else "tahun -"
                     labels[listing_id] = f"{row.get('make', 'Mobil')} {row.get('model', '')} · {year_text} · {format_rupiah(row.get('price'))}"
             selector_key = f"saved_price_listing_{'latest' if source == 'Listing Terbaru' else 'archive'}"
 
@@ -145,7 +146,7 @@ else:
                     "Cari listing tersimpan",
                     option_ids,
                     index=None,
-                    placeholder="Cari merek, model, tahun, harga…",
+                    placeholder="Cari merek, model, tahun, harga...",
                     format_func=lambda value: labels.get(value, value),
                     key=selector_key,
                     on_change=apply_saved_listing,
@@ -169,7 +170,6 @@ else:
                 available_models = available_models or start_models
                 default_model = prefill.get("model") if prefill.get("model") in available_models else available_models[0]
                 model = st.selectbox("Model", available_models, index=available_models.index(default_model))
-                st.caption("Varian iklan belum dipakai oleh model karena penamaannya tidak konsisten.")
                 model_rows = input_data[input_data["make"].fillna("").astype(str).eq(make) & input_data["model"].fillna("").astype(str).eq(model)]
                 years_available = input_data.get("year", pd.Series(dtype=float)).dropna()
                 min_year = max(1950, int(years_available.min()) if not years_available.empty else 1990)
@@ -218,86 +218,148 @@ else:
                 st.session_state["price_calculation_result"] = {"source": source, "asking_price": int(asking_price), "estimate": estimate, "peers": peers}
 
     with result_col:
-        st.markdown("### Hasil analisis harga")
-        st.caption("Tiga referensi berbeda agar mudah dibaca: harga iklan, pembanding listing, dan estimasi model.")
+        st.markdown("### Hasil Analisis Harga")
         result = st.session_state.get("price_calculation_result")
+        metadata = load_model_metadata()
+        best_model_name = metadata.get("best_model", "Random Forest Regressor")
+        best_mae = float(metadata.get("models", {}).get(best_model_name, {}).get("MAE", 0))
+
         if result and result.get("source") != source:
             st.info("Sumber pembanding berubah. Tekan Cek harga lagi untuk menghitung hasil dengan sumber yang dipilih.")
         elif not result:
             with st.container(border=True):
-                st.markdown("#### Mulai pengecekan")
-                st.write("Pilih listing tersimpan atau isi detail mobil di sebelah kiri, lalu tekan **Cek harga**.")
-                st.metric("Harga iklan", "—")
-                st.metric("Pembanding serupa", "—")
-                if not model_is_validated(load_model_metadata()):
+                st.markdown("#### Mulai Pengecekan")
+                st.write("Pilih listing tersimpan atau isi detail mobil di sebelah kiri, lalu tekan tombol **Cek harga**.")
+                st.metric("Harga iklan", "-")
+                st.metric("Pembanding serupa", "-")
+                if not model_is_validated(metadata):
                     st.caption("Estimasi model belum tersedia. Perbandingan listing tetap dapat digunakan.")
         else:
             asking = float(result["asking_price"])
             peers = result["peers"]
             estimate = result["estimate"]
+
+            # Hitung Status Badge (Underpriced, Harga Wajar, Overpriced)
+            ref_median = float(peers["price"].median()) if not peers.empty else (estimate if estimate else None)
+            badge_html = ""
+            kesimpulan_text = ""
+
+            if ref_median and ref_median > 0:
+                diff_pct = ((asking - ref_median) / ref_median) * 100
+                diff_nominal = abs(asking - ref_median)
+                if diff_pct < -8.0:
+                    badge_cls = "badge-underpriced"
+                    badge_label = "Underpriced"
+                    kesimpulan_text = f"Harga iklan Anda sekitar **{abs(diff_pct):.1f}%** ({format_rupiah_compact(diff_nominal)}) di bawah harga referensi pasar. Peluang bagus, namun tetap periksa kelengkapan fisik dan surat kendaraan."
+                elif diff_pct > 8.0:
+                    badge_cls = "badge-overpriced"
+                    badge_label = "Overpriced"
+                    kesimpulan_text = f"Harga iklan Anda sekitar **{diff_pct:.1f}%** ({format_rupiah_compact(diff_nominal)}) di atas harga referensi pasar. Pertimbangkan ruang negosiasi sebelum memutuskan."
+                else:
+                    badge_cls = "badge-fair"
+                    badge_label = "Harga Wajar"
+                    kesimpulan_text = f"Harga iklan Anda berada dalam koridor harga wajar pasar (selisih hanya sekitar **{abs(diff_pct):.1f}%** dari acuan unit sejenis)."
+                badge_html = f"<div style='margin-top:0.4rem;'><span class='{badge_cls}'>{badge_label}</span></div>"
+
             with st.container(border=True):
-                st.markdown("#### Harga iklan yang dimasukkan")
+                st.markdown("#### Harga Iklan yang Dianalisis")
                 st.markdown(f"<div class='price-hero-value'>{format_rupiah(asking)}</div>", unsafe_allow_html=True)
+                if badge_html:
+                    st.markdown(badge_html, unsafe_allow_html=True)
+
             result_cols = st.columns(2, gap="small")
             with result_cols[0]:
                 with st.container(border=True):
-                    st.markdown("**Listing serupa**")
+                    st.markdown("**Listing Serupa**")
                     if peers.empty:
                         st.metric("Jumlah pembanding", "0")
                         st.caption(f"Tidak ada listing dari {source} yang cocok dengan rentang spesifikasi ini.")
                     else:
                         median = float(peers["price"].median())
                         low, high = float(peers["price"].min()), float(peers["price"].max())
-                        st.metric("Median pembanding", format_rupiah(median))
-                        st.caption(f"Rentang: {format_rupiah(low)} – {format_rupiah(high)} · {len(peers):,} listing".replace(",", "."))
-                        st.caption(f"Harga masukan {_delta_text(asking, median)} dari median pembanding.")
+                        st.metric("Median Pasar", format_rupiah(median))
+                        st.caption(f"Rentang: {format_rupiah_compact(low)} s/d {format_rupiah_compact(high)} · {len(peers):,} listing".replace(",", "."))
+                        st.caption(f"Harga input: {_delta_text(asking, median)}.")
+
             with result_cols[1]:
                 with st.container(border=True):
-                    st.markdown("**Estimasi model regresi**")
+                    st.markdown("**Estimasi Model Machine Learning**")
                     if estimate is None:
-                        st.metric("Estimasi harga iklan", "—")
-                        st.caption("Model belum dilatih atau belum lolos kriteria validasi. Angka prediksi tidak ditampilkan.")
+                        st.metric("Estimasi Model", "-")
+                        st.caption("Model belum dilatih atau belum lolos validasi.")
                     else:
-                        st.metric("Estimasi harga iklan", format_rupiah(estimate))
-                        st.caption(f"Harga masukan {_delta_text(asking, estimate)} dari estimasi model.")
+                        st.metric("Estimasi Model", format_rupiah(estimate))
+                        if best_mae > 0:
+                            wajar_min = max(0.0, estimate - best_mae)
+                            wajar_max = estimate + best_mae
+                            st.caption(f"**Rentang Wajar (Prediksi ± MAE):**")
+                            st.caption(f"{format_rupiah_compact(wajar_min)} s/d {format_rupiah_compact(wajar_max)} (MAE: ± {format_rupiah_compact(best_mae)})")
+                        else:
+                            st.caption(f"Harga input: {_delta_text(asking, estimate)}.")
+
+            if kesimpulan_text:
+                with st.container(border=True):
+                    st.markdown("**Kesimpulan Singkat**")
+                    st.write(kesimpulan_text)
+
             if not peers.empty:
-                if estimate is not None:
-                    st.success(f"Dalam sumber pembanding yang dipilih, ada {len(peers):,} listing serupa. Harga yang dimasukkan {_delta_text(asking, median)}; estimasi model berbeda dan berasal dari arsip historis.".replace(",", "."))
                 with st.expander(f"Lihat {len(peers):,} listing yang menjadi pembanding".replace(",", ".")):
                     st.dataframe(_comparable_table(peers.head(30)), hide_index=True, width="stretch", alt="Detail listing yang dipakai sebagai pembanding harga")
-            st.caption("Pembanding mengikuti sumber yang dipilih. Model memakai arsip gabungan yang tervalidasi. Keduanya hanya merujuk harga iklan, bukan harga transaksi atau kondisi kendaraan.")
 
-with st.expander("Metode dan evaluasi model"):
-    st.write("Model ini memakai **supervised learning berupa regresi**: spesifikasi kendaraan menjadi masukan dan harga iklan historis menjadi target. Model diuji pada data holdout yang tidak dipakai ketika melatih model.")
+st.markdown("### Metode & Evaluasi Model Regresi")
+with st.container(border=True):
+    st.write("Model prediksi menggunakan pendekatan **Supervised Learning (Regresi)** yang dilatih berdasarkan spesifikasi kendaraan untuk memprediksi harga penawaran.")
     eligible, eligibility_message, model_data = training_eligibility(training_data)
-    st.caption(f"Data latihan: {len(model_data):,} listing unik tervalidasi. {eligibility_message}".replace(",", "."))
-    if st.button("Latih dan evaluasi model", disabled=not eligible, help="Menggunakan arsip Excel dan snapshot OLX tersimpan. Tidak memanggil Datawebot."):
-        with st.spinner("Melatih dan membandingkan tiga model regresi…"):
-            training_result = evaluate_regression_models(training_data)
-        if training_result.get("status") == "ready":
-            st.success(f"Evaluasi selesai. Model dengan MAE terendah: {training_result['best_model']}.")
-        else:
-            st.warning(training_result.get("message", "Model belum dapat dilatih."))
+    st.caption(f"Dataset pelatihan: {len(model_data):,} listing unik tervalidasi. {eligibility_message}".replace(",", "."))
+    
+    col_train, col_status = st.columns([1, 2])
+    with col_train:
+        if st.button("Latih & Evaluasi Ulang Model", disabled=not eligible, help="Menggunakan arsip tersimpan tanpa panggilan API luar."):
+            with st.spinner("Melatih dan membandingkan model regresi..."):
+                training_result = evaluate_regression_models(training_data)
+            if training_result.get("status") == "ready":
+                st.success(f"Pelatihan selesai! Model terbaik: {training_result['best_model']}.")
+                st.rerun()
+            else:
+                st.warning(training_result.get("message", "Model belum dapat dilatih."))
+
     metadata = load_model_metadata()
-    trained_count = int(metadata.get("training_unique_listings", 0) or 0)
-    if model_is_validated(metadata) and len(model_data) > trained_count:
-        st.warning(f"Arsip memiliki {len(model_data):,} listing yang layak, sedangkan model terakhir dilatih dengan {trained_count:,}. Refresh tidak melatih ulang model; latih kembali secara manual untuk memasukkan data baru.".replace(",", "."))
     if metadata.get("models"):
+        st.markdown("#### Perbandingan Model Baseline vs Model Utama")
         model_table = pd.DataFrame([{"Model": name, **metrics} for name, metrics in metadata["models"].items()])
         for column in ("MAE", "RMSE"):
             if column in model_table:
                 model_table[column] = model_table[column].map(format_rupiah)
         if "R2" in model_table:
-            model_table["R2"] = model_table["R2"].map(lambda value: f"{value:.3f}" if pd.notna(value) else "—")
-        st.dataframe(model_table, hide_index=True, width="stretch", alt="Perbandingan metrik tiga model regresi harga iklan")
-        st.caption("MAE adalah rata-rata selisih absolut prediksi; RMSE lebih peka pada kesalahan besar; R² merangkum variasi harga yang dijelaskan pada data uji. Metrik tidak menjamin akurasi untuk setiap mobil.")
-    else:
-        st.info("Evaluasi model belum tersimpan. Pelatihan hanya dapat dilakukan lewat tombol di atas setelah kriteria data minimum terpenuhi.")
+            model_table["R2"] = model_table["R2"].map(lambda value: f"{value:.4f}" if pd.notna(value) else "-")
+        st.dataframe(model_table, hide_index=True, width="stretch", alt="Perbandingan metrik evaluasi model regresi")
+        st.caption("Keterangan: MAE mengukur rata-rata kesalahan absolut, RMSE memberi penalti lebih besar pada kesalahan ekstrem, dan R² menunjukkan proporsi variasi harga yang mampu dijelaskan model.")
+
     if Path(MODEL_PATH).exists() and model_is_validated(metadata):
-        importance = get_feature_importance().head(15).rename(columns={"feature": "Fitur", "importance": "Skor relatif"})
+        st.markdown("#### Feature Importance Model Terbaik")
+        importance = get_feature_importance().head(10)
         if not importance.empty:
-            st.caption("Skor feature importance membantu menjelaskan fitur yang digunakan model. Nilai ini bukan persentase perubahan harga dan bukan sebab-akibat.")
-            st.dataframe(importance, hide_index=True, width="stretch", alt="Skor relatif fitur pada model regresi")
-        st.caption(f"Model aktif: {metadata.get('best_model', '—')} · {metadata.get('training_unique_listings', 0):,} listing unik saat pelatihan. Target: harga iklan historis, bukan harga transaksi.".replace(",", "."))
+            importance_plot = importance.iloc[::-1]  # Urutkan dari terbawah ke teratas untuk bar horizontal
+            fig_imp = go.Figure(go.Bar(
+                x=importance_plot["importance"],
+                y=importance_plot["feature"],
+                orientation="h",
+                marker=dict(color="#008B8B", cornerradius=5),
+                text=[f"{v:.3f}" for v in importance_plot["importance"]],
+                textposition="outside",
+                cliponaxis=False,
+                hovertemplate="Fitur: <b>%{y}</b><br>Tingkat Pengaruh: <b>%{x:.4f}</b><extra></extra>",
+            ))
+            fig_imp.update_layout(
+                height=340,
+                margin=dict(l=10, r=40, t=10, b=10),
+                paper_bgcolor="#FFFFFF",
+                plot_bgcolor="#FFFFFF",
+                font=dict(family="Inter, sans-serif", color="#0F172A", size=12),
+                xaxis=dict(title="Skor Kepentingan Relatif (Gini Importance)", showgrid=True, gridcolor="#F1F5F9"),
+                yaxis=dict(title=None, showgrid=False),
+            )
+            st.plotly_chart(fig_imp, use_container_width=True, config={"displayModeBar": False}, key="price_feature_importance_plot")
+            st.caption(f"Model aktif: **{metadata.get('best_model', '-')}** ({metadata.get('training_unique_listings', 0):,} data training). Grafik menunjukkan fitur yang paling berpengaruh dalam penentuan estimasi harga.")
     else:
-        st.info("Prediksi tidak ditampilkan sampai model dan evaluasinya tersedia serta lolos validasi.")
+        st.info("Model belum dilatih atau belum lolos kriteria minimum validasi.")

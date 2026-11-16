@@ -31,6 +31,8 @@ def _credentials():
 
 
 def is_configured() -> bool:
+    if os.getenv("AUTOMATCH_OFFLINE") == "1":
+        return False
     url, key = _credentials()
     return bool(url and key)
 
