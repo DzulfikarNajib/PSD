@@ -95,14 +95,21 @@ prefill_source = prefill.pop("_comparison_source", None)
 if prefill:
     if prefill_source in {"Arsip Penuh", "Listing Terbaru"}:
         st.session_state["price_comparison_source"] = prefill_source
-    for widget_key in (
-        "calculator_make", "calculator_model", "calculator_year", "calculator_mileage",
-        "calculator_engine_cc", "calculator_transmission", "calculator_fuel_type",
-        "calculator_body_type", "calculator_asking_price",
-    ):
+    prefill_widgets = {
+        "calculator_make": "make",
+        "calculator_model": "model",
+        "calculator_year": "year",
+        "calculator_mileage": "mileage_km",
+        "calculator_engine_cc": "engine_cc",
+        "calculator_transmission": "transmission",
+        "calculator_fuel_type": "fuel_type",
+        "calculator_body_type": "body_type",
+        "calculator_asking_price": "price",
+    }
+    for widget_key, field in prefill_widgets.items():
         st.session_state.pop(widget_key, None)
-    if prefill.get("make"):
-        st.session_state["calculator_make"] = prefill["make"]
+        if prefill.get(field) is not None:
+            st.session_state[widget_key] = prefill[field]
     st.session_state.pop("price_calculation_result", None)
 
 live = load_live_data()
@@ -158,6 +165,7 @@ else:
                 st.session_state["price_checker_prefill"] = {
                     **{key: (None if pd.isna(chosen.get(key)) else chosen.get(key)) for key in fields},
                     "_comparison_source": source,
+                    "_auto_calculate": True,
                 }
 
             if option_ids:
@@ -185,32 +193,55 @@ else:
                 available_models = sorted(input_data.loc[input_data["make"].astype(str).eq(make), "model"].dropna().astype(str).unique())
                 available_models = available_models or start_models
                 default_model = prefill.get("model") if prefill.get("model") in available_models else available_models[0]
-                model = st.selectbox("Model", available_models, index=available_models.index(default_model), key="calculator_model")
+                if st.session_state.get("calculator_model") not in available_models:
+                    st.session_state["calculator_model"] = default_model
+                model = st.selectbox("Model", available_models, key="calculator_model")
                 model_rows = input_data[input_data["make"].fillna("").astype(str).eq(make) & input_data["model"].fillna("").astype(str).eq(model)]
                 years_available = input_data.get("year", pd.Series(dtype=float)).dropna()
                 min_year = max(1950, int(years_available.min()) if not years_available.empty else 1990)
                 max_year = max(min_year, int(years_available.max()) if not years_available.empty else pd.Timestamp.now().year)
                 year_value = int(_number(prefill.get("year", 2020), 2020))
-                year = st.number_input("Tahun kendaraan", min_value=min_year, max_value=max(max_year, year_value), value=min(max(year_value, min_year), max(max_year, year_value)), step=1, key="calculator_year")
+                max_year = max(max_year, year_value)
+                if "calculator_year" not in st.session_state:
+                    st.session_state["calculator_year"] = min(max(year_value, min_year), max_year)
+                else:
+                    st.session_state["calculator_year"] = min(max(int(st.session_state["calculator_year"]), min_year), max_year)
+                year = st.number_input("Tahun kendaraan", min_value=min_year, max_value=max_year, step=1, key="calculator_year")
                 km_default = int(model_rows["mileage_km"].median()) if "mileage_km" in model_rows and model_rows["mileage_km"].notna().any() else 50_000
-                mileage = st.number_input("Kilometer", 0, 1_000_000, int(_number(prefill.get("mileage_km", km_default), km_default)), step=5_000, key="calculator_mileage")
                 cc_default = int(model_rows["engine_cc"].median()) if "engine_cc" in model_rows and model_rows["engine_cc"].notna().any() else 1_300
-                engine_cc = st.number_input("Kapasitas mesin (cc)", 0, 10_000, int(_number(prefill.get("engine_cc", cc_default), cc_default)), step=100, key="calculator_engine_cc")
+                if "calculator_mileage" not in st.session_state:
+                    st.session_state["calculator_mileage"] = int(_number(prefill.get("mileage_km", km_default), km_default))
+                if "calculator_engine_cc" not in st.session_state:
+                    st.session_state["calculator_engine_cc"] = int(_number(prefill.get("engine_cc", cc_default), cc_default))
+                st.session_state["calculator_mileage"] = min(max(int(st.session_state["calculator_mileage"]), 0), 1_000_000)
+                st.session_state["calculator_engine_cc"] = min(max(int(st.session_state["calculator_engine_cc"]), 0), 10_000)
+                mileage = st.number_input("Kilometer", 0, 1_000_000, step=5_000, key="calculator_mileage")
+                engine_cc = st.number_input("Kapasitas mesin (cc)", 0, 10_000, step=100, key="calculator_engine_cc")
                 cat_a, cat_b = st.columns(2)
                 transmission_options = ["Semua", *sorted(input_data.get("transmission", pd.Series(dtype=str)).dropna().astype(str).unique())]
                 fuel_options = ["Semua", *sorted(input_data.get("fuel_type", pd.Series(dtype=str)).dropna().astype(str).unique())]
                 body_options = ["Semua", *sorted(input_data.get("body_type", pd.Series(dtype=str)).dropna().astype(str).unique())]
                 with cat_a:
                     trans_default = prefill.get("transmission") if prefill.get("transmission") in transmission_options else "Semua"
-                    transmission = st.selectbox("Transmisi", transmission_options, index=transmission_options.index(trans_default), key="calculator_transmission")
+                    if st.session_state.get("calculator_transmission") not in transmission_options:
+                        st.session_state["calculator_transmission"] = trans_default
+                    transmission = st.selectbox("Transmisi", transmission_options, key="calculator_transmission")
                     fuel_default = prefill.get("fuel_type") if prefill.get("fuel_type") in fuel_options else "Semua"
-                    fuel_type = st.selectbox("Bahan bakar", fuel_options, index=fuel_options.index(fuel_default), key="calculator_fuel_type")
+                    if st.session_state.get("calculator_fuel_type") not in fuel_options:
+                        st.session_state["calculator_fuel_type"] = fuel_default
+                    fuel_type = st.selectbox("Bahan bakar", fuel_options, key="calculator_fuel_type")
                 with cat_b:
                     body_default = prefill.get("body_type") if prefill.get("body_type") in body_options else "Semua"
-                    body_type = st.selectbox("Tipe bodi", body_options, index=body_options.index(body_default), key="calculator_body_type")
+                    if st.session_state.get("calculator_body_type") not in body_options:
+                        st.session_state["calculator_body_type"] = body_default
+                    body_type = st.selectbox("Tipe bodi", body_options, key="calculator_body_type")
                     price_max = max(50_000_000_000, int(_number(input_data.get("price", pd.Series(dtype=float)).max(), 0)))
                     asking_default = int(_number(prefill.get("price", 150_000_000), 150_000_000))
-                asking_price = st.number_input("Harga iklan yang ingin dicek (Rp)", 1, price_max, min(max(asking_default, 1), price_max), step=5_000_000, key="calculator_asking_price")
+                if "calculator_asking_price" not in st.session_state:
+                    st.session_state["calculator_asking_price"] = min(max(asking_default, 1), price_max)
+                else:
+                    st.session_state["calculator_asking_price"] = min(max(int(st.session_state["calculator_asking_price"]), 1), price_max)
+                asking_price = st.number_input("Harga iklan yang ingin dicek (Rp)", 1, price_max, step=5_000_000, key="calculator_asking_price")
                 submitted = st.form_submit_button("Cek harga", type="primary", icon=":material/price_check:", use_container_width=True)
 
             features = {

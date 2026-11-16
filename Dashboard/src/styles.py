@@ -112,6 +112,10 @@ div[class*="st-key-home_hero"] [data-testid="stButton"] {
     width: auto;
     align-self: flex-start;
 }
+div[class*="st-key-home_hero"] [data-testid="stElementContainer"]:has([data-testid="stButton"]) {
+    width: fit-content;
+    align-self: flex-start;
+}
 div[class*="st-key-home_hero"] [data-testid="stButton"] > button { width: auto; }
 div[class*="st-key-home_hero"] h1 {
     font-size: clamp(2.4rem, 4.5vw, 3.8rem);
