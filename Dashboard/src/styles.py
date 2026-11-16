@@ -257,6 +257,8 @@ h1, h2, h3, h4 {
 .listing-spec span { color: var(--dashboard-muted); }
 .listing-spec b { color: var(--dashboard-text); font-weight: 600; text-align:right; }
 .price-hero-value { color: var(--dashboard-accent); font-family:"Plus Jakarta Sans",sans-serif; font-size:clamp(1.65rem,2.7vw,2.3rem); font-weight:800; letter-spacing:-.03em; }
+div[class*="st-key-price_analysis_hero"] [data-testid="stVerticalBlock"] { gap:.65rem; padding-bottom:.45rem; }
+.price-result-status { margin:.1rem 0 .25rem; }
 
 /* Status Badges */
 .badge-underpriced {

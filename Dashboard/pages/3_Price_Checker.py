@@ -306,9 +306,9 @@ else:
                     badge_cls = "badge-fair"
                     badge_label = "Harga Wajar"
                     kesimpulan_text = f"Harga iklan berjarak **{abs(diff_pct):.1f}%** dari median listing serupa yang tersedia, masih dalam batas pembanding ±8% yang dipakai AutoMatch."
-                badge_html = f"<div style='margin-top:0.4rem;'><span class='{badge_cls}'>{badge_label}</span></div>"
+                badge_html = f"<div class='price-result-status'><span class='{badge_cls}'>{badge_label}</span></div>"
 
-            with st.container(border=True):
+            with st.container(border=True, key="price_analysis_hero"):
                 st.markdown("#### Harga Iklan yang Dianalisis")
                 st.markdown(f"<div class='price-hero-value'>{format_rupiah(asking)}</div>", unsafe_allow_html=True)
                 if badge_html:
