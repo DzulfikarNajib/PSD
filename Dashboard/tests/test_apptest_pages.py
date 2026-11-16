@@ -68,6 +68,10 @@ def test_price_checker_uses_selected_listing_and_replaces_old_result():
     assert result["asking_price"] == 775_000_000
     assert result["estimate"] > 700_000_000
     assert len(result["peers"]) > 0
+    model_copy = "\n".join(caption.value for caption in app.caption)
+    assert "MAE uji:" in model_copy
+    assert "Harga input" in model_copy
+    assert "Rentang acuan model" not in model_copy
 
 
 def test_saved_price_listing_fills_form_and_replaces_previous_result():

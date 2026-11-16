@@ -336,13 +336,17 @@ else:
                         st.caption("Model belum dilatih atau belum lolos validasi.")
                     else:
                         st.metric("Estimasi Model", format_rupiah(estimate))
+                        model_gap = asking - estimate
+                        model_gap_pct = (model_gap / estimate * 100) if estimate else 0.0
+                        model_direction = "di atas" if model_gap > 0 else "di bawah" if model_gap < 0 else "sama dengan"
+                        st.caption(
+                            f"Harga input {format_rupiah(abs(model_gap))} ({abs(model_gap_pct):.1f}%) {model_direction} estimasi model."
+                        )
                         if best_mae > 0:
-                            wajar_min = max(0.0, estimate - best_mae)
-                            wajar_max = estimate + best_mae
-                            st.caption("**Rentang acuan model (prediksi ± MAE):**")
-                            st.caption(f"{format_rupiah_compact(wajar_min)} s/d {format_rupiah_compact(wajar_max)}. MAE {format_rupiah_compact(best_mae)} adalah rata-rata galat absolut pada evaluasi, bukan jaminan rentang harga unit ini.")
-                        else:
-                            st.caption(f"Harga input: {_delta_text(asking, estimate)}.")
+                            st.caption(
+                                f"MAE uji: {format_rupiah_compact(best_mae)} rata-rata selisih prediksi per listing. "
+                                "Ini ukuran evaluasi model, bukan rentang harga mobil ini."
+                            )
 
             if kesimpulan_text:
                 with st.container(border=True):

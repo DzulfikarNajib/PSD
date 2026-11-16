@@ -55,9 +55,9 @@ st.markdown("### Tujuh Komponen Metodologi Sains Data")
 cards = [
     ("1. Tujuan Proyek", "Menyaring pilihan, membandingkan iklan, dan memberi konteks harga penawaran. Hasil aplikasi menjadi bahan pertimbangan awal, bukan pengganti pemeriksaan kendaraan."),
     ("2. Sumber Data", f"Dataset Excel dan snapshot OLX tersimpan menyediakan listing dari wilayah cakupan proyek. Excel tidak mencatat waktu pengambilan; snapshot OLX mencatat waktu refresh."),
-    ("3. Analisis Eksploratif", "Pahami Pasar membandingkan komposisi merek dan bahan bakar, sebaran harga, serta hubungan harga dengan spesifikasi. Angka mengikuti sumber dan filter yang sedang dipilih."),
+    ("3. Analisis Eksploratif", "Pahami Pasar membandingkan komposisi dan sebaran harga. Cari Mobil memakai K-Means untuk mengelompokkan listing menurut harga, tahun, kilometer, dan CC. Profil kelompok relatif pada sumber aktif, bukan label kualitas mobil."),
     ("4. Persiapan Data", "Kolom dibersihkan dan dinormalisasi, nilai harga serta spesifikasi diperiksa, lalu listing dideduplikasi. Cakupan wilayah mengikuti data yang tersedia untuk proyek."),
-    ("5. Pemodelan Regresi", "Linear Regression, Decision Tree, dan Random Forest dibandingkan pada data uji holdout 20% dengan MAE, RMSE, dan R²."),
+    ("5. Pemodelan Regresi", "Linear Regression, Decision Tree, dan Random Forest dibandingkan pada data uji holdout 20% dengan MAE, RMSE, dan R². Model supervised mengestimasi harga penawaran saat ini dari spesifikasi, bukan meramal kenaikan harga tahun depan."),
     ("6. Membaca Temuan", "Gunakan grafik dan ringkasan yang dihitung dari arsip aktif. Perbedaan antarkelompok bersifat deskriptif dan tidak membuktikan penyebab atau kualitas kendaraan."),
     ("7. Batas Penggunaan", "Gunakan hasil untuk menyusun shortlist dan pertanyaan saat negosiasi. Periksa kondisi, riwayat servis, dokumen, dan iklan sumber secara langsung."),
 ]
