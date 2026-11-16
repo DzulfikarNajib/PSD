@@ -7,7 +7,8 @@ CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 :root {
-    --dashboard-bg: #F8FAFC;
+    --dashboard-bg: #FFFFFF;
+    --dashboard-soft: #F8FAFC;
     --dashboard-surface: #FFFFFF;
     --dashboard-text: #0F172A;
     --dashboard-accent: #008B8B;
@@ -23,17 +24,17 @@ CSS = """
 }
 
 [data-testid="stAppViewContainer"] { background: var(--dashboard-bg); }
-[data-testid="stMainBlockContainer"] { max-width: 1540px; padding-top: 3.5rem; padding-bottom: 4rem; }
+[data-testid="stMainBlockContainer"] { max-width: 1480px; padding-top: 2.35rem; padding-bottom: 3rem; }
 div[class*="st-key-automatch_topnav"] {
-    position: relative;
-    top: auto;
+    position: sticky;
+    top: .45rem;
     z-index: 999;
     background: rgba(255, 255, 255, .98);
     border: 1px solid var(--dashboard-border);
-    border-radius: 16px;
+    border-radius: 12px;
     margin: 0 -1.5rem 1.35rem;
     padding: .3rem 1.25rem;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, .03);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .025);
 }
 div[class*="st-key-automatch_topnav"] [data-testid="stHorizontalBlock"] { gap: .4rem; align-items:center !important; }
 div[class*="st-key-automatch_topnav"] [data-testid="stColumn"] { display:flex; align-items:center; }
@@ -77,7 +78,7 @@ div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a {
     display:block;
     color: var(--dashboard-text);
     font-family:"Plus Jakarta Sans",Inter,sans-serif;
-    font-size:.9rem;
+    font-size:.88rem;
     font-weight:650;
     line-height:1;
     letter-spacing:-.015em;
@@ -88,23 +89,30 @@ div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.5rem; bo
 div[class*="st-key-home_hero"] {
     position: relative;
     overflow: hidden;
-    min-height: 400px;
+    min-height: 410px;
     display: flex;
     align-items: center;
     background-color: #F8FAFC;
-    background-image: linear-gradient(90deg, rgba(248,250,252,0.98) 0%, rgba(248,250,252,0.95) 46%, rgba(248,250,252,0.65) 66%, rgba(248,250,252,0.08) 100%), var(--automatch-hero-image);
+    background-image: linear-gradient(90deg, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.96) 42%, rgba(255,255,255,0.72) 60%, rgba(255,255,255,0.08) 100%), var(--automatch-hero-image);
     background-position: center, right center;
     background-repeat: no-repeat, no-repeat;
-    background-size: cover, contain;
+    background-size: cover, cover;
     border: 1px solid var(--dashboard-border);
     border-radius: 20px;
     padding: 2.4rem 2.8rem;
-    box-shadow: 0 2px 10px rgba(15, 23, 42, .03);
+    box-shadow: 0 1px 5px rgba(15, 23, 42, .025);
 }
 div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] {
     max-width: 560px;
+    width: 100%;
+    align-items: flex-start;
     text-align: left;
 }
+div[class*="st-key-home_hero"] [data-testid="stButton"] {
+    width: auto;
+    align-self: flex-start;
+}
+div[class*="st-key-home_hero"] [data-testid="stButton"] > button { width: auto; }
 div[class*="st-key-home_hero"] h1 {
     font-size: clamp(2.4rem, 4.5vw, 3.8rem);
     margin-bottom: .25rem;
@@ -117,6 +125,11 @@ div[class*="st-key-home_hero"] h3 {
     font-weight: 700;
     margin-top: 0;
 }
+div[class*="st-key-home_hero"] [data-testid="stCaptionContainer"] p {
+    color: var(--dashboard-muted);
+    font-weight: 600;
+    letter-spacing: .02em;
+}
 div[class*="st-key-home_hero"] p {
     color: var(--dashboard-muted);
     font-size: .95rem;
@@ -124,7 +137,7 @@ div[class*="st-key-home_hero"] p {
 }
 
 div[class*="st-key-project_editorial_hero"] {
-    background: linear-gradient(110deg, #F0FDFA, #FFFFFF 65%);
+    background: #FFFFFF;
     border: 1px solid var(--dashboard-border);
     border-radius: 20px;
     padding: 1.5rem 1.8rem;
@@ -172,24 +185,25 @@ h1, h2, h3, h4 {
     background: var(--dashboard-surface);
     border: 1px solid var(--dashboard-border);
     border-radius: 16px;
-    box-shadow: 0 1px 4px rgba(15, 23, 42, .03);
+    box-shadow: none;
 }
 .card {
     background: var(--dashboard-surface);
     border: 1px solid var(--dashboard-border);
     border-radius: 16px;
     padding: 1.1rem 1.25rem;
-    box-shadow: 0 1px 4px rgba(15, 23, 42, .03);
+    box-shadow: none;
 }
 [data-testid="stImage"] img { border-radius: 12px; aspect-ratio: 16 / 9; object-fit: cover; }
 [data-testid="stImage"] figcaption { color: var(--dashboard-muted); font-size: .78rem; }
 
 [data-testid="stPlotlyChart"] { padding: .4rem; border-radius: 14px; background: #FFFFFF; }
 .stMarkdown p { line-height: 1.65; }
+[data-testid="stCaptionContainer"] p { line-height: 1.5; }
 
 /* Buttons & Inputs */
 .stButton > button, [data-testid="stLinkButton"] a {
-    border-radius: 999px;
+    border-radius: 10px;
     font-weight: 600;
     font-size: .86rem;
     border: 1px solid var(--dashboard-border);
@@ -207,6 +221,12 @@ h1, h2, h3, h4 {
 }
 .stButton > button:hover {
     border-color: var(--dashboard-accent);
+}
+.stButton > button:focus-visible,
+[data-testid="stPageLink"] a:focus-visible,
+[data-testid="stLinkButton"] a:focus-visible {
+    outline: 3px solid rgba(0, 139, 139, .38);
+    outline-offset: 2px;
 }
 
 .car-price {
@@ -276,13 +296,13 @@ div.stAlert { border-radius: 12px; }
 [data-testid="stDataFrame"] { border: 1px solid var(--dashboard-border); border-radius: 12px; }
 
 @media (max-width: 768px) {
-    [data-testid="stMainBlockContainer"] { padding-top: 3.5rem; }
+    [data-testid="stMainBlockContainer"] { padding-top: 1.5rem; padding-bottom: 2rem; }
     div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin: 0 -1rem 1rem; padding:.4rem .75rem; }
     div[class*="st-key-home_hero"] {
         min-height: 440px;
         align-items: flex-end;
         padding: 1.5rem;
-        background-image: linear-gradient(0deg, rgba(248,250,252,0.98) 0%, rgba(248,250,252,0.92) 55%, rgba(248,250,252,0.15) 100%), var(--automatch-hero-image);
+        background-image: linear-gradient(0deg, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.96) 52%, rgba(255,255,255,0.12) 100%), var(--automatch-hero-image);
         background-position: center, center top;
         background-size: cover, cover;
     }
@@ -292,6 +312,9 @@ div.stAlert { border-radius: 12px; }
     .car-photo-fallback { min-height: 130px; }
     .car-price { font-size: 1.2rem; }
     [data-testid="stMetricValue"] { font-size: 1.15rem !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
 </style>
 """

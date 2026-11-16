@@ -31,7 +31,7 @@ with st.container(key="automatch_topnav"):
     nav = st.columns([2.22, .68, .98, .87, 1.16, 1.18, .62], gap="small", vertical_alignment="center")
     with nav[0]:
         st.markdown(
-            f'<div class="automatch-brand"><img src="data:image/png;base64,{logo_data}" alt="AutoMatch" /><span>Find the car that fits you.</span></div>',
+            f'<div class="automatch-brand"><img src="data:image/png;base64,{logo_data}" alt="AutoMatch" /><span>Temukan mobil yang cocok untukmu.</span></div>',
             unsafe_allow_html=True,
         )
 

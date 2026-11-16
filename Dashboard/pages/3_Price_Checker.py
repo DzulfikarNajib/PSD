@@ -86,8 +86,8 @@ def _delta_text(value, reference):
 
 apply_theme()
 st.title("Cek Harga Iklan")
-st.caption("Periksa posisi penawaran harga mobil terhadap median pasar unit sejenis dan estimasi model regresi machine learning.")
-st.caption("Hasil analisis memberikan konteks harga iklan awal; bukan jaminan harga transaksi final atau kelayakan fisik unit.")
+st.caption("Bandingkan harga iklan dengan listing serupa dan, bila tersedia, estimasi model.")
+st.caption("Harga iklan dan estimasi adalah konteks awal. Keduanya bukan harga transaksi pasti dan tidak menggantikan pemeriksaan kondisi mobil.")
 
 prefill = st.session_state.pop("price_checker_prefill", {})
 auto_check_prefill = bool(prefill.pop("_auto_calculate", False))
@@ -266,15 +266,15 @@ else:
                 if diff_pct < -8.0:
                     badge_cls = "badge-underpriced"
                     badge_label = "Underpriced"
-                    kesimpulan_text = f"Harga iklan Anda sekitar **{abs(diff_pct):.1f}%** ({format_rupiah_compact(diff_nominal)}) di bawah harga referensi pasar. Peluang bagus, namun tetap periksa kelengkapan fisik dan surat kendaraan."
+                    kesimpulan_text = f"Harga iklan **{abs(diff_pct):.1f}%** ({format_rupiah_compact(diff_nominal)}) di bawah median listing serupa yang tersedia. Periksa kondisi unit dan dokumennya sebelum menilai penawaran."
                 elif diff_pct > 8.0:
                     badge_cls = "badge-overpriced"
                     badge_label = "Overpriced"
-                    kesimpulan_text = f"Harga iklan Anda sekitar **{diff_pct:.1f}%** ({format_rupiah_compact(diff_nominal)}) di atas harga referensi pasar. Pertimbangkan ruang negosiasi sebelum memutuskan."
+                    kesimpulan_text = f"Harga iklan **{diff_pct:.1f}%** ({format_rupiah_compact(diff_nominal)}) di atas median listing serupa yang tersedia. Gunakan detail pembanding saat menilai ruang negosiasi."
                 else:
                     badge_cls = "badge-fair"
                     badge_label = "Harga Wajar"
-                    kesimpulan_text = f"Harga iklan Anda berada dalam koridor harga wajar pasar (selisih hanya sekitar **{abs(diff_pct):.1f}%** dari acuan unit sejenis)."
+                    kesimpulan_text = f"Harga iklan berjarak **{abs(diff_pct):.1f}%** dari median listing serupa yang tersedia, masih dalam batas pembanding ±8% yang dipakai AutoMatch."
                 badge_html = f"<div style='margin-top:0.4rem;'><span class='{badge_cls}'>{badge_label}</span></div>"
 
             with st.container(border=True):
@@ -293,8 +293,8 @@ else:
                     else:
                         median = float(peers["price"].median())
                         low, high = float(peers["price"].min()), float(peers["price"].max())
-                        st.metric("Median Pasar", format_rupiah(median))
-                        st.caption(f"Rentang: {format_rupiah_compact(low)} s/d {format_rupiah_compact(high)} · {len(peers):,} listing".replace(",", "."))
+                        st.metric("Median listing serupa", format_rupiah(median))
+                        st.caption(f"Rentang pembanding: {format_rupiah_compact(low)} s/d {format_rupiah_compact(high)} · {len(peers):,} listing".replace(",", "."))
                         st.caption(f"Harga input: {_delta_text(asking, median)}.")
 
             with result_cols[1]:
@@ -308,8 +308,8 @@ else:
                         if best_mae > 0:
                             wajar_min = max(0.0, estimate - best_mae)
                             wajar_max = estimate + best_mae
-                            st.caption(f"**Rentang Wajar (Prediksi ± MAE):**")
-                            st.caption(f"{format_rupiah_compact(wajar_min)} s/d {format_rupiah_compact(wajar_max)} (MAE: ± {format_rupiah_compact(best_mae)})")
+                            st.caption("**Rentang acuan model (prediksi ± MAE):**")
+                            st.caption(f"{format_rupiah_compact(wajar_min)} s/d {format_rupiah_compact(wajar_max)}. MAE {format_rupiah_compact(best_mae)} adalah rata-rata galat absolut pada evaluasi, bukan jaminan rentang harga unit ini.")
                         else:
                             st.caption(f"Harga input: {_delta_text(asking, estimate)}.")
 

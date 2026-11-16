@@ -11,7 +11,7 @@ from src.ui import format_km, format_rupiah, render_empty_state
 
 apply_theme()
 st.title("Cari Mobil")
-st.caption("Temukan mobil dari data yang tersimpan, lalu bandingkan pilihan sebelum membuka iklan sumber.")
+st.caption("Saring arsip berdasarkan anggaran dan spesifikasi. Bandingkan listing, lalu buka sumber iklan untuk memeriksa detailnya.")
 
 latest, archive = load_live_data(), load_combined_archive()
 if latest.empty and archive.empty:
@@ -34,12 +34,12 @@ for column in ("price", "year", "mileage_km", "engine_cc"):
         cars[column] = pd.to_numeric(cars[column], errors="coerce")
 
 if source_choice == "Listing Terbaru":
-    st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()} · iklan yang tampil mungkin sudah berubah atau tidak aktif.")
+    st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()}. Status dan isi iklan dapat berubah sejak pengambilan data.")
 else:
     origins = cars.get("source_origins", pd.Series("", index=cars.index)).fillna("")
     excel_count = int(origins.str.contains("Dataset Excel", regex=False).sum())
     olx_count = int(origins.str.contains("Arsip snapshot OLX", regex=False).sum())
-    st.caption(f"Arsip Penuh · {cars['listing_id'].nunique():,} mobil unik · ditemukan di Excel {excel_count:,} · juga ditemukan di snapshot OLX {olx_count:,}. Sumber dapat tumpang tindih; iklan arsip mungkin sudah tidak aktif.".replace(",", "."))
+    st.caption(f"Arsip Penuh · {cars['listing_id'].nunique():,} mobil unik · ada di Excel: {excel_count:,} · ada di snapshot OLX: {olx_count:,}. Sumber dapat tumpang tindih dan iklan arsip mungkin sudah tidak aktif.".replace(",", "."))
 
 brand_values = sorted(cars["make"].dropna().astype(str).unique()) if "make" in cars else []
 pending_make = st.session_state.pop("prefill_make", None)
@@ -80,7 +80,7 @@ left, right = st.columns([.9, 2.1], gap="large", vertical_alignment="top")
 with left:
     with st.container(border=True):
         st.markdown("#### Filter Pencarian")
-        st.caption("Saring listing tersimpan; tidak memerlukan panggilan API.")
+        st.caption("Filter bekerja pada data yang sudah tersimpan dan tidak mengambil data baru dari OLX.")
         make_options = ["Semua", *brand_values]
         model_options = ["Semua", *model_values]
         if st.session_state.get("filter_model", "Semua") not in model_options:
