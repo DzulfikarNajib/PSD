@@ -1,27 +1,5052 @@
 {
   "status": "ready",
-  "validation_version": 2,
+  "validation_version": 3,
   "best_model": "Random Forest Regressor",
   "best_model_path": "C:\\Users\\Hype AMD\\OneDrive - apps.ipb.ac.id\\A UP MY HARD SKILL\\IPB\\Matakuliaih\\Semester 5\\PSD\\Dashboard\\models\\best_model.joblib",
+  "target_transform": "asli",
   "models": {
     "Linear Regression": {
-      "MAE": 636070695.8907728,
-      "RMSE": 1024787647.9210204,
-      "R2": 0.6363287213000794
+      "MAE": 635188516.7062181,
+      "RMSE": 1105028870.4864938,
+      "R2": 0.6522357966086694,
+      "target_transform": "asli"
+    },
+    "Linear Regression · log target": {
+      "MAE": 374125942.160686,
+      "RMSE": 1083171712.5168355,
+      "R2": 0.6658570931400588,
+      "target_transform": "log1p"
     },
     "Decision Tree Regressor": {
-      "MAE": 271983036.4454398,
-      "RMSE": 860536375.0161523,
-      "R2": 0.7435635802043099
+      "MAE": 265650747.4242099,
+      "RMSE": 832594637.510524,
+      "R2": 0.8025737730106423,
+      "target_transform": "asli"
+    },
+    "Decision Tree Regressor · log target": {
+      "MAE": 247747892.65284085,
+      "RMSE": 778798859.7130085,
+      "R2": 0.8272618591936,
+      "target_transform": "log1p"
     },
     "Random Forest Regressor": {
-      "MAE": 216144505.46730828,
-      "RMSE": 685924960.4953631,
-      "R2": 0.8370724776372895
+      "MAE": 205181092.89429414,
+      "RMSE": 708275556.431049,
+      "R2": 0.8571296413635552,
+      "target_transform": "asli"
+    },
+    "Random Forest Regressor · log target": {
+      "MAE": 207461729.9694969,
+      "RMSE": 734255058.1184777,
+      "R2": 0.8464564699956592,
+      "target_transform": "log1p"
     }
   },
-  "training_unique_listings": 4381,
+  "training_unique_listings": 4165,
+  "excluded_financing_rows": 216,
   "minimum_unique_listings": 100,
   "selection_metric": "lowest holdout MAE",
-  "target": "asking price"
+  "target": "asking price",
+  "holdout_predictions": [
+    {
+      "actual": 745000000.0,
+      "predicted": 756453242.0634918,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 650000000.0,
+      "predicted": 649809757.062382,
+      "make": "Kia",
+      "year": 2024.0
+    },
+    {
+      "actual": 600000000.0,
+      "predicted": 597452290.1265402,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 314496089.2857142,
+      "make": "Toyota",
+      "year": 2015.0
+    },
+    {
+      "actual": 555000000.0,
+      "predicted": 434445553.5714286,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 205000000.0,
+      "predicted": 180549857.14285716,
+      "make": "Lexus",
+      "year": 2012.0
+    },
+    {
+      "actual": 525000000.0,
+      "predicted": 528376678.57142866,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 300000000.0,
+      "predicted": 310011583.3333334,
+      "make": "BMW",
+      "year": 2019.0
+    },
+    {
+      "actual": 183000000.0,
+      "predicted": 159357797.6190476,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 459000000.0,
+      "predicted": 464831213.8414517,
+      "make": "baic",
+      "year": 2024.0
+    },
+    {
+      "actual": 125000000.0,
+      "predicted": 119851958.33333334,
+      "make": "Mercedes-Benz",
+      "year": 2008.0
+    },
+    {
+      "actual": 340000000.0,
+      "predicted": 328867946.42732143,
+      "make": "Hyundai",
+      "year": 2018.0
+    },
+    {
+      "actual": 365000000.0,
+      "predicted": 364946068.29975563,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 465000000.0,
+      "predicted": 565574112.7899877,
+      "make": "Mitsubishi",
+      "year": 2023.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 213504561.15746745,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 348000000.0,
+      "predicted": 386262587.3015873,
+      "make": "Mercedes-Benz",
+      "year": 2018.0
+    },
+    {
+      "actual": 3300000000.0,
+      "predicted": 5441719273.8095255,
+      "make": "Mercedes-Benz",
+      "year": 2015.0
+    },
+    {
+      "actual": 185000000.0,
+      "predicted": 178919011.0347986,
+      "make": "Honda",
+      "year": 2016.0
+    },
+    {
+      "actual": 369000000.0,
+      "predicted": 375911344.6969698,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 299000000.0,
+      "predicted": 390447112.5512553,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 5850000000.0,
+      "predicted": 5888071660.894662,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 560000000.0,
+      "predicted": 551056626.3266145,
+      "make": "GWM",
+      "year": 2024.0
+    },
+    {
+      "actual": 193750000.0,
+      "predicted": 204075537.94261292,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 629000000.0,
+      "predicted": 200152668.61471868,
+      "make": "Mini Cooper",
+      "year": 2021.0
+    },
+    {
+      "actual": 3875000000.0,
+      "predicted": 3938025428.7587433,
+      "make": "Lexus",
+      "year": 2026.0
+    },
+    {
+      "actual": 3100000000.0,
+      "predicted": 3321182902.7700005,
+      "make": "Porsche",
+      "year": 2024.0
+    },
+    {
+      "actual": 85000000.0,
+      "predicted": 113118442.46031748,
+      "make": "Daihatsu",
+      "year": 2015.0
+    },
+    {
+      "actual": 465000000.0,
+      "predicted": 451723804.0404041,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 145000000.0,
+      "predicted": 133641285.35714287,
+      "make": "Mercedes-Benz",
+      "year": 2010.0
+    },
+    {
+      "actual": 330000000.0,
+      "predicted": 316243543.5675435,
+      "make": "Honda",
+      "year": 2024.0
+    },
+    {
+      "actual": 185000000.0,
+      "predicted": 349575668.6507938,
+      "make": "Mercedes-Benz",
+      "year": 2014.0
+    },
+    {
+      "actual": 2250000000.0,
+      "predicted": 2234253038.6419134,
+      "make": "Lexus",
+      "year": 2025.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 257787719.04761896,
+      "make": "BMW",
+      "year": 2019.0
+    },
+    {
+      "actual": 75000000.0,
+      "predicted": 104450289.36341271,
+      "make": "Ford",
+      "year": 2013.0
+    },
+    {
+      "actual": 217000000.0,
+      "predicted": 250737841.2698412,
+      "make": "Honda",
+      "year": 2020.0
+    },
+    {
+      "actual": 703000000.0,
+      "predicted": 707904831.3492064,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 1415000000.0,
+      "predicted": 1270712750.7992923,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 432836692.6823179,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 201079934.52214286,
+      "make": "Mitsubishi",
+      "year": 2021.0
+    },
+    {
+      "actual": 770000000.0,
+      "predicted": 790913882.034632,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 299000000.0,
+      "predicted": 390447112.5512553,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 57000000.0,
+      "predicted": 54610392.85547618,
+      "make": "Toyota",
+      "year": 1998.0
+    },
+    {
+      "actual": 389000000.0,
+      "predicted": 387209867.24386716,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 480000000.0,
+      "predicted": 481585340.1875901,
+      "make": "Mercedes-Benz",
+      "year": 2017.0
+    },
+    {
+      "actual": 50000000.0,
+      "predicted": 80593552.38095239,
+      "make": "Mercedes-Benz",
+      "year": 2009.0
+    },
+    {
+      "actual": 139000000.0,
+      "predicted": 158586882.1031746,
+      "make": "Mercedes-Benz",
+      "year": 2013.0
+    },
+    {
+      "actual": 355000000.0,
+      "predicted": 474547107.8643578,
+      "make": "Mercedes-Benz",
+      "year": 2017.0
+    },
+    {
+      "actual": 660000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 205000000.0,
+      "predicted": 202236791.66666663,
+      "make": "Toyota",
+      "year": 2013.0
+    },
+    {
+      "actual": 439000000.0,
+      "predicted": 426867209.4172168,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 240000000.0,
+      "predicted": 316793285.7142857,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 155000000.0,
+      "predicted": 162068654.76190472,
+      "make": "Honda",
+      "year": 2016.0
+    },
+    {
+      "actual": 93000000.0,
+      "predicted": 390103080.15873027,
+      "make": "Wuling",
+      "year": 2023.0
+    },
+    {
+      "actual": 1425000000.0,
+      "predicted": 1543983853.174603,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 435000000.0,
+      "predicted": 576288728.1746031,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 470000000.0,
+      "predicted": 283269050.5952382,
+      "make": "Mini",
+      "year": 2013.0
+    },
+    {
+      "actual": 180000000.0,
+      "predicted": 180334880.95238096,
+      "make": "Mitsubishi",
+      "year": 2019.0
+    },
+    {
+      "actual": 420000000.0,
+      "predicted": 424980399.6031745,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 259000000.0,
+      "predicted": 227405372.9166667,
+      "make": "Mercedes-Benz",
+      "year": 2014.0
+    },
+    {
+      "actual": 780000000.0,
+      "predicted": 777759676.5873015,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 375000000.0,
+      "predicted": 381490357.14285713,
+      "make": "Lexus",
+      "year": 2017.0
+    },
+    {
+      "actual": 1123000000.0,
+      "predicted": 2926170199.3145747,
+      "make": "Lexus",
+      "year": 2020.0
+    },
+    {
+      "actual": 7000000000.0,
+      "predicted": 4960510894.841269,
+      "make": "Dodge",
+      "year": 2024.0
+    },
+    {
+      "actual": 28000000.0,
+      "predicted": 40452893.45138096,
+      "make": "Toyota",
+      "year": 1995.0
+    },
+    {
+      "actual": 685000000.0,
+      "predicted": 693598300.865801,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 495000000.0,
+      "predicted": 907616343.7765104,
+      "make": "BYD",
+      "year": 2024.0
+    },
+    {
+      "actual": 1350000000.0,
+      "predicted": 1431460783.528691,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 6650000000.0,
+      "predicted": 6963207469.474971,
+      "make": "Porsche",
+      "year": 2023.0
+    },
+    {
+      "actual": 3900000000.0,
+      "predicted": 4893520246.787934,
+      "make": "Lexus",
+      "year": 2025.0
+    },
+    {
+      "actual": 4129000000.0,
+      "predicted": 4117900148.8095245,
+      "make": "Aston Martin",
+      "year": 2019.0
+    },
+    {
+      "actual": 745000000.0,
+      "predicted": 724081044.4294267,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 9000000000.0,
+      "predicted": 10226322826.858814,
+      "make": "Mercedes-Benz",
+      "year": 2026.0
+    },
+    {
+      "actual": 60000000.0,
+      "predicted": 33976343.80884921,
+      "make": "Toyota",
+      "year": 1987.0
+    },
+    {
+      "actual": 51500000.0,
+      "predicted": 50207966.068428576,
+      "make": "Toyota",
+      "year": 2002.0
+    },
+    {
+      "actual": 585000000.0,
+      "predicted": 594783785.641617,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 104000000.0,
+      "predicted": 94505481.66865043,
+      "make": "Nissan",
+      "year": 2012.0
+    },
+    {
+      "actual": 845000000.0,
+      "predicted": 844346028.1385281,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 465000000.0,
+      "predicted": 468735928.57071435,
+      "make": "Mazda",
+      "year": 2023.0
+    },
+    {
+      "actual": 230000000.0,
+      "predicted": 225232204.36507946,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 405000000.0,
+      "predicted": 1031342221.9169719,
+      "make": "Toyota",
+      "year": 2020.0
+    },
+    {
+      "actual": 118000000.0,
+      "predicted": 128401755.95238094,
+      "make": "Volkswagen",
+      "year": 2015.0
+    },
+    {
+      "actual": 495000000.0,
+      "predicted": 565165111.1111112,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 45000000.0,
+      "predicted": 50937833.9200714,
+      "make": "Suzuki",
+      "year": 2003.0
+    },
+    {
+      "actual": 525000000.0,
+      "predicted": 546460785.7142859,
+      "make": "Toyota",
+      "year": 2019.0
+    },
+    {
+      "actual": 330000000.0,
+      "predicted": 385614464.7999058,
+      "make": "Honda",
+      "year": 2025.0
+    },
+    {
+      "actual": 7900000000.0,
+      "predicted": 7924598642.857144,
+      "make": "McLaren",
+      "year": 2019.0
+    },
+    {
+      "actual": 25000000.0,
+      "predicted": 44744583.63095238,
+      "make": "Kia",
+      "year": 2001.0
+    },
+    {
+      "actual": 235000000.0,
+      "predicted": 170676684.1630592,
+      "make": "Honda",
+      "year": 2018.0
+    },
+    {
+      "actual": 1150000000.0,
+      "predicted": 1524796730.1587298,
+      "make": "Lexus",
+      "year": 2022.0
+    },
+    {
+      "actual": 965000000.0,
+      "predicted": 949370003.9882541,
+      "make": "Ford",
+      "year": 2019.0
+    },
+    {
+      "actual": 620000000.0,
+      "predicted": 610933659.64591,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 4200000000.0,
+      "predicted": 3623542988.0952373,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 2445000000.0,
+      "predicted": 2440115357.683983,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 654000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 135000000.0,
+      "predicted": 148973385.218254,
+      "make": "Toyota",
+      "year": 2012.0
+    },
+    {
+      "actual": 370000000.0,
+      "predicted": 417552812.1564547,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 475000000.0,
+      "predicted": 449256954.1807755,
+      "make": "Mercedes-Benz",
+      "year": 2017.0
+    },
+    {
+      "actual": 430000000.0,
+      "predicted": 408926832.69508255,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 730000000.0,
+      "predicted": 729777555.793063,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 1299000000.0,
+      "predicted": 1308675617.063492,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 39000000.0,
+      "predicted": 47730376.984126955,
+      "make": "Mitsubishi",
+      "year": 2003.0
+    },
+    {
+      "actual": 650000000.0,
+      "predicted": 650218159.1741593,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 130000000.0,
+      "predicted": 167340529.1666667,
+      "make": "Honda",
+      "year": 2019.0
+    },
+    {
+      "actual": 363000000.0,
+      "predicted": 486088210.9210233,
+      "make": "Mazda",
+      "year": 2022.0
+    },
+    {
+      "actual": 150000000.0,
+      "predicted": 321619348.4848485,
+      "make": "Mercedes-Benz",
+      "year": 2008.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 418840040.7842157,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 375000000.0,
+      "predicted": 315155628.96825397,
+      "make": "Toyota",
+      "year": 2020.0
+    },
+    {
+      "actual": 349000000.0,
+      "predicted": 353684763.47263837,
+      "make": "Mercedes-Benz",
+      "year": 2018.0
+    },
+    {
+      "actual": 1730000000.0,
+      "predicted": 1827485619.047619,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 456894571.64141417,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 405000000.0,
+      "predicted": 415374217.9703628,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 255000000.0,
+      "predicted": 186720411.40873015,
+      "make": "Mercedes-Benz",
+      "year": 2015.0
+    },
+    {
+      "actual": 8250000000.0,
+      "predicted": 6745047783.20802,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 310000000.0,
+      "predicted": 337704025.79365075,
+      "make": "Toyota",
+      "year": 2016.0
+    },
+    {
+      "actual": 399000000.0,
+      "predicted": 403361275.25252515,
+      "make": "Mazda",
+      "year": 2023.0
+    },
+    {
+      "actual": 215000000.0,
+      "predicted": 280882717.22222227,
+      "make": "MG",
+      "year": 2025.0
+    },
+    {
+      "actual": 750000000.0,
+      "predicted": 790008037.6984123,
+      "make": "BMW",
+      "year": 2020.0
+    },
+    {
+      "actual": 215000000.0,
+      "predicted": 214033178.57142854,
+      "make": "Toyota",
+      "year": 2013.0
+    },
+    {
+      "actual": 190000000.0,
+      "predicted": 251860089.2857144,
+      "make": "Honda",
+      "year": 2016.0
+    },
+    {
+      "actual": 7870000000.0,
+      "predicted": 3850460749.334921,
+      "make": "Nissan",
+      "year": 2026.0
+    },
+    {
+      "actual": 550000000.0,
+      "predicted": 615674576.0003885,
+      "make": "Kia",
+      "year": 2023.0
+    },
+    {
+      "actual": 270000000.0,
+      "predicted": 187269839.14682552,
+      "make": "Mercedes-Benz",
+      "year": 2015.0
+    },
+    {
+      "actual": 4500000000.0,
+      "predicted": 2091262969.6463423,
+      "make": "Land Rover",
+      "year": 2024.0
+    },
+    {
+      "actual": 3650000000.0,
+      "predicted": 868207857.1314843,
+      "make": "BMW",
+      "year": 2021.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 430377198.41269845,
+      "make": "Mitsubishi",
+      "year": 2022.0
+    },
+    {
+      "actual": 780000000.0,
+      "predicted": 777759676.5873015,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 2485000000.0,
+      "predicted": 1993498091.7309806,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 399000000.0,
+      "predicted": 387138091.2698413,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 407509074.1226452,
+      "make": "Mitsubishi",
+      "year": 2025.0
+    },
+    {
+      "actual": 229000000.0,
+      "predicted": 221780941.46825397,
+      "make": "Honda",
+      "year": 2024.0
+    },
+    {
+      "actual": 205000000.0,
+      "predicted": 200285166.66666663,
+      "make": "Mitsubishi",
+      "year": 2021.0
+    },
+    {
+      "actual": 359000000.0,
+      "predicted": 351284932.34624845,
+      "make": "Honda",
+      "year": 2024.0
+    },
+    {
+      "actual": 335000000.0,
+      "predicted": 439368018.10966825,
+      "make": "BYD",
+      "year": 2024.0
+    },
+    {
+      "actual": 1385000000.0,
+      "predicted": 1270712750.7992923,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 196000000.0,
+      "predicted": 189864904.76190487,
+      "make": "Kia",
+      "year": 2022.0
+    },
+    {
+      "actual": 3900000000.0,
+      "predicted": 3655890196.788506,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 205000000.0,
+      "predicted": 184509842.5685426,
+      "make": "Toyota",
+      "year": 2019.0
+    },
+    {
+      "actual": 502000000.0,
+      "predicted": 497439901.15440106,
+      "make": "Mazda",
+      "year": 2022.0
+    },
+    {
+      "actual": 380000000.0,
+      "predicted": 347185672.4639223,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 120000000.0,
+      "predicted": 93907274.80158728,
+      "make": "Suzuki",
+      "year": 2016.0
+    },
+    {
+      "actual": 420000000.0,
+      "predicted": 421017460.3174603,
+      "make": "Mitsubishi",
+      "year": 2023.0
+    },
+    {
+      "actual": 469000000.0,
+      "predicted": 460858167.3287806,
+      "make": "BYD",
+      "year": 2024.0
+    },
+    {
+      "actual": 299000000.0,
+      "predicted": 314296972.4877899,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 1730000000.0,
+      "predicted": 1733253125.0,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 302135693.903319,
+      "make": "Suzuki",
+      "year": 2023.0
+    },
+    {
+      "actual": 1275000000.0,
+      "predicted": 1518502283.4605498,
+      "make": "Mini Cooper",
+      "year": 2025.0
+    },
+    {
+      "actual": 385000000.0,
+      "predicted": 381718744.6719946,
+      "make": "Mazda",
+      "year": 2022.0
+    },
+    {
+      "actual": 4550000000.0,
+      "predicted": 3280750902.7700005,
+      "make": "Porsche",
+      "year": 2025.0
+    },
+    {
+      "actual": 388000000.0,
+      "predicted": 350665726.19047624,
+      "make": "Mitsubishi",
+      "year": 2020.0
+    },
+    {
+      "actual": 61000000.0,
+      "predicted": 51722543.053055555,
+      "make": "Toyota",
+      "year": 2000.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 432588354.16666675,
+      "make": "Audi",
+      "year": 2014.0
+    },
+    {
+      "actual": 205000000.0,
+      "predicted": 214412879.87012985,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 585000000.0,
+      "predicted": 594783785.641617,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 348000000.0,
+      "predicted": 397023607.6206513,
+      "make": "Mercedes-Benz",
+      "year": 2018.0
+    },
+    {
+      "actual": 500000000.0,
+      "predicted": 565165111.1111112,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 57000000.0,
+      "predicted": 54192026.78571429,
+      "make": "Hyundai",
+      "year": 2008.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 239057817.854643,
+      "make": "Nissan",
+      "year": 2019.0
+    },
+    {
+      "actual": 625000000.0,
+      "predicted": 663141525.6238856,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 155000000.0,
+      "predicted": 225954952.3809524,
+      "make": "Toyota",
+      "year": 2010.0
+    },
+    {
+      "actual": 169000000.0,
+      "predicted": 235308083.33333337,
+      "make": "Mercedes-Benz",
+      "year": 2009.0
+    },
+    {
+      "actual": 662000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 3150000000.0,
+      "predicted": 4133170325.396826,
+      "make": "Ford",
+      "year": 2026.0
+    },
+    {
+      "actual": 3650000000.0,
+      "predicted": 3891494023.809524,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 372000000.0,
+      "predicted": 402243342.6018427,
+      "make": "Mazda",
+      "year": 2023.0
+    },
+    {
+      "actual": 865000000.0,
+      "predicted": 884842793.0536263,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 170000000.0,
+      "predicted": 199225660.31746033,
+      "make": "Nissan",
+      "year": 2023.0
+    },
+    {
+      "actual": 375000000.0,
+      "predicted": 370363194.26406914,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 451451335.6782107,
+      "make": "Hyundai",
+      "year": 2021.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 493455092.0260296,
+      "make": "Mercedes-Benz",
+      "year": 2014.0
+    },
+    {
+      "actual": 1990000000.0,
+      "predicted": 1980507423.1911874,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 429000000.0,
+      "predicted": 430254978.293461,
+      "make": "Mitsubishi",
+      "year": 2025.0
+    },
+    {
+      "actual": 1425000000.0,
+      "predicted": 1543983853.174603,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 536000000.0,
+      "predicted": 744105419.3863165,
+      "make": "Mini",
+      "year": 2023.0
+    },
+    {
+      "actual": 662000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 430000000.0,
+      "predicted": 517845172.6190477,
+      "make": "Hyundai",
+      "year": 2021.0
+    },
+    {
+      "actual": 294000000.0,
+      "predicted": 327658443.9033189,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 173000000.0,
+      "predicted": 188560101.19047624,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 8399000000.0,
+      "predicted": 8141756845.762294,
+      "make": "Mercedes-Benz",
+      "year": 2026.0
+    },
+    {
+      "actual": 338500000.0,
+      "predicted": 420732115.85840356,
+      "make": "Mazda",
+      "year": 2023.0
+    },
+    {
+      "actual": 80000000.0,
+      "predicted": 81434547.61904763,
+      "make": "Daihatsu",
+      "year": 2013.0
+    },
+    {
+      "actual": 730000000.0,
+      "predicted": 729777555.793063,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 145000000.0,
+      "predicted": 162305667.8571429,
+      "make": "Suzuki",
+      "year": 2019.0
+    },
+    {
+      "actual": 3250000000.0,
+      "predicted": 5209840060.606061,
+      "make": "Land Rover",
+      "year": 2024.0
+    },
+    {
+      "actual": 980000000.0,
+      "predicted": 907360702.3809525,
+      "make": "Mercedes-Benz",
+      "year": 2017.0
+    },
+    {
+      "actual": 160000000.0,
+      "predicted": 158564446.42857143,
+      "make": "Wuling",
+      "year": 2019.0
+    },
+    {
+      "actual": 975000000.0,
+      "predicted": 915218984.5432346,
+      "make": "Mercedes-Benz",
+      "year": 2026.0
+    },
+    {
+      "actual": 349000000.0,
+      "predicted": 356574239.5104895,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 407509074.1226452,
+      "make": "Mitsubishi",
+      "year": 2025.0
+    },
+    {
+      "actual": 144000000.0,
+      "predicted": 176266019.68864465,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 715000000.0,
+      "predicted": 684676752.6569135,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 515000000.0,
+      "predicted": 658350754.1865078,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 705000000.0,
+      "predicted": 705892759.1991341,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 2450000000.0,
+      "predicted": 2769376138.8888893,
+      "make": "Toyota",
+      "year": 2026.0
+    },
+    {
+      "actual": 13000000000.0,
+      "predicted": 7151614290.645027,
+      "make": "Mercedes-Benz",
+      "year": 2026.0
+    },
+    {
+      "actual": 500000000.0,
+      "predicted": 732751686.5079364,
+      "make": "Mercedes-Benz",
+      "year": 2014.0
+    },
+    {
+      "actual": 75000000.0,
+      "predicted": 61571852.343238086,
+      "make": "Honda",
+      "year": 2003.0
+    },
+    {
+      "actual": 799000000.0,
+      "predicted": 948945696.4285713,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 110000000.0,
+      "predicted": 130471928.5714286,
+      "make": "Honda",
+      "year": 2011.0
+    },
+    {
+      "actual": 302000000.0,
+      "predicted": 260933509.84848487,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 825000000.0,
+      "predicted": 1137730747.8434978,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 98000000.0,
+      "predicted": 172969248.8032738,
+      "make": "Mazda",
+      "year": 2013.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 378944629.90981233,
+      "make": "Chery",
+      "year": 2024.0
+    },
+    {
+      "actual": 389000000.0,
+      "predicted": 387209867.24386716,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 695000000.0,
+      "predicted": 676593572.4240308,
+      "make": "Lexus",
+      "year": 2019.0
+    },
+    {
+      "actual": 298000000.0,
+      "predicted": 331909448.4126984,
+      "make": "Toyota",
+      "year": 2015.0
+    },
+    {
+      "actual": 485000000.0,
+      "predicted": 479753445.6168832,
+      "make": "Toyota",
+      "year": 2017.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 417882639.91976637,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 6900000000.0,
+      "predicted": 6362847222.222219,
+      "make": "Porsche",
+      "year": 2022.0
+    },
+    {
+      "actual": 815000000.0,
+      "predicted": 563177579.3609128,
+      "make": "Land Rover",
+      "year": 2018.0
+    },
+    {
+      "actual": 239000000.0,
+      "predicted": 190063059.52380955,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 359000000.0,
+      "predicted": 395294271.82539696,
+      "make": "Mercedes-Benz",
+      "year": 2017.0
+    },
+    {
+      "actual": 475000000.0,
+      "predicted": 485151343.43434334,
+      "make": "Mercedes-Benz",
+      "year": 2018.0
+    },
+    {
+      "actual": 185000000.0,
+      "predicted": 249541654.75940478,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 1325000000.0,
+      "predicted": 1330279428.1021264,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 445000000.0,
+      "predicted": 423873698.03807294,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 333000000.0,
+      "predicted": 361804977.7733135,
+      "make": "BMW",
+      "year": 2019.0
+    },
+    {
+      "actual": 182000000.0,
+      "predicted": 180276787.69841272,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 280000000.0,
+      "predicted": 235301508.9285714,
+      "make": "Mitsubishi",
+      "year": 2025.0
+    },
+    {
+      "actual": 152000000.0,
+      "predicted": 156138496.0317461,
+      "make": "Wuling",
+      "year": 2019.0
+    },
+    {
+      "actual": 435000000.0,
+      "predicted": 1044010741.0594199,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 69000000.0,
+      "predicted": 262916849.20634925,
+      "make": "Mitsubishi",
+      "year": 1996.0
+    },
+    {
+      "actual": 875000000.0,
+      "predicted": 916125251.9841274,
+      "make": "Hyundai",
+      "year": 2024.0
+    },
+    {
+      "actual": 2150000000.0,
+      "predicted": 1858553968.2539685,
+      "make": "Land Rover",
+      "year": 2022.0
+    },
+    {
+      "actual": 5900000000.0,
+      "predicted": 5905508336.025086,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 299000000.0,
+      "predicted": 781831388.888889,
+      "make": "Mercedes-Benz",
+      "year": 2014.0
+    },
+    {
+      "actual": 265000000.0,
+      "predicted": 290532115.04761904,
+      "make": "Chery",
+      "year": 2023.0
+    },
+    {
+      "actual": 107000000.0,
+      "predicted": 137341367.06349206,
+      "make": "Wuling",
+      "year": 2021.0
+    },
+    {
+      "actual": 35500000.0,
+      "predicted": 179959647.06959713,
+      "make": "Honda",
+      "year": 2019.0
+    },
+    {
+      "actual": 625000000.0,
+      "predicted": 691690884.9088097,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 365000000.0,
+      "predicted": 445326967.8074377,
+      "make": "Mazda",
+      "year": 2022.0
+    },
+    {
+      "actual": 1525000000.0,
+      "predicted": 1332677999.9773338,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 527488239.8716478,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 125000000.0,
+      "predicted": 141234702.3809524,
+      "make": "Wuling",
+      "year": 2022.0
+    },
+    {
+      "actual": 335000000.0,
+      "predicted": 457834017.3274505,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 15000000000.0,
+      "predicted": 5494844117.826617,
+      "make": "Rolls Royce",
+      "year": 2021.0
+    },
+    {
+      "actual": 637000000.0,
+      "predicted": 627055620.879121,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 6100000000.0,
+      "predicted": 5940779724.913975,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 399000000.0,
+      "predicted": 397874226.9119767,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 143000000.0,
+      "predicted": 184701261.90476185,
+      "make": "Suzuki",
+      "year": 2020.0
+    },
+    {
+      "actual": 207000000.0,
+      "predicted": 190322740.07936516,
+      "make": "Honda",
+      "year": 2017.0
+    },
+    {
+      "actual": 88000000.0,
+      "predicted": 128058260.28138529,
+      "make": "Datsun",
+      "year": 2019.0
+    },
+    {
+      "actual": 110000000.0,
+      "predicted": 137812333.76623374,
+      "make": "Volkswagen",
+      "year": 2013.0
+    },
+    {
+      "actual": 89000000.0,
+      "predicted": 85739744.9920635,
+      "make": "Mercedes-Benz",
+      "year": 2004.0
+    },
+    {
+      "actual": 299000000.0,
+      "predicted": 297938250.28254473,
+      "make": "Toyota",
+      "year": 2020.0
+    },
+    {
+      "actual": 36500000.0,
+      "predicted": 45202583.301583335,
+      "make": "Toyota",
+      "year": 1997.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 417882639.91976637,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 1565000000.0,
+      "predicted": 2151792780.901042,
+      "make": "Lexus",
+      "year": 2026.0
+    },
+    {
+      "actual": 1340000000.0,
+      "predicted": 889396228.174603,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 3000000000.0,
+      "predicted": 2995417005.772005,
+      "make": "Lexus",
+      "year": 2024.0
+    },
+    {
+      "actual": 439000000.0,
+      "predicted": 417882639.91976637,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 89000000.0,
+      "predicted": 198563307.13500005,
+      "make": "Toyota",
+      "year": 2015.0
+    },
+    {
+      "actual": 28000000.0,
+      "predicted": 58990940.45971431,
+      "make": "Daihatsu",
+      "year": 1997.0
+    },
+    {
+      "actual": 975000000.0,
+      "predicted": 920660873.9707488,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 375000000.0,
+      "predicted": 209009160.7142857,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 219000000.0,
+      "predicted": 158708740.95238096,
+      "make": "Nissan",
+      "year": 2013.0
+    },
+    {
+      "actual": 410000000.0,
+      "predicted": 385523202.38095236,
+      "make": "Honda",
+      "year": 2022.0
+    },
+    {
+      "actual": 1250000000.0,
+      "predicted": 1136438059.5229762,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 650000000.0,
+      "predicted": 103887988.09523809,
+      "make": "Toyota",
+      "year": 2008.0
+    },
+    {
+      "actual": 470000000.0,
+      "predicted": 418556116.0714286,
+      "make": "Mercedes-Benz",
+      "year": 2014.0
+    },
+    {
+      "actual": 135000000.0,
+      "predicted": 178413246.03174603,
+      "make": "Honda",
+      "year": 2018.0
+    },
+    {
+      "actual": 495000000.0,
+      "predicted": 565165111.1111112,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 216468365.797619,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 515000000.0,
+      "predicted": 519669870.5624439,
+      "make": "Mazda",
+      "year": 2023.0
+    },
+    {
+      "actual": 1875000000.0,
+      "predicted": 1786145729.7494166,
+      "make": "Lexus",
+      "year": 2024.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 280101270.2525253,
+      "make": "Chery",
+      "year": 2025.0
+    },
+    {
+      "actual": 405000000.0,
+      "predicted": 384354673.86778504,
+      "make": "Mitsubishi",
+      "year": 2026.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 414165142.39926744,
+      "make": "Mitsubishi",
+      "year": 2021.0
+    },
+    {
+      "actual": 320000000.0,
+      "predicted": 308713990.50865805,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 840000000.0,
+      "predicted": 757140004.761905,
+      "make": "BMW",
+      "year": 2022.0
+    },
+    {
+      "actual": 239000000.0,
+      "predicted": 305654000.00000006,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 885000000.0,
+      "predicted": 857211860.209235,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 259000000.0,
+      "predicted": 264022418.65079385,
+      "make": "Hyundai",
+      "year": 2024.0
+    },
+    {
+      "actual": 999000000.0,
+      "predicted": 1288893184.5772796,
+      "make": "Mercedes-Benz",
+      "year": 2021.0
+    },
+    {
+      "actual": 390000000.0,
+      "predicted": 391837369.04761916,
+      "make": "Mini",
+      "year": 2016.0
+    },
+    {
+      "actual": 195000000.0,
+      "predicted": 192404293.6507936,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 88000000.0,
+      "predicted": 157049988.0952381,
+      "make": "Renault",
+      "year": 2022.0
+    },
+    {
+      "actual": 190000000.0,
+      "predicted": 234456020.63158742,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 37500000.0,
+      "predicted": 69524904.22077924,
+      "make": "Toyota",
+      "year": 2005.0
+    },
+    {
+      "actual": 140000000.0,
+      "predicted": 164968922.26190475,
+      "make": "Toyota",
+      "year": 2020.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 430377198.41269845,
+      "make": "Mitsubishi",
+      "year": 2022.0
+    },
+    {
+      "actual": 675000000.0,
+      "predicted": 980578449.4047618,
+      "make": "Jeep",
+      "year": 2012.0
+    },
+    {
+      "actual": 619000000.0,
+      "predicted": 981689292.9477096,
+      "make": "Mercedes-Benz",
+      "year": 2016.0
+    },
+    {
+      "actual": 780000000.0,
+      "predicted": 777759676.5873015,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 434711600.9243086,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 249000000.0,
+      "predicted": 219078089.28571442,
+      "make": "Mazda",
+      "year": 2017.0
+    },
+    {
+      "actual": 13500000000.0,
+      "predicted": 13104115416.666668,
+      "make": "Ferrari",
+      "year": 2023.0
+    },
+    {
+      "actual": 1575000000.0,
+      "predicted": 1609401299.214674,
+      "make": "Toyota",
+      "year": 2017.0
+    },
+    {
+      "actual": 388000000.0,
+      "predicted": 546580456.3492064,
+      "make": "BMW",
+      "year": 2020.0
+    },
+    {
+      "actual": 43000000.0,
+      "predicted": 42754584.911031745,
+      "make": "Toyota",
+      "year": 1993.0
+    },
+    {
+      "actual": 422000000.0,
+      "predicted": 450154498.0158728,
+      "make": "Chery",
+      "year": 2025.0
+    },
+    {
+      "actual": 159000000.0,
+      "predicted": 214006583.3308334,
+      "make": "Mitsubishi",
+      "year": 2016.0
+    },
+    {
+      "actual": 4100000000.0,
+      "predicted": 4043752424.759688,
+      "make": "Lexus",
+      "year": 2026.0
+    },
+    {
+      "actual": 3150000000.0,
+      "predicted": 2942564482.7741704,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 495000000.0,
+      "predicted": 353865187.5,
+      "make": "Mercedes-Benz",
+      "year": 2013.0
+    },
+    {
+      "actual": 1025000000.0,
+      "predicted": 1028756301.2122682,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 3900000000.0,
+      "predicted": 4043752424.759688,
+      "make": "Lexus",
+      "year": 2026.0
+    },
+    {
+      "actual": 155000000.0,
+      "predicted": 207116160.71428576,
+      "make": "Mazda",
+      "year": 2017.0
+    },
+    {
+      "actual": 1195000000.0,
+      "predicted": 1197384895.3823953,
+      "make": "Mercedes-Benz",
+      "year": 2025.0
+    },
+    {
+      "actual": 60000000.0,
+      "predicted": 68822228.62554109,
+      "make": "Hyundai",
+      "year": 2009.0
+    },
+    {
+      "actual": 187000000.0,
+      "predicted": 214694033.73015872,
+      "make": "Honda",
+      "year": 2018.0
+    },
+    {
+      "actual": 695000000.0,
+      "predicted": 670881336.5523365,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 50000000.0,
+      "predicted": 53249173.611111134,
+      "make": "Toyota",
+      "year": 2001.0
+    },
+    {
+      "actual": 140000000.0,
+      "predicted": 142868380.95238099,
+      "make": "Toyota",
+      "year": 2017.0
+    },
+    {
+      "actual": 300000000.0,
+      "predicted": 249396530.95238087,
+      "make": "BMW",
+      "year": 2019.0
+    },
+    {
+      "actual": 770000000.0,
+      "predicted": 758445592.5602174,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 449000000.0,
+      "predicted": 338177491.0689286,
+      "make": "Porsche",
+      "year": 2012.0
+    },
+    {
+      "actual": 525000000.0,
+      "predicted": 509890957.1474276,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 4750000000.0,
+      "predicted": 4120789702.2844696,
+      "make": "Hummer",
+      "year": 2025.0
+    },
+    {
+      "actual": 480000000.0,
+      "predicted": 481610512.2655123,
+      "make": "Toyota",
+      "year": 2019.0
+    },
+    {
+      "actual": 3150000000.0,
+      "predicted": 2942564482.7741704,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 355000000.0,
+      "predicted": 437929234.1269841,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 540000000.0,
+      "predicted": 536813035.7142857,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 135000000.0,
+      "predicted": 183594322.2943723,
+      "make": "Wuling",
+      "year": 2021.0
+    },
+    {
+      "actual": 99000000.0,
+      "predicted": 155118343.25396824,
+      "make": "Volkswagen",
+      "year": 2017.0
+    },
+    {
+      "actual": 459000000.0,
+      "predicted": 464831213.8414517,
+      "make": "baic",
+      "year": 2024.0
+    },
+    {
+      "actual": 7000000000.0,
+      "predicted": 6979335173.16017,
+      "make": "Porsche",
+      "year": 2025.0
+    },
+    {
+      "actual": 950000000.0,
+      "predicted": 1154750789.6825395,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 3100000000.0,
+      "predicted": 2769376138.8888893,
+      "make": "Toyota",
+      "year": 2026.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 213504561.15746745,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 198000000.0,
+      "predicted": 178807580.35714284,
+      "make": "Lexus",
+      "year": 2013.0
+    },
+    {
+      "actual": 269000000.0,
+      "predicted": 273461308.4415584,
+      "make": "Nissan",
+      "year": 2018.0
+    },
+    {
+      "actual": 372000000.0,
+      "predicted": 427945490.2597405,
+      "make": "Toyota",
+      "year": 2016.0
+    },
+    {
+      "actual": 299000000.0,
+      "predicted": 2461124511.724386,
+      "make": "Suzuki",
+      "year": 2025.0
+    },
+    {
+      "actual": 420000000.0,
+      "predicted": 424980399.6031745,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 56000000.0,
+      "predicted": 52570242.261904754,
+      "make": "Kia",
+      "year": 2011.0
+    },
+    {
+      "actual": 239000000.0,
+      "predicted": 179943545.6349207,
+      "make": "Toyota",
+      "year": 2016.0
+    },
+    {
+      "actual": 178000000.0,
+      "predicted": 184840410.71428573,
+      "make": "Wuling",
+      "year": 2023.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 451451335.6782107,
+      "make": "Hyundai",
+      "year": 2021.0
+    },
+    {
+      "actual": 945000000.0,
+      "predicted": 1098613465.3679655,
+      "make": "BMW",
+      "year": 2025.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 358882071.4285714,
+      "make": "Lexus",
+      "year": 2016.0
+    },
+    {
+      "actual": 50000000.0,
+      "predicted": 46991724.98116667,
+      "make": "Toyota",
+      "year": 1997.0
+    },
+    {
+      "actual": 1325000000.0,
+      "predicted": 1330279428.1021264,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 190000000.0,
+      "predicted": 178167749.92063493,
+      "make": "Suzuki",
+      "year": 2021.0
+    },
+    {
+      "actual": 675000000.0,
+      "predicted": 1009466476.1904764,
+      "make": "Hummer",
+      "year": 2008.0
+    },
+    {
+      "actual": 215000000.0,
+      "predicted": 267056549.16666672,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 3875000000.0,
+      "predicted": 3809245448.2343636,
+      "make": "Lexus",
+      "year": 2026.0
+    },
+    {
+      "actual": 3900000000.0,
+      "predicted": 3729078873.694933,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 223000000.0,
+      "predicted": 225245766.6666666,
+      "make": "Chery",
+      "year": 2023.0
+    },
+    {
+      "actual": 223000000.0,
+      "predicted": 234833713.04365075,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 350000000.0,
+      "predicted": 419249146.60894656,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 1155000000.0,
+      "predicted": 1172706289.6825395,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 201000000.0,
+      "predicted": 445098461.94083685,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 540000000.0,
+      "predicted": 536813035.7142857,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 365000000.0,
+      "predicted": 372678150.79365087,
+      "make": "Peugeot",
+      "year": 2022.0
+    },
+    {
+      "actual": 475000000.0,
+      "predicted": 491629990.17649,
+      "make": "Mazda",
+      "year": 2025.0
+    },
+    {
+      "actual": 560000000.0,
+      "predicted": 557171898.088023,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 229000000.0,
+      "predicted": 236681932.99837658,
+      "make": "Hyundai",
+      "year": 2024.0
+    },
+    {
+      "actual": 1170000000.0,
+      "predicted": 2629969174.6031747,
+      "make": "Lexus",
+      "year": 2022.0
+    },
+    {
+      "actual": 865000000.0,
+      "predicted": 884842793.0536263,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 220000000.0,
+      "predicted": 215007863.0952381,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 2445000000.0,
+      "predicted": 2440115357.683983,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 255000000.0,
+      "predicted": 252724267.8571428,
+      "make": "Suzuki",
+      "year": 2023.0
+    },
+    {
+      "actual": 435000000.0,
+      "predicted": 474715739.3108666,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 350000000.0,
+      "predicted": 334947892.8571428,
+      "make": "Toyota",
+      "year": 2019.0
+    },
+    {
+      "actual": 650000000.0,
+      "predicted": 649809757.062382,
+      "make": "Kia",
+      "year": 2024.0
+    },
+    {
+      "actual": 660000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 1750000000.0,
+      "predicted": 2219115708.1737914,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 290000000.0,
+      "predicted": 303188902.7777778,
+      "make": "Chery",
+      "year": 2025.0
+    },
+    {
+      "actual": 8200000000.0,
+      "predicted": 6413103583.874458,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 437000000.0,
+      "predicted": 559302568.6813186,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 175000000.0,
+      "predicted": 166023073.80952388,
+      "make": "Honda",
+      "year": 2018.0
+    },
+    {
+      "actual": 215000000.0,
+      "predicted": 243904742.06349206,
+      "make": "Honda",
+      "year": 2016.0
+    },
+    {
+      "actual": 215000000.0,
+      "predicted": 235002360.1190476,
+      "make": "MG",
+      "year": 2023.0
+    },
+    {
+      "actual": 255000000.0,
+      "predicted": 282583980.15873027,
+      "make": "Mercedes-Benz",
+      "year": 2015.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 407816850.46522546,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 315000000.0,
+      "predicted": 317092694.4444446,
+      "make": "Honda",
+      "year": 2020.0
+    },
+    {
+      "actual": 660000000.0,
+      "predicted": 657735319.91293,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 5850000000.0,
+      "predicted": 8381420236.291486,
+      "make": "Lamborghini",
+      "year": 2012.0
+    },
+    {
+      "actual": 118000000.0,
+      "predicted": 137226119.04761904,
+      "make": "Honda",
+      "year": 2013.0
+    },
+    {
+      "actual": 550000000.0,
+      "predicted": 1000382556.5476193,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 2445000000.0,
+      "predicted": 2440115357.683983,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 225386498.80952382,
+      "make": "Kia",
+      "year": 2023.0
+    },
+    {
+      "actual": 535000000.0,
+      "predicted": 541890500.0000001,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 195000000.0,
+      "predicted": 162281955.3571429,
+      "make": "Daihatsu",
+      "year": 2021.0
+    },
+    {
+      "actual": 1775000000.0,
+      "predicted": 838016234.5805271,
+      "make": "Jeep",
+      "year": 2023.0
+    },
+    {
+      "actual": 154000000.0,
+      "predicted": 216763575.39682534,
+      "make": "Toyota",
+      "year": 2012.0
+    },
+    {
+      "actual": 50000000.0,
+      "predicted": 51038906.34920635,
+      "make": "Toyota",
+      "year": 2003.0
+    },
+    {
+      "actual": 189000000.0,
+      "predicted": 221445980.1587302,
+      "make": "Honda",
+      "year": 2015.0
+    },
+    {
+      "actual": 182000000.0,
+      "predicted": 217416860.39682537,
+      "make": "Honda",
+      "year": 2018.0
+    },
+    {
+      "actual": 495000000.0,
+      "predicted": 487061583.57614607,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 369000000.0,
+      "predicted": 354788227.3559773,
+      "make": "Suzuki",
+      "year": 2021.0
+    },
+    {
+      "actual": 148000000.0,
+      "predicted": 176588487.49999997,
+      "make": "Honda",
+      "year": 2020.0
+    },
+    {
+      "actual": 405000000.0,
+      "predicted": 402468146.8253967,
+      "make": "Honda",
+      "year": 2025.0
+    },
+    {
+      "actual": 44000000.0,
+      "predicted": 47653536.67429168,
+      "make": "Daihatsu",
+      "year": 1999.0
+    },
+    {
+      "actual": 475000000.0,
+      "predicted": 394185226.19047606,
+      "make": "Lexus",
+      "year": 2017.0
+    },
+    {
+      "actual": 710000000.0,
+      "predicted": 713267069.4431946,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 640000000.0,
+      "predicted": 486600892.8571428,
+      "make": "Lexus",
+      "year": 2020.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 414165142.39926744,
+      "make": "Mitsubishi",
+      "year": 2021.0
+    },
+    {
+      "actual": 1175000000.0,
+      "predicted": 961481044.9259201,
+      "make": "Ford",
+      "year": 2022.0
+    },
+    {
+      "actual": 399000000.0,
+      "predicted": 400107475.39682543,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 49000000.0,
+      "predicted": 51461035.65551784,
+      "make": "Daihatsu",
+      "year": 1994.0
+    },
+    {
+      "actual": 775000000.0,
+      "predicted": 776323640.8730159,
+      "make": "Hyundai",
+      "year": 2024.0
+    },
+    {
+      "actual": 1185000000.0,
+      "predicted": 1375690682.9055946,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 525000000.0,
+      "predicted": 610617168.9065021,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 220000000.0,
+      "predicted": 217587757.1428572,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 170000000.0,
+      "predicted": 160503903.45238099,
+      "make": "Toyota",
+      "year": 2014.0
+    },
+    {
+      "actual": 175000000.0,
+      "predicted": 355533621.7532468,
+      "make": "Lexus",
+      "year": 2011.0
+    },
+    {
+      "actual": 215000000.0,
+      "predicted": 213206113.09523812,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 4600000000.0,
+      "predicted": 6857810018.315019,
+      "make": "Lain-lain",
+      "year": 2025.0
+    },
+    {
+      "actual": 745000000.0,
+      "predicted": 764156807.3176824,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 60000000.0,
+      "predicted": 63103448.412698396,
+      "make": "Nissan",
+      "year": 2008.0
+    },
+    {
+      "actual": 695000000.0,
+      "predicted": 532098296.8559221,
+      "make": "Ford",
+      "year": 2025.0
+    },
+    {
+      "actual": 4950000000.0,
+      "predicted": 2431431244.40837,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 29000000.0,
+      "predicted": 41302219.228476174,
+      "make": "Hyundai",
+      "year": 2000.0
+    },
+    {
+      "actual": 620000000.0,
+      "predicted": 645659878.968254,
+      "make": "Subaru",
+      "year": 2023.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 324801244.0476191,
+      "make": "Mazda",
+      "year": 2017.0
+    },
+    {
+      "actual": 49000000.0,
+      "predicted": 214875802.5714286,
+      "make": "Honda",
+      "year": 1994.0
+    },
+    {
+      "actual": 3000000000.0,
+      "predicted": 2995417005.772005,
+      "make": "Lexus",
+      "year": 2024.0
+    },
+    {
+      "actual": 565000000.0,
+      "predicted": 853939928.5714284,
+      "make": "Mini",
+      "year": 2022.0
+    },
+    {
+      "actual": 3100000000.0,
+      "predicted": 3321182902.7700005,
+      "make": "Porsche",
+      "year": 2024.0
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 43259017.79414286,
+      "make": "Toyota",
+      "year": 1997.0
+    },
+    {
+      "actual": 445000000.0,
+      "predicted": 460858167.3287806,
+      "make": "BYD",
+      "year": 2024.0
+    },
+    {
+      "actual": 322000000.0,
+      "predicted": 226498547.61904767,
+      "make": "Mitsubishi",
+      "year": 2016.0
+    },
+    {
+      "actual": 662000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 1835000000.0,
+      "predicted": 1688438793.6507938,
+      "make": "BMW",
+      "year": 2022.0
+    },
+    {
+      "actual": 665000000.0,
+      "predicted": 674174007.5757573,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 435000000.0,
+      "predicted": 390395906.3381231,
+      "make": "BMW",
+      "year": 2018.0
+    },
+    {
+      "actual": 40000000.0,
+      "predicted": 50724356.2800595,
+      "make": "Toyota",
+      "year": 2001.0
+    },
+    {
+      "actual": 650000000.0,
+      "predicted": 649809757.062382,
+      "make": "Kia",
+      "year": 2024.0
+    },
+    {
+      "actual": 7750000000.0,
+      "predicted": 7981558739.56294,
+      "make": "Mercedes-Benz",
+      "year": 2026.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 373269204.36507916,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 407016425.5952382,
+      "make": "Toyota",
+      "year": 2015.0
+    },
+    {
+      "actual": 459000000.0,
+      "predicted": 464831213.8414517,
+      "make": "baic",
+      "year": 2024.0
+    },
+    {
+      "actual": 429000000.0,
+      "predicted": 430254978.293461,
+      "make": "Mitsubishi",
+      "year": 2025.0
+    },
+    {
+      "actual": 399000000.0,
+      "predicted": 397874226.9119767,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 235000000.0,
+      "predicted": 516485802.579365,
+      "make": "Land Rover",
+      "year": 2012.0
+    },
+    {
+      "actual": 330000000.0,
+      "predicted": 354168149.5963833,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 2095000000.0,
+      "predicted": 2068102232.1428583,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 195000000.0,
+      "predicted": 245716470.23809525,
+      "make": "Mitsubishi",
+      "year": 2017.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 206946147.72727263,
+      "make": "Toyota",
+      "year": 2020.0
+    },
+    {
+      "actual": 665000000.0,
+      "predicted": 628030388.1673884,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 560000000.0,
+      "predicted": 557741058.8716838,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 245000000.0,
+      "predicted": 273707568.5714285,
+      "make": "Honda",
+      "year": 2018.0
+    },
+    {
+      "actual": 169000000.0,
+      "predicted": 165538315.47619048,
+      "make": "Honda",
+      "year": 2016.0
+    },
+    {
+      "actual": 34500000.0,
+      "predicted": 58585720.633670636,
+      "make": "Mercedes-Benz",
+      "year": 1987.0
+    },
+    {
+      "actual": 328000000.0,
+      "predicted": 343656043.83116883,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 230000000.0,
+      "predicted": 279441285.7142857,
+      "make": "Chevrolet",
+      "year": 2017.0
+    },
+    {
+      "actual": 4000000000.0,
+      "predicted": 4043752424.759688,
+      "make": "Lexus",
+      "year": 2026.0
+    },
+    {
+      "actual": 85000000.0,
+      "predicted": 157402321.40117857,
+      "make": "Ford",
+      "year": 2011.0
+    },
+    {
+      "actual": 52000000.0,
+      "predicted": 39672707.025821425,
+      "make": "Toyota",
+      "year": 1996.0
+    },
+    {
+      "actual": 625000000.0,
+      "predicted": 535364123.62637377,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 5500000000.0,
+      "predicted": 5204802158.73016,
+      "make": "Porsche",
+      "year": 2014.0
+    },
+    {
+      "actual": 665000000.0,
+      "predicted": 667853339.6811521,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 220000000.0,
+      "predicted": 221920241.5873016,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 275000000.0,
+      "predicted": 263640904.21911252,
+      "make": "Nissan",
+      "year": 2021.0
+    },
+    {
+      "actual": 1625000000.0,
+      "predicted": 1607025616.883117,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 12000000000.0,
+      "predicted": 5605942353.174604,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 188000000.0,
+      "predicted": 277161615.0793651,
+      "make": "Mitsubishi",
+      "year": 2018.0
+    },
+    {
+      "actual": 380000000.0,
+      "predicted": 375750186.63281167,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 99000000.0,
+      "predicted": 110676841.54095243,
+      "make": "Toyota",
+      "year": 2010.0
+    },
+    {
+      "actual": 209000000.0,
+      "predicted": 211027430.07936507,
+      "make": "Honda",
+      "year": 2019.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 354710416.6666666,
+      "make": "Mercedes-Benz",
+      "year": 2015.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 424485569.44444436,
+      "make": "Mazda",
+      "year": 2024.0
+    },
+    {
+      "actual": 245000000.0,
+      "predicted": 237103913.870877,
+      "make": "BMW",
+      "year": 2017.0
+    },
+    {
+      "actual": 199000000.0,
+      "predicted": 215538980.1587301,
+      "make": "Toyota",
+      "year": 2011.0
+    },
+    {
+      "actual": 1049000000.0,
+      "predicted": 1499556847.5829728,
+      "make": "BMW",
+      "year": 2022.0
+    },
+    {
+      "actual": 160000000.0,
+      "predicted": 178453664.68253967,
+      "make": "Suzuki",
+      "year": 2021.0
+    },
+    {
+      "actual": 177000000.0,
+      "predicted": 135786295.45454547,
+      "make": "Daihatsu",
+      "year": 2020.0
+    },
+    {
+      "actual": 35000000.0,
+      "predicted": 44014965.268948406,
+      "make": "Hyundai",
+      "year": 2003.0
+    },
+    {
+      "actual": 662000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 515000000.0,
+      "predicted": 519669870.5624439,
+      "make": "Mazda",
+      "year": 2023.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 430377198.41269845,
+      "make": "Mitsubishi",
+      "year": 2022.0
+    },
+    {
+      "actual": 290000000.0,
+      "predicted": 318043597.22222215,
+      "make": "Hyundai",
+      "year": 2018.0
+    },
+    {
+      "actual": 600000000.0,
+      "predicted": 589029122.2527474,
+      "make": "Kia",
+      "year": 2024.0
+    },
+    {
+      "actual": 1395000000.0,
+      "predicted": 879430843.2539679,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 199999000.0,
+      "predicted": 331489421.3095238,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 75000000.0,
+      "predicted": 65002171.62698414,
+      "make": "Nissan",
+      "year": 2008.0
+    },
+    {
+      "actual": 235000000.0,
+      "predicted": 255225184.52380955,
+      "make": "BMW",
+      "year": 2017.0
+    },
+    {
+      "actual": 217000000.0,
+      "predicted": 238070270.83333337,
+      "make": "Mitsubishi",
+      "year": 2024.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 222904431.51986894,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 399000000.0,
+      "predicted": 419217507.9365078,
+      "make": "Honda",
+      "year": 2022.0
+    },
+    {
+      "actual": 37500000.0,
+      "predicted": 44364922.5425184,
+      "make": "Toyota",
+      "year": 1995.0
+    },
+    {
+      "actual": 1195000000.0,
+      "predicted": 1197384895.3823953,
+      "make": "Mercedes-Benz",
+      "year": 2025.0
+    },
+    {
+      "actual": 183000000.0,
+      "predicted": 226325755.95238096,
+      "make": "Mitsubishi",
+      "year": 2019.0
+    },
+    {
+      "actual": 325000000.0,
+      "predicted": 345329688.94993895,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 615000000.0,
+      "predicted": 331056089.2857143,
+      "make": "Mercedes-Benz",
+      "year": 2012.0
+    },
+    {
+      "actual": 435000000.0,
+      "predicted": 433937653.8600287,
+      "make": "Hyundai",
+      "year": 2021.0
+    },
+    {
+      "actual": 215000000.0,
+      "predicted": 217776914.68253967,
+      "make": "Mitsubishi",
+      "year": 2022.0
+    },
+    {
+      "actual": 399000000.0,
+      "predicted": 387138091.2698413,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 1150000000.0,
+      "predicted": 1381227136.9047623,
+      "make": "BMW",
+      "year": 2014.0
+    },
+    {
+      "actual": 175000000.0,
+      "predicted": 237070378.2467532,
+      "make": "Daihatsu",
+      "year": 2024.0
+    },
+    {
+      "actual": 1155000000.0,
+      "predicted": 994040906.7460318,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 134500000.0,
+      "predicted": 140916244.04511905,
+      "make": "Suzuki",
+      "year": 2017.0
+    },
+    {
+      "actual": 159000000.0,
+      "predicted": 170269662.6984126,
+      "make": "Suzuki",
+      "year": 2020.0
+    },
+    {
+      "actual": 2795000000.0,
+      "predicted": 2878832489.320814,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 120000000.0,
+      "predicted": 69564252.38095239,
+      "make": "Daihatsu",
+      "year": 2013.0
+    },
+    {
+      "actual": 370000000.0,
+      "predicted": 302309664.6825397,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 368000000.0,
+      "predicted": 625443499.9999999,
+      "make": "Mercedes-Benz",
+      "year": 2018.0
+    },
+    {
+      "actual": 1785000000.0,
+      "predicted": 1945467607.1428568,
+      "make": "Porsche",
+      "year": 2017.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 313272158.2738095,
+      "make": "Chery",
+      "year": 2024.0
+    },
+    {
+      "actual": 180000000.0,
+      "predicted": 200073385.1953602,
+      "make": "Suzuki",
+      "year": 2023.0
+    },
+    {
+      "actual": 375000000.0,
+      "predicted": 377910442.95981795,
+      "make": "Mazda",
+      "year": 2022.0
+    },
+    {
+      "actual": 355000000.0,
+      "predicted": 329946667.3881674,
+      "make": "Honda",
+      "year": 2024.0
+    },
+    {
+      "actual": 33500000.0,
+      "predicted": 37529773.52005159,
+      "make": "Toyota",
+      "year": 1991.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 279516001.98412704,
+      "make": "Honda",
+      "year": 2022.0
+    },
+    {
+      "actual": 8950000000.0,
+      "predicted": 8141756845.762294,
+      "make": "Mercedes-Benz",
+      "year": 2026.0
+    },
+    {
+      "actual": 145000000.0,
+      "predicted": 218262142.26190475,
+      "make": "Honda",
+      "year": 2020.0
+    },
+    {
+      "actual": 675000000.0,
+      "predicted": 675998612.914863,
+      "make": "Kia",
+      "year": 2024.0
+    },
+    {
+      "actual": 445000000.0,
+      "predicted": 462104026.7857143,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 183000000.0,
+      "predicted": 190696587.30158725,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 8990000000.0,
+      "predicted": 4570049496.031745,
+      "make": "Rolls Royce",
+      "year": 2014.0
+    },
+    {
+      "actual": 200000000.0,
+      "predicted": 331489421.3095238,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 88000000.0,
+      "predicted": 157490750.00000003,
+      "make": "Renault",
+      "year": 2022.0
+    },
+    {
+      "actual": 348000000.0,
+      "predicted": 490181365.05952376,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 26000000.0,
+      "predicted": 39768630.25793651,
+      "make": "Toyota",
+      "year": 2002.0
+    },
+    {
+      "actual": 5750000000.0,
+      "predicted": 7356828065.476193,
+      "make": "Audi",
+      "year": 2021.0
+    },
+    {
+      "actual": 200000000.0,
+      "predicted": 182469351.19047618,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 200000000.0,
+      "predicted": 204422204.6092796,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 1990000000.0,
+      "predicted": 1980507423.1911874,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 105000000.0,
+      "predicted": 112641785.71178573,
+      "make": "Honda",
+      "year": 2010.0
+    },
+    {
+      "actual": 825000000.0,
+      "predicted": 931015396.1785628,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 269000000.0,
+      "predicted": 273518707.79220784,
+      "make": "Chery",
+      "year": 2025.0
+    },
+    {
+      "actual": 2250000000.0,
+      "predicted": 2148479569.0833335,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 39000000.0,
+      "predicted": 131164732.13779761,
+      "make": "Daihatsu",
+      "year": 2000.0
+    },
+    {
+      "actual": 310000000.0,
+      "predicted": 308713990.50865805,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 685000000.0,
+      "predicted": 685728709.9823176,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 325000000.0,
+      "predicted": 343060806.3515137,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 385000000.0,
+      "predicted": 385724244.0412856,
+      "make": "Mercedes-Benz",
+      "year": 2017.0
+    },
+    {
+      "actual": 199000000.0,
+      "predicted": 199346912.69841278,
+      "make": "Kia",
+      "year": 2021.0
+    },
+    {
+      "actual": 280000000.0,
+      "predicted": 351882453.61183256,
+      "make": "Honda",
+      "year": 2022.0
+    },
+    {
+      "actual": 3122000000.0,
+      "predicted": 3063679665.3138537,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 269000000.0,
+      "predicted": 273518707.79220784,
+      "make": "Chery",
+      "year": 2025.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 224526970.2380952,
+      "make": "Honda",
+      "year": 2015.0
+    },
+    {
+      "actual": 3000000000.0,
+      "predicted": 2995417005.772005,
+      "make": "Lexus",
+      "year": 2024.0
+    },
+    {
+      "actual": 645000000.0,
+      "predicted": 648139220.3768454,
+      "make": "Lexus",
+      "year": 2020.0
+    },
+    {
+      "actual": 525000000.0,
+      "predicted": 485504823.6485737,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 895000000.0,
+      "predicted": 1045347573.4126984,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 125000000.0,
+      "predicted": 217927640.47619054,
+      "make": "Chevrolet",
+      "year": 2015.0
+    },
+    {
+      "actual": 58500000.0,
+      "predicted": 47598241.66666666,
+      "make": "Kia",
+      "year": 2011.0
+    },
+    {
+      "actual": 2200000000.0,
+      "predicted": 1972022718.2539687,
+      "make": "Land Rover",
+      "year": 2022.0
+    },
+    {
+      "actual": 1199000000.0,
+      "predicted": 1182022763.7085137,
+      "make": "Ford",
+      "year": 2023.0
+    },
+    {
+      "actual": 489000000.0,
+      "predicted": 595982446.7876552,
+      "make": "Toyota",
+      "year": 2026.0
+    },
+    {
+      "actual": 490000000.0,
+      "predicted": 647309585.2474761,
+      "make": "Mini",
+      "year": 2022.0
+    },
+    {
+      "actual": 1150000000.0,
+      "predicted": 1139095897.1806707,
+      "make": "Hyundai",
+      "year": 2025.0
+    },
+    {
+      "actual": 155000000.0,
+      "predicted": 172860291.66499996,
+      "make": "Nissan",
+      "year": 2021.0
+    },
+    {
+      "actual": 255000000.0,
+      "predicted": 241446095.2302381,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 359000000.0,
+      "predicted": 356574239.5104895,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 1575000000.0,
+      "predicted": 1236748633.5400712,
+      "make": "Toyota",
+      "year": 2017.0
+    },
+    {
+      "actual": 620000000.0,
+      "predicted": 645659878.968254,
+      "make": "Subaru",
+      "year": 2023.0
+    },
+    {
+      "actual": 389000000.0,
+      "predicted": 387209867.24386716,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 475000000.0,
+      "predicted": 449256954.1807755,
+      "make": "Mercedes-Benz",
+      "year": 2017.0
+    },
+    {
+      "actual": 7990000000.0,
+      "predicted": 8870589152.056276,
+      "make": "Lamborghini",
+      "year": 2022.0
+    },
+    {
+      "actual": 199000000.0,
+      "predicted": 165509751.7857143,
+      "make": "BMW",
+      "year": 2012.0
+    },
+    {
+      "actual": 1575000000.0,
+      "predicted": 1815017886.2176697,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 440000000.0,
+      "predicted": 440095742.5768675,
+      "make": "Hyundai",
+      "year": 2021.0
+    },
+    {
+      "actual": 198000000.0,
+      "predicted": 334099918.9303752,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 305000000.0,
+      "predicted": 309571244.5887445,
+      "make": "Jetour",
+      "year": 2026.0
+    },
+    {
+      "actual": 240000000.0,
+      "predicted": 234046945.25613263,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 535000000.0,
+      "predicted": 551613115.0793653,
+      "make": "Mini",
+      "year": 2020.0
+    },
+    {
+      "actual": 150000000.0,
+      "predicted": 155873148.80952376,
+      "make": "Mazda",
+      "year": 2017.0
+    },
+    {
+      "actual": 539000000.0,
+      "predicted": 537868136.894762,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 320750000.0,
+      "predicted": 232006248.015873,
+      "make": "Toyota",
+      "year": 2017.0
+    },
+    {
+      "actual": 1145000000.0,
+      "predicted": 553680749.0079365,
+      "make": "Porsche",
+      "year": 2014.0
+    },
+    {
+      "actual": 27500000.0,
+      "predicted": 38534599.204682544,
+      "make": "Toyota",
+      "year": 1987.0
+    },
+    {
+      "actual": 205000000.0,
+      "predicted": 237711756.13912693,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 895000000.0,
+      "predicted": 1045347573.4126984,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 365000000.0,
+      "predicted": 1156698381.8795097,
+      "make": "Suzuki",
+      "year": 2023.0
+    },
+    {
+      "actual": 275000000.0,
+      "predicted": 259695238.0877382,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 412000000.0,
+      "predicted": 503711281.89615935,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 159000000.0,
+      "predicted": 150773088.88888887,
+      "make": "Honda",
+      "year": 2017.0
+    },
+    {
+      "actual": 429000000.0,
+      "predicted": 430254978.293461,
+      "make": "Mitsubishi",
+      "year": 2025.0
+    },
+    {
+      "actual": 365000000.0,
+      "predicted": 360679017.85714304,
+      "make": "Toyota",
+      "year": 2020.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 407384157.87179476,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 435000000.0,
+      "predicted": 463458646.8253968,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 480000000.0,
+      "predicted": 481610512.2655123,
+      "make": "Toyota",
+      "year": 2019.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 357954393.939394,
+      "make": "Mercedes-Benz",
+      "year": 2015.0
+    },
+    {
+      "actual": 520000000.0,
+      "predicted": 599368831.3492063,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 145000000.0,
+      "predicted": 143298589.2857143,
+      "make": "Suzuki",
+      "year": 2018.0
+    },
+    {
+      "actual": 662000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 400000000.0,
+      "predicted": 404552421.17604613,
+      "make": "Hyundai",
+      "year": 2022.0
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 56824042.261904754,
+      "make": "Toyota",
+      "year": 2002.0
+    },
+    {
+      "actual": 535000000.0,
+      "predicted": 547549186.5079366,
+      "make": "Mini",
+      "year": 2020.0
+    },
+    {
+      "actual": 290000000.0,
+      "predicted": 350134466.26984113,
+      "make": "Hyundai",
+      "year": 2018.0
+    },
+    {
+      "actual": 198000000.0,
+      "predicted": 198944585.1587302,
+      "make": "Honda",
+      "year": 2019.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 211355392.17032966,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 75000000.0,
+      "predicted": 100597923.21261904,
+      "make": "Chevrolet",
+      "year": 2014.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 271957885.7142856,
+      "make": "BMW",
+      "year": 2019.0
+    },
+    {
+      "actual": 501000000.0,
+      "predicted": 502862683.0742785,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 6900000000.0,
+      "predicted": 6731058829.365079,
+      "make": "Porsche",
+      "year": 2022.0
+    },
+    {
+      "actual": 685000000.0,
+      "predicted": 549346680.0838048,
+      "make": "Hyundai",
+      "year": 2024.0
+    },
+    {
+      "actual": 647000000.0,
+      "predicted": 645366771.4507713,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 45000000.0,
+      "predicted": 51493212.6031746,
+      "make": "Toyota",
+      "year": 1995.0
+    },
+    {
+      "actual": 895000000.0,
+      "predicted": 710163930.7359304,
+      "make": "Mercedes-Benz",
+      "year": 2017.0
+    },
+    {
+      "actual": 265000000.0,
+      "predicted": 276419220.1984127,
+      "make": "Mitsubishi",
+      "year": 2024.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 417882639.91976637,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 440000000.0,
+      "predicted": 440095742.5768675,
+      "make": "Hyundai",
+      "year": 2021.0
+    },
+    {
+      "actual": 8400000000.0,
+      "predicted": 6886769924.464424,
+      "make": "Lamborghini",
+      "year": 2023.0
+    },
+    {
+      "actual": 698000000.0,
+      "predicted": 614297182.5396824,
+      "make": "Honda",
+      "year": 2024.0
+    },
+    {
+      "actual": 275000000.0,
+      "predicted": 453348063.9804639,
+      "make": "Honda",
+      "year": 2016.0
+    },
+    {
+      "actual": 28000000.0,
+      "predicted": 174534498.57142866,
+      "make": "Suzuki",
+      "year": 2022.0
+    },
+    {
+      "actual": 459000000.0,
+      "predicted": 464831213.8414517,
+      "make": "baic",
+      "year": 2024.0
+    },
+    {
+      "actual": 3900000000.0,
+      "predicted": 4893520246.787934,
+      "make": "Lexus",
+      "year": 2025.0
+    },
+    {
+      "actual": 109000000.0,
+      "predicted": 132669797.6190476,
+      "make": "Mazda",
+      "year": 2010.0
+    },
+    {
+      "actual": 214000000.0,
+      "predicted": 278586345.2380952,
+      "make": "Honda",
+      "year": 2018.0
+    },
+    {
+      "actual": 1525000000.0,
+      "predicted": 1332677999.9773338,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 160000000.0,
+      "predicted": 192356463.0952381,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 260000000.0,
+      "predicted": 377213526.7857143,
+      "make": "BMW",
+      "year": 2015.0
+    },
+    {
+      "actual": 2375000000.0,
+      "predicted": 2489087124.9999995,
+      "make": "Land Rover",
+      "year": 2022.0
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 105468992.06349204,
+      "make": "Toyota",
+      "year": 2003.0
+    },
+    {
+      "actual": 94000000.0,
+      "predicted": 105572336.30952384,
+      "make": "Nissan",
+      "year": 2008.0
+    },
+    {
+      "actual": 49500000.0,
+      "predicted": 38895512.99603174,
+      "make": "Toyota",
+      "year": 2002.0
+    },
+    {
+      "actual": 230000000.0,
+      "predicted": 288433841.0595239,
+      "make": "Mitsubishi",
+      "year": 2022.0
+    },
+    {
+      "actual": 195000000.0,
+      "predicted": 231603635.82251084,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 1089000000.0,
+      "predicted": 771493288.4199133,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 235000000.0,
+      "predicted": 239955031.34920633,
+      "make": "Honda",
+      "year": 2015.0
+    },
+    {
+      "actual": 15000000000.0,
+      "predicted": 11861427485.938896,
+      "make": "Lamborghini",
+      "year": 2026.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 462236026.69552666,
+      "make": "Mercedes-Benz",
+      "year": 2016.0
+    },
+    {
+      "actual": 118000000.0,
+      "predicted": 144218661.1111111,
+      "make": "Honda",
+      "year": 2017.0
+    },
+    {
+      "actual": 6800000000.0,
+      "predicted": 3697229631.0150476,
+      "make": "Porsche",
+      "year": 2022.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 482688285.7142858,
+      "make": "Mercedes-Benz",
+      "year": 2016.0
+    },
+    {
+      "actual": 420000000.0,
+      "predicted": 409403830.96678317,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 419000000.0,
+      "predicted": 312531738.0935715,
+      "make": "BMW",
+      "year": 2021.0
+    },
+    {
+      "actual": 472000000.0,
+      "predicted": 475152242.06349206,
+      "make": "BYD",
+      "year": 2024.0
+    },
+    {
+      "actual": 269000000.0,
+      "predicted": 273461308.4415584,
+      "make": "Nissan",
+      "year": 2018.0
+    },
+    {
+      "actual": 3875000000.0,
+      "predicted": 3938025428.7587433,
+      "make": "Lexus",
+      "year": 2026.0
+    },
+    {
+      "actual": 178000000.0,
+      "predicted": 189516698.41269836,
+      "make": "Lexus",
+      "year": 2013.0
+    },
+    {
+      "actual": 179000000.0,
+      "predicted": 177673125.00000003,
+      "make": "Suzuki",
+      "year": 2021.0
+    },
+    {
+      "actual": 4500000000.0,
+      "predicted": 2204149335.317461,
+      "make": "Land Rover",
+      "year": 2022.0
+    },
+    {
+      "actual": 465000000.0,
+      "predicted": 464831213.8414517,
+      "make": "baic",
+      "year": 2024.0
+    },
+    {
+      "actual": 320000000.0,
+      "predicted": 228869217.74891785,
+      "make": "Volkswagen",
+      "year": 2017.0
+    },
+    {
+      "actual": 439000000.0,
+      "predicted": 418971258.4981687,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 499000000.0,
+      "predicted": 547624367.4307718,
+      "make": "Mazda",
+      "year": 2024.0
+    },
+    {
+      "actual": 499000000.0,
+      "predicted": 532219451.6178265,
+      "make": "Mitsubishi",
+      "year": 2024.0
+    },
+    {
+      "actual": 52000000.0,
+      "predicted": 77583095.23809524,
+      "make": "Suzuki",
+      "year": null
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 71288017.85614285,
+      "make": "Toyota",
+      "year": 2001.0
+    },
+    {
+      "actual": 8900000000.0,
+      "predicted": 6096232115.030801,
+      "make": "Bentley",
+      "year": 2023.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 432836692.6823179,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 2290000000.0,
+      "predicted": 2313318070.1659465,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 39000000.0,
+      "predicted": 50040119.046369046,
+      "make": "Nissan",
+      "year": 2006.0
+    },
+    {
+      "actual": 465000000.0,
+      "predicted": 1682303523.5760968,
+      "make": "baic",
+      "year": 2025.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 559302568.6813186,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 245000000.0,
+      "predicted": 243524345.23642853,
+      "make": "BMW",
+      "year": 2014.0
+    },
+    {
+      "actual": 535000000.0,
+      "predicted": 400563267.8558927,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 125000000.0,
+      "predicted": 130022853.63095237,
+      "make": "Toyota",
+      "year": 2011.0
+    },
+    {
+      "actual": 300000000.0,
+      "predicted": 456230584.7069595,
+      "make": "Chery",
+      "year": 2024.0
+    },
+    {
+      "actual": 44000000.0,
+      "predicted": 44322234.07287157,
+      "make": "Mercedes-Benz",
+      "year": 2002.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 275309503.78787875,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 115000000.0,
+      "predicted": 274851748.015873,
+      "make": "Wuling",
+      "year": 2023.0
+    },
+    {
+      "actual": 49000000.0,
+      "predicted": 43408607.62897222,
+      "make": "Toyota",
+      "year": 2000.0
+    },
+    {
+      "actual": 115000000.0,
+      "predicted": 110987238.09523809,
+      "make": "Toyota",
+      "year": 2019.0
+    },
+    {
+      "actual": 1299000000.0,
+      "predicted": 873867117.0634917,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 6250000000.0,
+      "predicted": 8381420236.291486,
+      "make": "Lamborghini",
+      "year": 2012.0
+    },
+    {
+      "actual": 1730000000.0,
+      "predicted": 1687025565.476191,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 135000000.0,
+      "predicted": 113809720.23392859,
+      "make": "Mazda",
+      "year": 2012.0
+    },
+    {
+      "actual": 430000000.0,
+      "predicted": 426747307.4564325,
+      "make": "Hyundai",
+      "year": 2021.0
+    },
+    {
+      "actual": 647000000.0,
+      "predicted": 645366771.4507713,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 179000000.0,
+      "predicted": 169150214.28571433,
+      "make": "Lexus",
+      "year": 2011.0
+    },
+    {
+      "actual": 590000000.0,
+      "predicted": 584324011.7798867,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 228000000.0,
+      "predicted": 210110545.23809528,
+      "make": "Mitsubishi",
+      "year": 2022.0
+    },
+    {
+      "actual": 140000000.0,
+      "predicted": 161085316.4682539,
+      "make": "Honda",
+      "year": 2018.0
+    },
+    {
+      "actual": 750000000.0,
+      "predicted": 790008037.6984123,
+      "make": "BMW",
+      "year": 2020.0
+    },
+    {
+      "actual": 7500000000.0,
+      "predicted": 8155985190.476189,
+      "make": "Ferrari",
+      "year": 2021.0
+    },
+    {
+      "actual": 730000000.0,
+      "predicted": 664011584.5959597,
+      "make": "Toyota",
+      "year": 2020.0
+    },
+    {
+      "actual": 365000000.0,
+      "predicted": 348694166.66666675,
+      "make": "Toyota",
+      "year": 2020.0
+    },
+    {
+      "actual": 2765000000.0,
+      "predicted": 8359424639.1317005,
+      "make": "Porsche",
+      "year": 2025.0
+    },
+    {
+      "actual": 2000000000.0,
+      "predicted": 2350148902.77778,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 845000000.0,
+      "predicted": 1090067097.7031024,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 539000000.0,
+      "predicted": 536813035.7142857,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 1325000000.0,
+      "predicted": 1330279428.1021264,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 520000000.0,
+      "predicted": 515868897.8366405,
+      "make": "baic",
+      "year": 2025.0
+    },
+    {
+      "actual": 485000000.0,
+      "predicted": 907616343.7765104,
+      "make": "BYD",
+      "year": 2024.0
+    },
+    {
+      "actual": 215000000.0,
+      "predicted": 271724285.7142857,
+      "make": "Hyundai",
+      "year": 2017.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 430773967.8571431,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 660000000.0,
+      "predicted": 657735319.91293,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 218000000.0,
+      "predicted": 297636101.19047624,
+      "make": "Mazda",
+      "year": 2018.0
+    },
+    {
+      "actual": 350000000.0,
+      "predicted": 355391023.8095238,
+      "make": "Mazda",
+      "year": 2020.0
+    },
+    {
+      "actual": 149000000.0,
+      "predicted": 179343291.6666667,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 730000000.0,
+      "predicted": 729777555.793063,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 485000000.0,
+      "predicted": 311064264.88095236,
+      "make": "Mercedes-Benz",
+      "year": 2013.0
+    },
+    {
+      "actual": 575000000.0,
+      "predicted": 901256718.8505939,
+      "make": "Toyota",
+      "year": 2021.0
+    },
+    {
+      "actual": 317500000.0,
+      "predicted": 384427979.70779246,
+      "make": "Lexus",
+      "year": 2014.0
+    },
+    {
+      "actual": 7950000000.0,
+      "predicted": 5550547482.1428585,
+      "make": "Ferrari",
+      "year": 2016.0
+    },
+    {
+      "actual": 299000000.0,
+      "predicted": 362057669.82323235,
+      "make": "BMW",
+      "year": 2016.0
+    },
+    {
+      "actual": 228000000.0,
+      "predicted": 280586218.25396836,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 830000000.0,
+      "predicted": 843362922.7994226,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 155000000.0,
+      "predicted": 201173517.31601742,
+      "make": "Nissan",
+      "year": 2018.0
+    },
+    {
+      "actual": 455000000.0,
+      "predicted": 444601051.94733775,
+      "make": "Mazda",
+      "year": 2023.0
+    },
+    {
+      "actual": 1950000000.0,
+      "predicted": 1973469657.8144066,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 44000000.0,
+      "predicted": 44595147.16144302,
+      "make": "Mercedes-Benz",
+      "year": 2002.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 456894571.64141417,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 697000000.0,
+      "predicted": 821332871.0317463,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 1250000000.0,
+      "predicted": 1220122722.041847,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 845000000.0,
+      "predicted": 814361934.5221426,
+      "make": "BMW",
+      "year": 2022.0
+    },
+    {
+      "actual": 3650000000.0,
+      "predicted": 653165783.7301588,
+      "make": "BMW",
+      "year": 2021.0
+    },
+    {
+      "actual": 120000000.0,
+      "predicted": 256793672.61904758,
+      "make": "Wuling",
+      "year": 2024.0
+    },
+    {
+      "actual": 198000000.0,
+      "predicted": 294455911.79365087,
+      "make": "Hyundai",
+      "year": 2026.0
+    },
+    {
+      "actual": 950000000.0,
+      "predicted": 683354611.1019444,
+      "make": "BMW",
+      "year": 2022.0
+    },
+    {
+      "actual": 8750000000.0,
+      "predicted": 7975996428.571432,
+      "make": "Porsche",
+      "year": 2025.0
+    },
+    {
+      "actual": 1955000000.0,
+      "predicted": 1975904835.555836,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 220000000.0,
+      "predicted": 197754311.61616164,
+      "make": "Volkswagen",
+      "year": 2019.0
+    },
+    {
+      "actual": 195000000.0,
+      "predicted": 213699214.28571427,
+      "make": "Suzuki",
+      "year": 2023.0
+    },
+    {
+      "actual": 4850000000.0,
+      "predicted": 5337956678.57143,
+      "make": "Aston Martin",
+      "year": 2019.0
+    },
+    {
+      "actual": 2475000000.0,
+      "predicted": 3001210313.526751,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 1155000000.0,
+      "predicted": 1750807147.5085363,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 5850000000.0,
+      "predicted": 5978118148.809524,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 290000000.0,
+      "predicted": 257393339.2857144,
+      "make": "Suzuki",
+      "year": 2023.0
+    },
+    {
+      "actual": 1250000000.0,
+      "predicted": 1220122722.041847,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 220000000.0,
+      "predicted": 276828002.97369045,
+      "make": "Mercedes-Benz",
+      "year": 2012.0
+    },
+    {
+      "actual": 45000000.0,
+      "predicted": 50866433.035714276,
+      "make": "Toyota",
+      "year": 2004.0
+    },
+    {
+      "actual": 45000000.0,
+      "predicted": 50392562.10317462,
+      "make": "Toyota",
+      "year": 1998.0
+    },
+    {
+      "actual": 635000000.0,
+      "predicted": 1976208284.0215335,
+      "make": "Mazda",
+      "year": 2023.0
+    },
+    {
+      "actual": 78000000.0,
+      "predicted": 125822666.66250004,
+      "make": "Ford",
+      "year": 2014.0
+    },
+    {
+      "actual": 349000000.0,
+      "predicted": 353684763.47263837,
+      "make": "Mercedes-Benz",
+      "year": 2018.0
+    },
+    {
+      "actual": 255000000.0,
+      "predicted": 227940514.88095245,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 8500000000.0,
+      "predicted": 5523426367.826618,
+      "make": "Land Rover",
+      "year": 2022.0
+    },
+    {
+      "actual": 375000000.0,
+      "predicted": 371877337.1212122,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 999000000.0,
+      "predicted": 1288893184.5772796,
+      "make": "Mercedes-Benz",
+      "year": 2021.0
+    },
+    {
+      "actual": 515000000.0,
+      "predicted": 355095732.1403572,
+      "make": "Mercedes-Benz",
+      "year": 2011.0
+    },
+    {
+      "actual": 245000000.0,
+      "predicted": 228766661.70634922,
+      "make": "Kia",
+      "year": 2023.0
+    },
+    {
+      "actual": 535000000.0,
+      "predicted": 588632903.0927382,
+      "make": "Mitsubishi",
+      "year": 2025.0
+    },
+    {
+      "actual": 1575000000.0,
+      "predicted": 1609401299.214674,
+      "make": "Toyota",
+      "year": 2017.0
+    },
+    {
+      "actual": 72000000.0,
+      "predicted": 98606533.64899205,
+      "make": "Chevrolet",
+      "year": 2014.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 246685233.88888887,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 115000000.0,
+      "predicted": 117612734.12115076,
+      "make": "Suzuki",
+      "year": 2014.0
+    },
+    {
+      "actual": 3250000000.0,
+      "predicted": 4198005179.4733043,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 660000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 375000000.0,
+      "predicted": 377910442.95981795,
+      "make": "Mazda",
+      "year": 2022.0
+    },
+    {
+      "actual": 28000000.0,
+      "predicted": 100122363.09523807,
+      "make": "Mitsubishi",
+      "year": 1994.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 369373335.31746024,
+      "make": "Toyota",
+      "year": 2016.0
+    },
+    {
+      "actual": 220000000.0,
+      "predicted": 233109290.336039,
+      "make": "Honda",
+      "year": 2023.0
+    },
+    {
+      "actual": 118000000.0,
+      "predicted": 120019435.71428576,
+      "make": "Suzuki",
+      "year": 2018.0
+    },
+    {
+      "actual": 660000000.0,
+      "predicted": 661269282.9672558,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 465000000.0,
+      "predicted": 462671779.41142964,
+      "make": "baic",
+      "year": 2024.0
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 1006259268.1277058,
+      "make": "Lain-lain",
+      "year": null
+    },
+    {
+      "actual": 118000000.0,
+      "predicted": 173455421.03174603,
+      "make": "Wuling",
+      "year": 2019.0
+    },
+    {
+      "actual": 4129000000.0,
+      "predicted": 4350496398.809524,
+      "make": "Aston Martin",
+      "year": 2019.0
+    },
+    {
+      "actual": 1274000000.0,
+      "predicted": 1090948256.158753,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 650000000.0,
+      "predicted": 650218159.1741593,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 45000000.0,
+      "predicted": 48846860.090988114,
+      "make": "Mercedes-Benz",
+      "year": 1995.0
+    },
+    {
+      "actual": 245000000.0,
+      "predicted": 216368745.12698406,
+      "make": "Hyundai",
+      "year": 2026.0
+    },
+    {
+      "actual": 48500000.0,
+      "predicted": 40094403.30908334,
+      "make": "Toyota",
+      "year": 1991.0
+    },
+    {
+      "actual": 67000000.0,
+      "predicted": 101734101.19047616,
+      "make": "Nissan",
+      "year": 2011.0
+    },
+    {
+      "actual": 385000000.0,
+      "predicted": 372384142.6767677,
+      "make": "Honda",
+      "year": 2021.0
+    },
+    {
+      "actual": 315000000.0,
+      "predicted": 345836962.3623925,
+      "make": "Hyundai",
+      "year": 2025.0
+    },
+    {
+      "actual": 451000000.0,
+      "predicted": 604991714.2857143,
+      "make": "BMW",
+      "year": 2017.0
+    },
+    {
+      "actual": 595000000.0,
+      "predicted": 605738271.8227301,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 590000000.0,
+      "predicted": 584324011.7798867,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 120000000.0,
+      "predicted": 142144161.21600282,
+      "make": "Mazda",
+      "year": 2015.0
+    },
+    {
+      "actual": 790000000.0,
+      "predicted": 530820987.6343005,
+      "make": "GWM",
+      "year": 2024.0
+    },
+    {
+      "actual": 279000000.0,
+      "predicted": 305812345.2380953,
+      "make": "Mazda",
+      "year": 2020.0
+    },
+    {
+      "actual": 190000000.0,
+      "predicted": 202574621.03174603,
+      "make": "Suzuki",
+      "year": 2023.0
+    },
+    {
+      "actual": 35000000.0,
+      "predicted": 48246804.761904754,
+      "make": "Chevrolet",
+      "year": 2010.0
+    },
+    {
+      "actual": 350000000.0,
+      "predicted": 322483088.21789324,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 647000000.0,
+      "predicted": 645366771.4507713,
+      "make": "Toyota",
+      "year": 2022.0
+    },
+    {
+      "actual": 4250000000.0,
+      "predicted": 3283156366.973304,
+      "make": "Lexus",
+      "year": 2023.0
+    },
+    {
+      "actual": 3800000000.0,
+      "predicted": 2807355654.7619047,
+      "make": "Ferrari",
+      "year": 2006.0
+    },
+    {
+      "actual": 500000000.0,
+      "predicted": 565165111.1111112,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 300000000.0,
+      "predicted": 539568567.4603175,
+      "make": "Honda",
+      "year": 2019.0
+    },
+    {
+      "actual": 48000000.0,
+      "predicted": 58712419.130228184,
+      "make": "Honda",
+      "year": 2000.0
+    },
+    {
+      "actual": 645000000.0,
+      "predicted": 648139220.3768454,
+      "make": "Lexus",
+      "year": 2020.0
+    },
+    {
+      "actual": 445000000.0,
+      "predicted": 357720418.6507937,
+      "make": "Chery",
+      "year": 2025.0
+    },
+    {
+      "actual": 799000000.0,
+      "predicted": 1410954357.6839826,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 5250000000.0,
+      "predicted": 7646843840.187591,
+      "make": "Porsche",
+      "year": 2024.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 414201053.4992785,
+      "make": "Mitsubishi",
+      "year": 2023.0
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 48301872.61488095,
+      "make": "Toyota",
+      "year": 2002.0
+    },
+    {
+      "actual": 35000000.0,
+      "predicted": 68340642.25857142,
+      "make": "Toyota",
+      "year": 2005.0
+    },
+    {
+      "actual": 475000000.0,
+      "predicted": 470196767.76001763,
+      "make": "Mazda",
+      "year": 2025.0
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 942202684.5238093,
+      "make": "Toyota",
+      "year": 1997.0
+    },
+    {
+      "actual": 559000000.0,
+      "predicted": 549910942.4186926,
+      "make": "Toyota",
+      "year": 2026.0
+    },
+    {
+      "actual": 365000000.0,
+      "predicted": 364946068.29975563,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 1155000000.0,
+      "predicted": 976556204.3650796,
+      "make": "BMW",
+      "year": 2023.0
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 47505798.801857136,
+      "make": "Mitsubishi",
+      "year": 2000.0
+    },
+    {
+      "actual": 219000000.0,
+      "predicted": 382004535.17030287,
+      "make": "Chery",
+      "year": 2023.0
+    },
+    {
+      "actual": 103000000.0,
+      "predicted": 120697579.66269842,
+      "make": "Nissan",
+      "year": 2014.0
+    },
+    {
+      "actual": 479900000.0,
+      "predicted": 658350754.1865078,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 415000000.0,
+      "predicted": 356502378.781746,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 699000000.0,
+      "predicted": 764794726.4957265,
+      "make": "Hyundai",
+      "year": 2023.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 646638115.0793651,
+      "make": "Land Rover",
+      "year": 2006.0
+    },
+    {
+      "actual": 49900000.0,
+      "predicted": 57016934.15633332,
+      "make": "Suzuki",
+      "year": 2001.0
+    },
+    {
+      "actual": 192000000.0,
+      "predicted": 215341718.25396833,
+      "make": "Honda",
+      "year": 2016.0
+    },
+    {
+      "actual": 405000000.0,
+      "predicted": 348318500.00000006,
+      "make": "Mercedes-Benz",
+      "year": 2015.0
+    },
+    {
+      "actual": 450000000.0,
+      "predicted": 497795571.4285715,
+      "make": "Mitsubishi",
+      "year": 2009.0
+    },
+    {
+      "actual": 5000000000.0,
+      "predicted": 7860815950.757576,
+      "make": "Porsche",
+      "year": 2026.0
+    },
+    {
+      "actual": 155000000.0,
+      "predicted": 210075244.84126985,
+      "make": "Honda",
+      "year": 2020.0
+    },
+    {
+      "actual": 180000000.0,
+      "predicted": 216729232.14285713,
+      "make": "Mitsubishi",
+      "year": 2011.0
+    },
+    {
+      "actual": 52500000.0,
+      "predicted": 45245879.04761904,
+      "make": "Toyota",
+      "year": 2000.0
+    },
+    {
+      "actual": 430000000.0,
+      "predicted": 397372476.6483515,
+      "make": "Hyundai",
+      "year": 2021.0
+    },
+    {
+      "actual": 4350000000.0,
+      "predicted": 1948257486.1378796,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 8400000000.0,
+      "predicted": 8021812321.42857,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 205000000.0,
+      "predicted": 210356281.74603176,
+      "make": "Kia",
+      "year": 2021.0
+    },
+    {
+      "actual": 385000000.0,
+      "predicted": 387865810.6962482,
+      "make": "Mazda",
+      "year": 2022.0
+    },
+    {
+      "actual": 645000000.0,
+      "predicted": 472873264.1525141,
+      "make": "Hyundai",
+      "year": 2025.0
+    },
+    {
+      "actual": 425000000.0,
+      "predicted": 424485569.44444436,
+      "make": "Mazda",
+      "year": 2024.0
+    },
+    {
+      "actual": 4188000000.0,
+      "predicted": 3301806845.2380958,
+      "make": "Mercedes-Benz",
+      "year": 2023.0
+    },
+    {
+      "actual": 168000000.0,
+      "predicted": 183810978.16871032,
+      "make": "Wuling",
+      "year": 2021.0
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 52099992.687912695,
+      "make": "Mercedes-Benz",
+      "year": 1996.0
+    },
+    {
+      "actual": 399000000.0,
+      "predicted": 399498244.0476191,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 56000000.0,
+      "predicted": 45535030.548888884,
+      "make": "Toyota",
+      "year": 1996.0
+    },
+    {
+      "actual": 479000000.0,
+      "predicted": 561945360.5006106,
+      "make": "BYD",
+      "year": 2024.0
+    },
+    {
+      "actual": 389000000.0,
+      "predicted": 387209867.24386716,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 510000000.0,
+      "predicted": 438296401.5151517,
+      "make": "Mercedes-Benz",
+      "year": 2015.0
+    },
+    {
+      "actual": 268000000.0,
+      "predicted": 329311410.7142856,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 218846517.85714284,
+      "make": "Toyota",
+      "year": 2012.0
+    },
+    {
+      "actual": 6000000000.0,
+      "predicted": 4763137839.285712,
+      "make": "Mobil CBU",
+      "year": 2025.0
+    },
+    {
+      "actual": 485000000.0,
+      "predicted": 482844694.8865699,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 5899000000.0,
+      "predicted": 5856477732.142857,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 440000000.0,
+      "predicted": 432836692.6823179,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 175000000.0,
+      "predicted": 157771518.2178932,
+      "make": "Nissan",
+      "year": 2019.0
+    },
+    {
+      "actual": 285000000.0,
+      "predicted": 298752163.4307359,
+      "make": "Mitsubishi",
+      "year": 2024.0
+    },
+    {
+      "actual": 47500000.0,
+      "predicted": 98646619.24603175,
+      "make": "Isuzu",
+      "year": 2000.0
+    },
+    {
+      "actual": 225000000.0,
+      "predicted": 286977349.7474746,
+      "make": "Hyundai",
+      "year": 2021.0
+    },
+    {
+      "actual": 385000000.0,
+      "predicted": 406994392.85714287,
+      "make": "Mercedes-Benz",
+      "year": 2018.0
+    },
+    {
+      "actual": 637000000.0,
+      "predicted": 627055620.879121,
+      "make": "BYD",
+      "year": 2025.0
+    },
+    {
+      "actual": 385000000.0,
+      "predicted": 381718744.6719946,
+      "make": "Mazda",
+      "year": 2022.0
+    },
+    {
+      "actual": 365000000.0,
+      "predicted": 364946068.29975563,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 183000000.0,
+      "predicted": 161312659.72222224,
+      "make": "Daihatsu",
+      "year": 2022.0
+    },
+    {
+      "actual": 95000000.0,
+      "predicted": 109277121.86147185,
+      "make": "Hyundai",
+      "year": 2011.0
+    },
+    {
+      "actual": 445000000.0,
+      "predicted": 423873698.03807294,
+      "make": "Toyota",
+      "year": 2023.0
+    },
+    {
+      "actual": 560000000.0,
+      "predicted": 549465042.9986681,
+      "make": "Mercedes-Benz",
+      "year": 2022.0
+    },
+    {
+      "actual": 229000000.0,
+      "predicted": 268362742.06349212,
+      "make": "Toyota",
+      "year": 2018.0
+    },
+    {
+      "actual": 495000000.0,
+      "predicted": 491679258.6926962,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 720000000.0,
+      "predicted": 736498757.9365078,
+      "make": "Mercedes-Benz",
+      "year": 2024.0
+    },
+    {
+      "actual": 3750000000.0,
+      "predicted": 1115127105.8101418,
+      "make": "Mercedes-Benz",
+      "year": 2019.0
+    },
+    {
+      "actual": 2695000000.0,
+      "predicted": 2799295748.376623,
+      "make": "Land Rover",
+      "year": 2022.0
+    },
+    {
+      "actual": 95000000.0,
+      "predicted": 120470045.45454548,
+      "make": "Daihatsu",
+      "year": 2019.0
+    },
+    {
+      "actual": 3100000000.0,
+      "predicted": 3321182902.7700005,
+      "make": "Porsche",
+      "year": 2024.0
+    },
+    {
+      "actual": 119000000.0,
+      "predicted": 142655139.28571424,
+      "make": "Honda",
+      "year": 2018.0
+    },
+    {
+      "actual": 330000000.0,
+      "predicted": 435992259.0725924,
+      "make": "Hyundai",
+      "year": 2020.0
+    },
+    {
+      "actual": 361000000.0,
+      "predicted": 424216435.9598091,
+      "make": "Honda",
+      "year": 2020.0
+    },
+    {
+      "actual": 289000000.0,
+      "predicted": 1241678527.7777774,
+      "make": "Mercedes-Benz",
+      "year": 2012.0
+    },
+    {
+      "actual": 56900000.0,
+      "predicted": 62076818.451130964,
+      "make": "Daihatsu",
+      "year": 2006.0
+    },
+    {
+      "actual": 210000000.0,
+      "predicted": 249286230.15873015,
+      "make": "Hyundai",
+      "year": 2012.0
+    },
+    {
+      "actual": 467000000.0,
+      "predicted": 470196767.76001763,
+      "make": "Mazda",
+      "year": 2025.0
+    },
+    {
+      "actual": 55000000.0,
+      "predicted": 40885335.708869055,
+      "make": "Daihatsu",
+      "year": 1993.0
+    },
+    {
+      "actual": 45000000.0,
+      "predicted": 40756001.1879762,
+      "make": "Mitsubishi",
+      "year": 1991.0
+    },
+    {
+      "actual": 355000000.0,
+      "predicted": 331583778.67965364,
+      "make": "Toyota",
+      "year": 2024.0
+    },
+    {
+      "actual": 2395000000.0,
+      "predicted": 2509303041.6666665,
+      "make": "Toyota",
+      "year": 2025.0
+    },
+    {
+      "actual": 269000000.0,
+      "predicted": 273461308.4415584,
+      "make": "Nissan",
+      "year": 2018.0
+    },
+    {
+      "actual": 390000000.0,
+      "predicted": 391837369.04761916,
+      "make": "Mini",
+      "year": 2016.0
+    },
+    {
+      "actual": 560000000.0,
+      "predicted": 463979425.2919646,
+      "make": "Mazda",
+      "year": 2024.0
+    },
+    {
+      "actual": 340000000.0,
+      "predicted": 403303834.96475166,
+      "make": "BMW",
+      "year": 2019.0
+    },
+    {
+      "actual": 1769999000.0,
+      "predicted": 1628997567.1031744,
+      "make": "BMW",
+      "year": 2024.0
+    },
+    {
+      "actual": 290000000.0,
+      "predicted": 257393339.2857144,
+      "make": "Suzuki",
+      "year": 2023.0
+    }
+  ],
+  "holdout_test_size": 0.2,
+  "holdout_random_state": 42
 }

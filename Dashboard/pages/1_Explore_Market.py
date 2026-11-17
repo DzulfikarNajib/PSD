@@ -243,33 +243,30 @@ with price_hist_col:
 
 with year_scatter_col:
     with st.container(border=True):
-        st.markdown("**Korelasi Tahun Kendaraan terhadap Harga**")
+        st.markdown("**Median dan kuartil harga per tahun**")
         scatter_df = filtered_priced.dropna(subset=["year", "price"]).copy()
         if len(scatter_df) >= 10:
-            fig_scat = px.scatter(
+            fig_scat = px.box(
                 scatter_df,
                 x="year",
                 y="price",
-                color="make" if scatter_df["make"].nunique() <= 6 else None,
-                labels={"year": "Tahun Kendaraan", "price": "Harga Iklan", "make": "Merek"},
-                opacity=0.68,
-                color_discrete_sequence=DONUT_PALETTE,
-                hover_data=[c for c in ["make", "model", "mileage_km"] if c in scatter_df.columns],
+                points=False,
+                labels={"year": "Tahun Kendaraan", "price": "Harga Iklan"},
+                color_discrete_sequence=[TEAL],
             )
-            fig_scat.update_traces(marker=dict(size=6))
+            fig_scat.update_traces(
+                hovertemplate="Tahun %{x}<br>Rentang kuartil: %{y}<extra></extra>",
+                line=dict(color=DARK_TEAL),
+                fillcolor="rgba(0,139,139,0.2)",
+            )
             fig_scat.update_layout(
-                xaxis=dict(title="Tahun Model"),
-                yaxis=dict(title="Harga Iklan"),
+                xaxis=dict(title="Tahun Model", type="linear"),
+                yaxis=dict(title="Harga Iklan", type="log"),
             )
-            y_min = float(scatter_df["price"].min())
-            y_max = float(scatter_df["price"].max())
-            apply_rupiah_ticks(fig_scat, axis="y", min_val=y_min, max_val=y_max, n_ticks=6)
-            st.plotly_chart(finish_chart(fig_scat, 320), use_container_width=True, config={"displayModeBar": False}, key="market_scatter_year_clean")
-            
-            corr = scatter_df["year"].corr(scatter_df["price"])
-            st.caption(f"Korelasi linear tahun dan harga pada {len(scatter_df):,} listing: **{corr:.2f}**. Nilai ini menunjukkan hubungan dalam sampel, bukan sebab-akibat.".replace(",", "."))
+            st.plotly_chart(finish_chart(fig_scat, 380), use_container_width=True, config={"displayModeBar": False}, key="market_price_year_box")
+            st.caption(f"Kotak menunjukkan rentang kuartil harga iklan per tahun; sumbu harga memakai skala log agar rentang nilai lebih terbaca. Sampel berisi {len(scatter_df):,} listing.".replace(",", "."))
         else:
-            st.caption("Data tahun dan harga belum mencukupi untuk scatter plot.")
+            st.caption("Data tahun dan harga belum cukup untuk membentuk box plot.")
 
 st.markdown("### Spesifikasi Odometer & Kapasitas Mesin")
 spec_cols = st.columns(2, gap="medium")

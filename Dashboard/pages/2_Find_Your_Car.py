@@ -57,15 +57,15 @@ else:
 render_data_source_status()
 st.caption(listing_data_context(cars))
 
-segment_expanded = st.session_state.get("car_market_segment_filter", "Semua kelompok") != "Semua kelompok"
-with st.expander("Kelompok karakteristik", expanded=segment_expanded):
+segment_expanded = st.session_state.get("car_market_segment_filter", "Semua segmen") != "Semua segmen"
+with st.expander("Segmen pasar · K-Means", expanded=segment_expanded):
     st.caption("K-Means mengelompokkan harga, tahun, kilometer, dan CC. Profil kelompok relatif pada sumber yang dipilih, bukan penilaian kualitas mobil.")
     if segment_summary.empty:
         st.info("Belum cukup listing dengan harga valid untuk membentuk kelompok karakteristik.")
-        segment_options = ["Semua kelompok"]
+        segment_options = ["Semua segmen"]
     else:
         segment_display = segment_summary.rename(columns={
-            "market_segment": "Kelompok",
+            "market_segment": "Segmen",
             "profile": "Profil relatif",
             "listings": "Jumlah listing",
             "median_price": "Median harga",
@@ -78,15 +78,15 @@ with st.expander("Kelompok karakteristik", expanded=segment_expanded):
         segment_display["Median kilometer"] = segment_display["Median kilometer"].map(format_km)
         segment_display["Median CC"] = segment_display["Median CC"].map(lambda value: f"{value:.0f} cc" if pd.notna(value) else "-")
         st.dataframe(segment_display, hide_index=True, width="stretch", alt="Ringkasan kelompok listing berdasarkan harga, tahun, kilometer, dan CC")
-        segment_options = ["Semua kelompok", *segment_summary["market_segment"].tolist()]
+        segment_options = ["Semua segmen", *segment_summary["market_segment"].tolist()]
 
-    if st.session_state.get("car_market_segment_filter", "Semua kelompok") not in segment_options:
-        st.session_state["car_market_segment_filter"] = "Semua kelompok"
+    if st.session_state.get("car_market_segment_filter", "Semua segmen") not in segment_options:
+        st.session_state["car_market_segment_filter"] = "Semua segmen"
     selected_market_segment = st.selectbox(
-        "Jelajahi kelompok mobil",
+        "Saring menurut segmen",
         segment_options,
         key="car_market_segment_filter",
-        help="Memilih kelompok menyaring hasil ke mobil dengan profil harga dan spesifikasi yang mirip.",
+        help="Segmen dibentuk dari harga, tahun, kilometer, dan CC dalam sumber aktif. Labelnya relatif terhadap data, bukan kelas kualitas.",
     )
 
 brand_values = sorted(cars["make"].dropna().astype(str).unique()) if "make" in cars else []
@@ -124,7 +124,7 @@ def _reset_filters():
     st.session_state["applied_car_filters"] = None
 
 
-left = st.expander("Filter pencarian", expanded=bool(st.session_state.get("applied_car_filters")))
+left = st.expander("Filter pencarian", expanded=True)
 right = st.container()
 with left:
     with st.container(border=True):
@@ -178,7 +178,7 @@ default_filters = {
 }
 active_filters = st.session_state.get("applied_car_filters") or default_filters
 filtered = filter_listings(cars, **active_filters)
-if selected_market_segment != "Semua kelompok":
+if selected_market_segment != "Semua segmen":
     filtered = filtered[filtered["market_segment"].eq(selected_market_segment)]
 
 with right:
@@ -241,10 +241,20 @@ with right:
         with result_cols[index % 3]:
             with st.container(border=True):
                 image_url = row.get("image_url")
-                if pd.notna(image_url) and str(image_url).startswith("http"):
-                    st.image(str(image_url), alt=f"Foto {row.get('make', '')} {row.get('model', '')}", width="stretch")
-                else:
-                    st.markdown("<div class='car-photo-fallback'><span>🚘</span><small>Foto listing tidak tersedia</small></div>", unsafe_allow_html=True)
+                if pd.notna(image_url) and str(image_url).startswith(("http://", "https://")):
+                    try:
+                        st.image(str(image_url), alt=f"Foto {row.get('make', '')} {row.get('model', '')}", width="stretch")
+                    except Exception:
+                        st.caption("Foto sumber tidak dapat dimuat")
+                body_value = row.get("body_type")
+                body_type = str(body_value) if pd.notna(body_value) and str(body_value).strip() else "Tipe bodi -"
+                year_label = f"{row.get('year'):.0f}" if pd.notna(row.get("year")) else "Tahun -"
+                segment_value = row.get("market_segment")
+                segment_label = str(segment_value) if pd.notna(segment_value) and str(segment_value).strip() else "Segmen belum tersedia"
+                st.markdown(
+                    f"<div class='listing-meta'><span>{body_type}</span><span>{year_label}</span><span>{segment_label}</span></div>",
+                    unsafe_allow_html=True,
+                )
                 st.markdown(f"#### {row.get('make') or 'Merek tidak dicantumkan'} {row.get('model') or ''}")
                 st.markdown(f"<div class='car-price'>{format_rupiah(row.get('price'))}</div>", unsafe_allow_html=True)
                 st.caption(str(row.get("variant") or "Varian tidak dicantumkan"))

@@ -142,6 +142,30 @@ for column in ("price", "year", "mileage_km", "engine_cc"):
     if column in input_data:
         input_data[column] = pd.to_numeric(input_data[column], errors="coerce")
 makes = sorted(input_data.get("make", pd.Series(dtype=str)).dropna().astype(str).unique())
+price_example = st.session_state.get("price_example_record")
+if not prefill and not st.session_state.get("price_example_initialized") and not st.session_state.get("price_calculation_result") and not input_data.empty:
+    sample_rows = input_data.copy()
+    sample_rows["make_key"] = sample_rows["make"].fillna("").astype(str).str.casefold()
+    sample_rows["model_key"] = sample_rows["model"].fillna("").astype(str).str.casefold()
+    sample = sample_rows[sample_rows["make_key"].eq("toyota") & sample_rows["model_key"].eq("avanza")]
+    if sample.empty:
+        sample = sample_rows[sample_rows["make_key"].eq("honda") & sample_rows["model_key"].str.contains("brio", regex=False)]
+    if sample.empty:
+        sample = sample_rows
+    sample = sample.sort_values("fetched_at", na_position="last") if "fetched_at" in sample else sample
+    chosen_example = sample.iloc[0]
+    example_fields = ["make", "model", "year", "mileage_km", "engine_cc", "fuel_type", "transmission", "body_type", "price"]
+    price_example = {key: (None if pd.isna(chosen_example.get(key)) else chosen_example.get(key)) for key in example_fields}
+    st.session_state["price_example_record"] = price_example
+    st.session_state["price_example_initialized"] = True
+    for widget_key, field in {
+        "calculator_make": "make", "calculator_model": "model", "calculator_year": "year",
+        "calculator_mileage": "mileage_km", "calculator_engine_cc": "engine_cc",
+        "calculator_fuel_type": "fuel_type", "calculator_transmission": "transmission",
+        "calculator_body_type": "body_type", "calculator_asking_price": "price",
+    }.items():
+        if price_example.get(field) is not None:
+            st.session_state[widget_key] = price_example[field]
 if input_data.empty or not makes:
     st.info("Belum ada data spesifikasi untuk kalkulator. Impor dataset atau simpan snapshot sebelum memakai kalkulator.")
 else:
@@ -284,10 +308,25 @@ else:
             st.info("Sumber pembanding berubah. Tekan Cek harga lagi untuk menghitung hasil dengan sumber yang dipilih.")
         elif not result:
             with st.container(border=True):
-                st.markdown("#### Mulai Pengecekan")
-                st.write("Pilih listing tersimpan atau isi detail mobil di sebelah kiri, lalu tekan tombol **Cek harga**.")
-                st.metric("Harga iklan", "-")
-                st.metric("Pembanding serupa", "-")
+                st.markdown("#### Contoh dari arsip tersimpan")
+                st.write("Form di sebelah kiri sudah diisi dengan contoh mobil dari arsip. Contoh ini belum dinilai sebagai iklan pengguna.")
+                if price_example:
+                    st.markdown(f"**{price_example.get('make', '')} {price_example.get('model', '')} · {int(_number(price_example.get('year'), 0))}**")
+                    st.metric("Harga pada contoh", format_rupiah(price_example.get("price")))
+                    sample_features = {
+                        key: price_example.get(key) for key in ("make", "model", "year", "mileage_km", "engine_cc", "fuel_type", "transmission", "body_type")
+                    }
+                    if sample_features.get("year") is not None:
+                        sample_features["year"] = int(_number(sample_features["year"], 0))
+                        sample_features["mileage_km"] = _number(sample_features.get("mileage_km"))
+                        sample_features["engine_cc"] = _number(sample_features.get("engine_cc"))
+                        sample_peers = _find_comparables(comparison_data, sample_features)
+                        st.metric("Pembanding serupa", f"{len(sample_peers):,}".replace(",", "."))
+                    st.caption("Tekan **Cek harga** untuk menghitung estimasi dan membandingkan contoh ini. Pilih listing atau ubah form untuk menganalisis mobil lain.")
+                else:
+                    st.write("Pilih listing tersimpan atau isi detail mobil di sebelah kiri, lalu tekan tombol **Cek harga**.")
+                    st.metric("Harga iklan", "-")
+                    st.metric("Pembanding serupa", "-")
                 if not model_is_validated(metadata):
                     st.caption("Estimasi model belum tersedia. Perbandingan listing tetap dapat digunakan.")
         else:
@@ -426,10 +465,10 @@ with st.container(border=True):
                 paper_bgcolor="#FFFFFF",
                 plot_bgcolor="#FFFFFF",
                 font=dict(family="Inter, sans-serif", color="#0F172A", size=12),
-                xaxis=dict(title="Skor Kepentingan Relatif (Gini Importance)", showgrid=True, gridcolor="#F1F5F9"),
+                xaxis=dict(title="Skor kepentingan fitur (relatif)", showgrid=True, gridcolor="#F1F5F9"),
                 yaxis=dict(title=None, showgrid=False),
             )
             st.plotly_chart(fig_imp, use_container_width=True, config={"displayModeBar": False}, key="price_feature_importance_plot")
-            st.caption(f"Model aktif: **{metadata.get('best_model', '-')}** ({metadata.get('training_unique_listings', 0):,} data training). Grafik menunjukkan fitur yang paling berpengaruh dalam penentuan estimasi harga.")
+            st.caption(f"Model aktif: **{metadata.get('best_model', '-')}** ({metadata.get('training_unique_listings', 0):,} listing training). Kepentingan fitur bersifat relatif pada model, bukan bukti sebab-akibat.")
     else:
         st.info("Model belum dilatih atau belum lolos kriteria minimum validasi.")

@@ -103,7 +103,7 @@ def cluster_market_segments(
         ])
         label_parts = [part for part in label_parts if part]
 
-        label = f"Kelompok {rank}"
+        label = f"Segmen {rank}"
         labels_by_cluster[cluster["_cluster_id"]] = label
         summary_rows.append({
             "market_segment": label,

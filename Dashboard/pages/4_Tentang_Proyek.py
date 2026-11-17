@@ -64,8 +64,8 @@ methodology = [
     ("1. Tujuan Proyek", "Menyaring pilihan, membandingkan iklan, dan memberi konteks harga penawaran. Hasil aplikasi menjadi bahan pertimbangan awal, bukan pengganti pemeriksaan kendaraan."),
     ("2. Sumber Data", f"Dataset Excel dan snapshot OLX tersimpan menyediakan listing dari wilayah cakupan proyek. Excel tidak mencatat waktu pengambilan; snapshot OLX mencatat waktu refresh."),
     ("3. Analisis Eksploratif", "Pahami Pasar membandingkan komposisi dan sebaran harga. Cari Mobil memakai K-Means untuk mengelompokkan listing menurut harga, tahun, kilometer, dan CC. Profil kelompok relatif pada sumber aktif, bukan label kualitas mobil."),
-    ("4. Persiapan Data", "Kolom dibersihkan dan dinormalisasi, nilai harga serta spesifikasi diperiksa, lalu listing dideduplikasi. Cakupan wilayah mengikuti data yang tersedia untuk proyek."),
-    ("5. Pemodelan Regresi", "Linear Regression, Decision Tree, dan Random Forest dibandingkan pada data uji holdout 20% dengan MAE, RMSE, dan R². Model supervised mengestimasi harga penawaran saat ini dari spesifikasi, bukan meramal kenaikan harga tahun depan."),
+    ("4. Persiapan Data", f"Kolom dibersihkan dan listing dideduplikasi. {int(model_data.attrs.get('excluded_financing_count', 0)):,} indikasi DP/kredit dikeluarkan dari analisis dan model, sementara arsip mentah dipertahankan.".replace(",", ".")),
+    ("5. Pemodelan Regresi", "Linear Regression, Decision Tree, dan Random Forest dibandingkan dengan target harga asli dan log1p pada holdout 20%. MAE/RMSE dilaporkan dalam rupiah; model mengestimasi harga penawaran, bukan kenaikan harga masa depan."),
     ("6. Membaca Temuan", "Gunakan grafik dan ringkasan yang dihitung dari arsip aktif. Perbedaan antarkelompok bersifat deskriptif dan tidak membuktikan penyebab atau kualitas kendaraan."),
     ("7. Batas Penggunaan", "Gunakan hasil untuk menyusun shortlist dan pertanyaan saat negosiasi. Periksa kondisi, riwayat servis, dokumen, dan iklan sumber secara langsung."),
 ]
@@ -89,13 +89,13 @@ if metadata.get("models"):
     with eval_col1:
         with st.container(border=True):
             st.markdown("#### Perbandingan Evaluasi Algoritma")
-            st.write("Tiga algoritma regresi dievaluasi secara serempak pada test set independen (holdout 20%):")
+            st.write("Tiga algoritma diuji dengan target harga asli dan log1p pada holdout 20%. Semua metrik dikembalikan ke skala rupiah.")
             
             table_rows = []
             for name, metrics in metadata["models"].items():
                 is_best = (name == metadata.get("best_model"))
                 table_rows.append({
-                    "Algoritma": f"{name} (Model Terbaik)" if is_best else f"{name} (Baseline)" if "Linear" in name else name,
+                    "Algoritma / target": f"{name.replace(' · log target', '')} · {'log1p' if metrics.get('target_transform') == 'log1p' else 'harga asli'}" + (" · terbaik" if is_best else ""),
                     "MAE (Rp)": format_rupiah(metrics.get("MAE")),
                     "RMSE (Rp)": format_rupiah(metrics.get("RMSE")),
                     "R² Score": f"{metrics.get('R2', 0):.4f}" if metrics.get("R2") is not None else "-",
@@ -113,7 +113,7 @@ if metadata.get("models"):
             st.markdown("#### Grafik Actual vs Predicted (Data Test)")
             test_preds = get_test_predictions()
             if not test_preds.empty:
-                max_bound = max(test_preds["actual"].quantile(0.98), test_preds["predicted"].quantile(0.98))
+                max_bound = max(float(test_preds["actual"].max()), float(test_preds["predicted"].max()))
                 
                 fig_scatter = go.Figure()
                 fig_scatter.add_trace(go.Scatter(

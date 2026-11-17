@@ -19,6 +19,8 @@ DEFAULT_COLUMNS = [
 ]
 JABODETABEK_AREAS = ("jakarta pusat", "jakarta selatan", "jakarta timur", "jakarta barat", "jakarta utara", "bogor", "depok", "tangerang", "bekasi")
 DKI_DISTRICTS = JABODETABEK_AREAS[:5]
+FINANCING_PRICE_FLOOR = 25_000_000
+FINANCING_TEXT_PATTERN = re.compile(r"\b(?:dp|tdp|uang\s+muka|angsuran|cicilan|over\s*kredit|overkredit)\b", re.IGNORECASE)
 
 
 def normalize_text(value) -> str:
@@ -91,6 +93,28 @@ def is_jabodetabek(value) -> bool:
 
 def is_dki_jakarta(value) -> bool:
     return normalize_location(value) in DKI_DISTRICTS
+
+
+def split_financing_listings(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Separate likely DP/credit ads from analytical views without changing raw archives."""
+    if df.empty:
+        return df.copy(), df.copy()
+    rows = df.copy()
+    price = pd.to_numeric(rows.get("price", pd.Series(index=rows.index, dtype=float)), errors="coerce")
+    low_price = price.lt(FINANCING_PRICE_FLOOR)
+    text = pd.Series("", index=rows.index, dtype=str)
+    for column in ("variant", "price_text", "title", "judul", "description", "deskripsi"):
+        if column in rows:
+            text = text.str.cat(rows[column].fillna("").astype(str), sep=" ")
+    financing_terms = text.str.contains(FINANCING_TEXT_PATTERN)
+    rows["financing_flag_reason"] = ""
+    rows.loc[low_price, "financing_flag_reason"] = "Harga di bawah Rp25 juta"
+    rows.loc[financing_terms & low_price, "financing_flag_reason"] = "Harga rendah dan teks pembiayaan"
+    rows.loc[financing_terms & ~low_price, "financing_flag_reason"] = "Teks pembiayaan"
+    flagged = rows[rows["financing_flag_reason"].ne("")].copy()
+    eligible = rows[rows["financing_flag_reason"].eq("")].drop(columns="financing_flag_reason")
+    eligible.attrs["excluded_financing_count"] = len(flagged)
+    return eligible, flagged
 
 
 def filter_dki_jakarta(df: pd.DataFrame) -> pd.DataFrame:

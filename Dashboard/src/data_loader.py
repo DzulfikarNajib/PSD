@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from src.preprocessing import is_dki_jakarta, parse_mileage_km
+from src.preprocessing import is_dki_jakarta, parse_mileage_km, split_financing_listings
 from src.supabase_store import is_configured as supabase_is_configured
 from src.supabase_store import latest_timestamp as supabase_latest_timestamp
 from src.supabase_store import load_latest_snapshot
@@ -106,6 +106,8 @@ def load_historical_data() -> pd.DataFrame:
     data["color"] = ""
     data["seller_type"] = ""
     data["data_source"] = "Dataset Excel"
+    data, flagged = split_financing_listings(data)
+    data.attrs["excluded_financing_count"] = len(flagged)
     return data.reset_index(drop=True)
 
 
@@ -114,6 +116,13 @@ def _listing_identity(frame: pd.DataFrame) -> pd.Series:
     listing_id = frame.get("listing_id", pd.Series("", index=frame.index)).fillna("").astype(str).str.strip()
     identity = url.where(url.str.lower().str.startswith("http"), listing_id)
     return identity.str.split("?").str[0].str.rstrip("/").str.lower()
+
+
+def _analytical_financing_filter(frame: pd.DataFrame) -> pd.DataFrame:
+    """Exclude likely DP/credit offers from analytical views, leaving stored files intact."""
+    eligible, flagged = split_financing_listings(frame)
+    eligible.attrs["excluded_financing_count"] = len(flagged)
+    return eligible
 
 
 def load_combined_archive() -> pd.DataFrame:
@@ -161,12 +170,16 @@ def load_combined_archive() -> pd.DataFrame:
     combined = combined.drop_duplicates("_identity", keep="last")
     combined["source_origins"] = combined["_identity"].map(origins)
     combined["listing_id"] = combined["_identity"]
-    return combined.drop(columns=["_identity", "_observation_identity", "_source_priority"]).reset_index(drop=True)
+    combined = combined.drop(columns=["_identity", "_observation_identity", "_source_priority"])
+    combined, flagged = split_financing_listings(combined)
+    combined.attrs["excluded_financing_count"] = int(excel.attrs.get("excluded_financing_count", 0)) + len(flagged)
+    return combined.reset_index(drop=True)
 
 
 def load_training_archive() -> pd.DataFrame:
     """Provide Excel plus OLX snapshot observations to explicit model training."""
     excel = load_historical_data()
+    excluded_financing_count = int(excel.attrs.get("excluded_financing_count", 0))
     if not supabase_is_configured():
         _set_data_source_status("local", "Menggunakan arsip lokal untuk evaluasi model. Supabase belum dikonfigurasi.")
         return excel
@@ -178,6 +191,7 @@ def load_training_archive() -> pd.DataFrame:
     _set_data_source_status("cloud", "Arsip Supabase berhasil dibaca untuk evaluasi model.")
     pieces = [frame for frame in (excel, seeded, snapshots) if not frame.empty]
     combined = pd.concat(pieces, ignore_index=True, sort=False) if pieces else excel
+    combined.attrs["excluded_financing_count"] = excluded_financing_count
     if not combined.empty:
         combined["listing_id"] = _listing_identity(combined)
     return combined
@@ -204,7 +218,7 @@ def load_live_data() -> pd.DataFrame:
                     cloud_data = cloud_data[cloud_data["location"].map(is_dki_jakarta)].copy()
                 cloud_data["data_source"] = "Listing terbaru"
                 _set_data_source_status("cloud", "Snapshot terbaru berhasil dibaca dari Supabase.")
-                return cloud_data.reset_index(drop=True)
+                return _analytical_financing_filter(cloud_data).reset_index(drop=True)
         except Exception:
             # Keep the saved local snapshot usable if the cloud database is temporarily unavailable.
             _set_data_source_status("fallback", "Supabase tidak dapat dibaca. Menampilkan snapshot lokal bila tersedia.")
@@ -219,7 +233,7 @@ def load_live_data() -> pd.DataFrame:
         return pd.DataFrame()
     if "location" in df:
         df = df[df["location"].map(is_dki_jakarta)].copy()
-    return df
+    return _analytical_financing_filter(df)
 
 
 def load_history_data() -> pd.DataFrame:
@@ -230,7 +244,7 @@ def load_history_data() -> pd.DataFrame:
             if not observations.empty:
                 observations["data_source"] = "Arsip snapshot OLX"
                 _set_data_source_status("cloud", "Riwayat snapshot berhasil dibaca dari Supabase.")
-                return observations.reset_index(drop=True)
+                return _analytical_financing_filter(observations).reset_index(drop=True)
         except Exception:
             _set_data_source_status("fallback", "Riwayat Supabase tidak dapat dibaca. Menampilkan riwayat lokal bila tersedia.")
         else:
@@ -242,7 +256,7 @@ def load_history_data() -> pd.DataFrame:
         df = pd.read_csv(HISTORY_PATH)
     except (pd.errors.EmptyDataError, pd.errors.ParserError, OSError):
         return pd.DataFrame()
-    return df
+    return _analytical_financing_filter(df)
 
 
 def get_last_updated_text() -> str:

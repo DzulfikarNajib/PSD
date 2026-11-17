@@ -6,8 +6,10 @@ import json
 from pathlib import Path
 
 import joblib
+import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.compose import TransformedTargetRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
@@ -17,7 +19,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.tree import DecisionTreeRegressor
 
-from src.preprocessing import is_dki_jakarta
+from src.preprocessing import is_dki_jakarta, split_financing_listings
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = ROOT_DIR / "models" / "best_model.joblib"
@@ -35,7 +37,9 @@ def prepare_model_data(df: pd.DataFrame) -> pd.DataFrame:
     required = ["listing_id", "price", *FEATURES, "location"]
     if df.empty or any(column not in df.columns for column in required):
         return pd.DataFrame(columns=required)
-    prepared = df[required + (["fetched_at"] if "fetched_at" in df else [])].copy()
+    prepared, flagged_financing = split_financing_listings(df)
+    excluded_financing_count = int(df.attrs.get("excluded_financing_count", 0)) + len(flagged_financing)
+    prepared = prepared[required + (["fetched_at"] if "fetched_at" in prepared else [])].copy()
     prepared["price"] = pd.to_numeric(prepared["price"], errors="coerce")
     prepared = prepared.dropna(subset=["listing_id", "price"])
     prepared = prepared[prepared["location"].map(is_dki_jakarta)]
@@ -50,7 +54,9 @@ def prepare_model_data(df: pd.DataFrame) -> pd.DataFrame:
     prepared["engine_cc"] = pd.to_numeric(prepared["engine_cc"], errors="coerce")
     prepared = prepared[prepared["year"].between(1950, pd.Timestamp.now().year + 1) | prepared["year"].isna()]
     prepared = prepared[prepared["mileage_km"].ge(0) | prepared["mileage_km"].isna()]
-    return prepared.drop(columns=["fetched_at"], errors="ignore").reset_index(drop=True)
+    prepared = prepared.drop(columns=["fetched_at"], errors="ignore").reset_index(drop=True)
+    prepared.attrs["excluded_financing_count"] = excluded_financing_count
+    return prepared
 
 
 def load_model_metadata(metadata_path: str | Path | None = None) -> dict:
@@ -67,7 +73,7 @@ def model_is_validated(metadata: dict) -> bool:
     """Reject legacy artifacts that lack the current data eligibility record."""
     return bool(
         metadata.get("status") == "ready"
-        and metadata.get("validation_version") == 2
+        and metadata.get("validation_version") == 3
         and metadata.get("training_unique_listings", 0) >= MINIMUM_UNIQUE_LISTINGS
         and metadata.get("minimum_unique_listings") == MINIMUM_UNIQUE_LISTINGS
         and metadata.get("models")
@@ -107,17 +113,28 @@ def evaluate_regression_models(df: pd.DataFrame, model_path: str | Path | None =
         "Decision Tree Regressor": DecisionTreeRegressor(random_state=42, min_samples_leaf=3),
         "Random Forest Regressor": RandomForestRegressor(n_estimators=200, random_state=42, min_samples_leaf=2, n_jobs=-1),
     }
-    results, pipelines = {}, {}
+    results, pipelines, target_transforms = {}, {}, {}
     for name, estimator in estimators.items():
         pipeline = Pipeline([("preprocessor", _preprocessor()), ("model", estimator)])
         pipeline.fit(X_train, y_train)
         predicted = pipeline.predict(X_test)
-        results[name] = {
-            "MAE": float(mean_absolute_error(y_test, predicted)),
-            "RMSE": float(mean_squared_error(y_test, predicted) ** 0.5),
-            "R2": float(r2_score(y_test, predicted)) if len(y_test) > 1 else None,
-        }
-        pipelines[name] = pipeline
+        log_name = f"{name} · log target"
+        log_pipeline = TransformedTargetRegressor(
+            regressor=Pipeline([("preprocessor", _preprocessor()), ("model", estimator)]),
+            func=np.log1p, inverse_func=np.expm1, check_inverse=False,
+        ).fit(X_train, y_train)
+        for candidate_name, candidate_pipeline, transform, candidate_prediction in (
+            (name, pipeline, "asli", predicted),
+            (log_name, log_pipeline, "log1p", log_pipeline.predict(X_test)),
+        ):
+            results[candidate_name] = {
+                "MAE": float(mean_absolute_error(y_test, candidate_prediction)),
+                "RMSE": float(mean_squared_error(y_test, candidate_prediction) ** 0.5),
+                "R2": float(r2_score(y_test, candidate_prediction)) if len(y_test) > 1 else None,
+                "target_transform": transform,
+            }
+            pipelines[candidate_name] = candidate_pipeline
+            target_transforms[candidate_name] = transform
     winner = min(results, key=lambda name: results[name]["MAE"])
     holdout_pipeline = pipelines[winner]
     holdout_prediction = holdout_pipeline.predict(X_test)
@@ -132,7 +149,14 @@ def evaluate_regression_models(df: pd.DataFrame, model_path: str | Path | None =
             y_test.to_numpy(), holdout_prediction, X_test["make"].to_numpy(), X_test["year"].to_numpy()
         )
     ]
-    final_pipeline = Pipeline([("preprocessor", _preprocessor()), ("model", estimators[winner])])
+    base_name = winner.replace(" · log target", "")
+    if target_transforms[winner] == "log1p":
+        final_pipeline = TransformedTargetRegressor(
+            regressor=Pipeline([("preprocessor", _preprocessor()), ("model", estimators[base_name])]),
+            func=np.log1p, inverse_func=np.expm1, check_inverse=False,
+        )
+    else:
+        final_pipeline = Pipeline([("preprocessor", _preprocessor()), ("model", estimators[base_name])])
     final_pipeline.fit(X, y)
     destination = Path(model_path) if model_path else MODEL_PATH
     metrics_destination = Path(metadata_path) if metadata_path else MODEL_METADATA_PATH
@@ -140,9 +164,11 @@ def evaluate_regression_models(df: pd.DataFrame, model_path: str | Path | None =
     metrics_destination.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(final_pipeline, destination)
     metadata = {
-        "status": "ready", "validation_version": 2,
+        "status": "ready", "validation_version": 3,
         "best_model": winner, "best_model_path": str(destination),
+        "target_transform": target_transforms[winner],
         "models": results, "training_unique_listings": len(prepared),
+        "excluded_financing_rows": int(prepared.attrs.get("excluded_financing_count", 0)),
         "minimum_unique_listings": MINIMUM_UNIQUE_LISTINGS,
         "selection_metric": "lowest holdout MAE", "target": "asking price",
         "holdout_predictions": holdout_records,
@@ -192,6 +218,8 @@ def get_feature_importance(model_path: str | Path | None = None) -> pd.DataFrame
     if not path.exists() or not model_is_validated(load_model_metadata()):
         return pd.DataFrame(columns=["feature", "importance"])
     pipeline = joblib.load(path)
+    if isinstance(pipeline, TransformedTargetRegressor):
+        pipeline = pipeline.regressor_
     model = pipeline.named_steps["model"]
     if hasattr(model, "feature_importances_"):
         values = model.feature_importances_

@@ -2,7 +2,8 @@ import pandas as pd
 
 from src.preprocessing import (append_history_snapshot, build_live_dataset_from_response,
                                filter_jabodetabek, parse_api_response_to_dataframe,
-                               parse_engine_cc, parse_mileage_km, save_dataframe_atomic)
+                               parse_engine_cc, parse_mileage_km, save_dataframe_atomic,
+                               split_financing_listings)
 
 
 def test_parse_api_response_to_dataframe():
@@ -87,3 +88,24 @@ def test_csv_roundtrip_and_history_deduplicates_same_snapshot(tmp_path):
 def test_missing_listing_id_or_invalid_price_is_rejected():
     payload = {"raw": [{"price": 10, "location": "Jakarta Selatan"}, {"listing_id": "bad", "price": 0, "location": "Jakarta Selatan"}]}
     assert build_live_dataset_from_response(payload).empty
+
+
+def test_financing_ads_are_separated_from_analytics_without_mutating_raw_rows():
+    raw = pd.DataFrame({
+        "listing_id": ["low", "dp", "normal"],
+        "price": [9_999_000, 160_000_000, 180_000_000],
+        "variant": ["Suzuki Carry", "Avanza TDP 30jt cicilan", "Avanza G"],
+    })
+    clean, flagged = split_financing_listings(raw)
+    assert clean["listing_id"].tolist() == ["normal"]
+    assert flagged["listing_id"].tolist() == ["low", "dp"]
+    assert flagged["financing_flag_reason"].tolist() == ["Harga di bawah Rp25 juta", "Teks pembiayaan"]
+    assert len(raw) == 3
+    assert clean.attrs["excluded_financing_count"] == 2
+
+
+def test_financing_filter_handles_missing_text_and_empty_frames():
+    clean, flagged = split_financing_listings(pd.DataFrame({"price": [100_000_000], "variant": [None]}))
+    assert len(clean) == 1 and flagged.empty
+    empty_clean, empty_flagged = split_financing_listings(pd.DataFrame())
+    assert empty_clean.empty and empty_flagged.empty

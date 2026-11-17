@@ -6,6 +6,7 @@ import base64
 from pathlib import Path
 
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from src.api_handler import safe_refresh_snapshot
@@ -14,7 +15,7 @@ from src.data_loader import (
     load_combined_archive,
 )
 from src.styles import apply_theme
-from src.ui import format_rupiah, listing_data_context, render_data_source_status, render_empty_state
+from src.ui import format_rupiah, render_data_source_status, render_empty_state
 
 
 DEFAULT_SEARCH_URL = "https://www.olx.co.id/mobil-bekas_c198/q-mobil"
@@ -75,11 +76,7 @@ else:
     metric_cols[1].metric("Merek tersedia", f"{brands.nunique():,}".replace(",", "."), border=True)
     metric_cols[2].metric("Median harga iklan", _compact_rupiah(prices.median()) if not prices.empty else "-", border=True)
     metric_cols[3].metric("Snapshot OLX terbaru", last_update.split(",")[0] if not timestamps.empty else "-", border=True)
-    if not prices.empty:
-        median_price = prices.median()
-        st.caption(f"Rentang harga iklan tersimpan: {_compact_rupiah(prices.min())} s/d {_compact_rupiah(prices.max())} · Median: {_compact_rupiah(median_price)}.")
-    st.caption(f"Sumber: Excel dan snapshot OLX tersimpan. Snapshot OLX terbaru: {last_update}. Harga adalah harga penawaran; iklan arsip belum tentu masih aktif dan data tidak mewakili seluruh pasar.")
-    st.caption(listing_data_context(archive))
+    st.caption(f"Sumber: Excel dan snapshot OLX tersimpan · pembaruan OLX terakhir: {last_update}. Angka adalah harga penawaran; iklan arsip belum tentu masih aktif.")
 
     st.markdown("### Mulai dari pilihan yang tersedia")
     st.caption("Beranda merangkum arsip. Buka Pahami Pasar untuk melihat distribusi dan perbandingan grafik secara lebih rinci.")
@@ -89,6 +86,16 @@ else:
             st.markdown("#### Jelajahi berdasarkan merek")
             brand_counts = brands[brands.ne("")].value_counts()
             if not brand_counts.empty:
+                top_brands = brand_counts.head(6).sort_values()
+                brand_fig = px.bar(
+                    x=top_brands.values,
+                    y=top_brands.index,
+                    orientation="h",
+                    labels={"x": "Listing unik", "y": "Merek"},
+                    color_discrete_sequence=["#008B8B"],
+                )
+                brand_fig.update_layout(height=250, margin=dict(l=8, r=8, t=8, b=8), showlegend=False, xaxis_title=None, yaxis_title=None)
+                st.plotly_chart(brand_fig, use_container_width=True, config={"displayModeBar": False}, key="home_top_brands")
                 lead_make = str(brand_counts.index[0])
                 lead_count = int(brand_counts.iloc[0])
                 st.metric("Merek dengan listing terbanyak", lead_make, border=True)
@@ -116,6 +123,15 @@ else:
         with st.container(border=True):
             st.markdown("#### Jelajahi berdasarkan bahan bakar")
             if not fuels.empty:
+                fuel_fig = px.pie(
+                    names=fuels.head(6).index,
+                    values=fuels.head(6).values,
+                    hole=.56,
+                    color_discrete_sequence=["#008B8B", "#0F766E", "#0369A1", "#F59E0B", "#10B981", "#64748B"],
+                )
+                fuel_fig.update_traces(textinfo="percent", hovertemplate="%{label}: %{value} listing (%{percent})<extra></extra>")
+                fuel_fig.update_layout(height=250, margin=dict(l=8, r=8, t=8, b=8), legend=dict(orientation="h", y=-.08))
+                st.plotly_chart(fuel_fig, use_container_width=True, config={"displayModeBar": False}, key="home_fuel_mix")
                 dominant_fuel = str(fuels.index[0])
                 dominant_count = int(fuels.iloc[0])
                 st.metric("Bahan bakar paling sering dicatat", dominant_fuel, border=True)

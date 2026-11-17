@@ -33,6 +33,10 @@ def test_model_training_on_reasonable_data(tmp_path):
     assert result["status"] == "ready"
     assert model_is_validated(result)
     assert set(result["models"]).issuperset({"Linear Regression", "Decision Tree Regressor", "Random Forest Regressor"})
+    assert len(result["models"]) == 6
+    assert any(name.endswith("· log target") for name in result["models"])
+    assert all("MAE" in metrics and "RMSE" in metrics for metrics in result["models"].values())
+    assert result["target_transform"] in {"asli", "log1p"}
 
     holdout = get_test_predictions(metadata_path=metrics_path)
     assert len(holdout) == 24
@@ -57,3 +61,19 @@ def test_insufficient_data_does_not_create_model(tmp_path):
 
 def test_legacy_ready_metadata_is_not_treated_as_validated():
     assert not model_is_validated({"status": "ready", "models": {"Linear Regression": {"R2": 1.0}}})
+    assert not model_is_validated({
+        "status": "ready",
+        "validation_version": 2,
+        "training_unique_listings": 4381,
+        "minimum_unique_listings": 100,
+        "models": {"Random Forest Regressor": {"MAE": 1.0}},
+    })
+
+
+def test_training_excludes_dp_rows_and_counts_them():
+    df = make_listing_df(120)
+    df.loc[0, "price"] = 2_990_000
+    df.loc[1, "variant"] = "Avanza DP 5jt cicilan ringan"
+    prepared = prepare_model_data(df)
+    assert len(prepared) == 118
+    assert prepared.attrs["excluded_financing_count"] == 2

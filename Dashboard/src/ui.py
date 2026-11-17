@@ -96,6 +96,9 @@ def listing_data_context(data: pd.DataFrame) -> str:
     """Summarize listing count, snapshot age, and completeness of key specifications."""
     count = data["listing_id"].nunique() if "listing_id" in data else len(data)
     parts = [f"{count:,} listing unik".replace(",", ".")]
+    excluded = int(data.attrs.get("excluded_financing_count", 0))
+    if excluded:
+        parts.append(f"{excluded:,} indikasi DP/kredit tidak disertakan dalam analisis".replace(",", "."))
     if "fetched_at" in data:
         timestamps = pd.to_datetime(data["fetched_at"], errors="coerce", utc=True).dropna()
         if not timestamps.empty:

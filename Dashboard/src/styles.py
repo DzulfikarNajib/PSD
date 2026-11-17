@@ -64,7 +64,7 @@ div[class*="st-key-home_hero"] {
     display: flex;
     align-items: center;
     background-color: #F8FAFC;
-    background-image: linear-gradient(90deg, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.96) 42%, rgba(255,255,255,0.72) 60%, rgba(255,255,255,0.08) 100%), var(--automatch-hero-image);
+    background-image: linear-gradient(90deg, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.98) 50%, rgba(255,255,255,0.82) 62%, rgba(255,255,255,0.08) 100%), var(--automatch-hero-image);
     background-position: center, right center;
     background-repeat: no-repeat, no-repeat;
     background-size: cover, cover;
@@ -214,19 +214,8 @@ h1, h2, h3, h4 {
     letter-spacing: -.025em;
     margin: -.25rem 0 .2rem;
 }
-.car-photo-fallback {
-    min-height: 190px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: .35rem;
-    border-radius: 12px;
-    color: var(--dashboard-muted);
-    background: #F1F5F9;
-}
-.car-photo-fallback span { font-size: 3rem; }
-.car-photo-fallback small { font-size: .8rem; }
+.listing-meta { display:flex; flex-wrap:wrap; gap:.35rem; margin:.15rem 0 .55rem; }
+.listing-meta span { padding:.2rem .48rem; border:1px solid var(--dashboard-border); border-radius:.45rem; color:var(--dashboard-text); background:var(--dashboard-surface); font-size:.72rem; line-height:1.35; }
 .listing-spec { display:flex; justify-content:space-between; gap:.5rem; padding:.25rem 0; border-bottom:1px solid #F1F5F9; font-size:.8rem; }
 .listing-spec span { color: var(--dashboard-muted); }
 .listing-spec b { color: var(--dashboard-text); font-weight: 600; text-align:right; }
@@ -281,12 +270,13 @@ div.stAlert { border-radius: 12px; }
         min-height: 440px;
         align-items: flex-end;
         padding: 1.5rem;
-        background-image: linear-gradient(0deg, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.96) 52%, rgba(255,255,255,0.12) 100%), var(--automatch-hero-image);
+        background-image: linear-gradient(0deg, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.98) 58%, rgba(255,255,255,0.12) 100%), var(--automatch-hero-image);
         background-position: center, center top;
         background-size: cover, cover;
     }
     div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] { max-width: 100%; }
-    .car-photo-fallback { min-height: 130px; }
+    .listing-meta { gap:.25rem; }
+    .listing-meta span { font-size:.68rem; }
     .car-price { font-size: 1.2rem; }
     [data-testid="stMetricValue"] { font-size: 1.15rem !important; }
 }
