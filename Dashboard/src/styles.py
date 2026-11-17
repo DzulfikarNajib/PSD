@@ -184,11 +184,13 @@ h1, h2, h3, h4 {
     border: 1px solid var(--dashboard-border) !important;
     border-radius: 14px !important;
     padding: .85rem 1rem !important;
+    min-width: 0;
     box-shadow: 0 1px 3px rgba(15, 23, 42, .03) !important;
 }
 .stMetric label, .stMetric [data-testid="stMetricLabel"] { color: var(--dashboard-muted); }
-.stMetric [data-testid="stMetricValue"] { color: var(--dashboard-text); font-weight: 700; font-size: clamp(1.1rem, 1.8vw, 1.6rem); overflow-wrap: anywhere; }
-[data-testid="stMetricLabel"] p { font-size: .84rem; font-weight: 500; }
+.stMetric [data-testid="stMetricValue"] { color: var(--dashboard-text); font-weight: 700; font-size: clamp(1rem, 1.5vw, 1.4rem); line-height:1.2; white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; }
+.stMetric [data-testid="stMetricValue"] > div { font-size:inherit !important; line-height:inherit; white-space:normal !important; overflow:visible !important; text-overflow:clip !important; overflow-wrap:anywhere; }
+[data-testid="stMetricLabel"] p { font-size: .84rem; font-weight: 500; white-space:normal; line-height:1.2; }
 
 /* Cards & Containers */
 [data-testid="stVerticalBlockBorderWrapper"] {

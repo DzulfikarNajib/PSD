@@ -48,14 +48,14 @@ active_page = st.navigation(
 
 logo_data = base64.b64encode((ASSETS_DIR / "automatch-logo.png").read_bytes()).decode("ascii")
 with st.container(key="automatch_topnav"):
-    nav = st.columns([1.65, 5.5, .9], gap="small", vertical_alignment="center")
+    nav = st.columns([1.65, 4.15, 1.05], gap="small", vertical_alignment="center")
     with nav[0]:
         st.markdown(
             f'<div class="automatch-brand"><img src="data:image/png;base64,{logo_data}" alt="AutoMatch" /><span>Find the car that fits you</span></div>',
             unsafe_allow_html=True,
         )
 
-    link_columns = nav[1].columns(5, gap="small", vertical_alignment="center")
+    link_columns = nav[1].columns([.85, 1.05, 1.25, 1.05, 1.35], gap="small", vertical_alignment="center")
     page_links = [
         (link_columns[0], home_page, "Beranda", ":material/home:", "beranda"),
         (link_columns[1], search_page, "Cari Mobil", ":material/directions_car:", "cari"),
