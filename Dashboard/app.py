@@ -1,15 +1,32 @@
 """AutoMatch application shell with a compact, persistent top navigation."""
 
 import base64
+import sys
 from pathlib import Path
+
+APP_DIR = Path(__file__).resolve().parent
+ASSETS_DIR = APP_DIR / "assets"
+
+# Streamlit Cloud can start this nested app with the repository root as its
+# working directory. Put this app's package directory first so `src.*` cannot
+# resolve to an unrelated installed package named `src`.
+app_directory = str(APP_DIR)
+if app_directory in sys.path:
+    sys.path.remove(app_directory)
+sys.path.insert(0, app_directory)
+
+loaded_src = sys.modules.get("src")
+if loaded_src is not None:
+    loaded_paths = [Path(path).resolve() for path in getattr(loaded_src, "__path__", [])]
+    local_src = (APP_DIR / "src").resolve()
+    if local_src not in loaded_paths:
+        for module_name in tuple(sys.modules):
+            if module_name == "src" or module_name.startswith("src."):
+                sys.modules.pop(module_name, None)
 
 import streamlit as st
 
 from src.styles import apply_theme
-
-
-APP_DIR = Path(__file__).resolve().parent
-ASSETS_DIR = APP_DIR / "assets"
 
 st.set_page_config(
     page_title="AutoMatch",

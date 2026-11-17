@@ -84,9 +84,9 @@ div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a {
 }
 div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a:hover { color:var(--dashboard-accent); background:transparent; }
 div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a { color:var(--dashboard-accent) !important; border-bottom:2px solid var(--dashboard-accent); }
-.automatch-brand { display:flex; align-items:center; justify-content:flex-start; gap:.65rem; height:2.65rem; min-width:0; white-space:nowrap; }
-.automatch-brand img { display:block; flex:0 0 auto; width:6.8rem; height:1.8rem; object-fit:contain; object-position:left center; }
-.automatch-brand span { display:block; color:var(--dashboard-text); font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:.82rem; font-weight:650; line-height:1; letter-spacing:-.015em; }
+.automatch-brand { display:flex; align-items:center; justify-content:flex-start; gap:.5rem; height:2.65rem; min-width:0; white-space:nowrap; }
+.automatch-brand img { display:block; flex:0 0 auto; width:5.8rem; height:1.55rem; object-fit:contain; object-position:left center; }
+.automatch-brand span { display:block; color:var(--dashboard-text); font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:.72rem; font-weight:650; line-height:1; letter-spacing:-.015em; }
 div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.5rem; border-radius:999px; padding:.2rem .65rem; font-size:.8rem; white-space:nowrap; }
 
 /* Hero Banner */
