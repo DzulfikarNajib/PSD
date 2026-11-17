@@ -1,11 +1,20 @@
 """AutoMatch application shell with a compact, persistent top navigation."""
 
+from pathlib import Path
+
 import streamlit as st
 
 from src.styles import apply_theme
 
 
-st.set_page_config(page_title="AutoMatch", page_icon="assets/automatch-icon.png", layout="wide")
+APP_DIR = Path(__file__).resolve().parent
+ASSETS_DIR = APP_DIR / "assets"
+
+st.set_page_config(
+    page_title="AutoMatch",
+    page_icon=str(ASSETS_DIR / "automatch-icon.png"),
+    layout="wide",
+)
 apply_theme()
 
 home_page = st.Page("home.py", title="Beranda", url_path="beranda", icon=":material/home:", default=True)
@@ -22,6 +31,6 @@ active_page = st.navigation(
     position="top",
 )
 
-st.logo("assets/automatch-logo.png", size="medium")
+st.logo(str(ASSETS_DIR / "automatch-logo.png"), size="medium")
 
 active_page.run()
