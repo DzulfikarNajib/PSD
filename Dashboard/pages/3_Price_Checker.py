@@ -141,7 +141,7 @@ render_data_source_status()
 if source == "Listing Terbaru":
     st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()} · listing dapat berubah atau sudah tidak aktif saat dibuka.")
 else:
-    st.caption(f"Arsip Penuh · dataset OLX + snapshot tersimpan · {len(comparison_data):,} mobil unik. Tautan arsip mungkin sudah tidak aktif.".replace(",", "."))
+    st.caption(f"Arsip Penuh · {len(comparison_data):,} listing bersih dari dataset OLX aktif. Snapshot terbaru tersedia pada pilihan Listing Terbaru.".replace(",", "."))
 if not comparison_data.empty:
     st.caption(listing_data_context(comparison_data))
 

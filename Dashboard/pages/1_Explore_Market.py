@@ -35,11 +35,11 @@ with col_src:
         ["Arsip Penuh", "Listing Terbaru"],
         horizontal=True,
         key="market_source_choice",
-        help="Arsip penuh memuat Excel dan snapshot OLX tersimpan. Listing terbaru hanya membaca snapshot OLX paling baru.",
+        help="Arsip Penuh memakai dataset OLX aktif yang sudah dibersihkan. Snapshot terbaru tersedia terpisah di Listing Terbaru.",
     )
 if source_choice == "Arsip Penuh":
     source = archive.copy()
-    source_label = "Arsip penuh (dataset OLX, arsip lama, dan snapshot tersimpan)"
+    source_label = "Dataset OLX aktif yang sudah dibersihkan"
     snapshot_count = history["snapshot_id"].nunique() if "snapshot_id" in history else 0
 else:
     source = live.copy()
@@ -349,4 +349,4 @@ with spec_cols[1]:
 
 with st.expander("Tentang sumber dan batasan data"):
     st.write(f"Sumber data aktif: **{source_label}**. Angka merangkum {unique_count:,} mobil unik dari {len(source):,} baris data tersimpan.".replace(",", "."))
-    st.write("Dataset OLX aktif dan snapshot mencatat waktu pengambilan. Hanya arsip Excel lama yang tidak memiliki tanggal. Seluruh grafik menunjukkan harga penawaran pengiklan, bukan kesepakatan transaksi riil di pasar.")
+    st.write("Dataset OLX aktif sudah melalui preprocessing dan menjadi sumber grafik arsip penuh. Snapshot terbaru tersedia pada pilihan terpisah. Seluruh grafik menunjukkan harga penawaran pengiklan, bukan kesepakatan transaksi riil di pasar.")

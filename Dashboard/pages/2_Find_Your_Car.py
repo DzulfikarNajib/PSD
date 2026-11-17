@@ -28,7 +28,7 @@ st.caption("Saring arsip berdasarkan anggaran dan spesifikasi. Bandingkan listin
 
 latest, archive = load_live_data(), load_combined_archive()
 if latest.empty and archive.empty:
-    render_empty_state("Belum ada data mobil", "Listing terbaru muncul setelah refresh manual; arsip penuh memerlukan dataset Excel atau snapshot OLX tersimpan.")
+    render_empty_state("Belum ada data mobil", "Dataset bersih atau snapshot OLX terbaru belum tersedia. Tidak ada data contoh yang ditampilkan.")
     st.stop()
 
 source_choice = st.radio(
@@ -36,7 +36,7 @@ source_choice = st.radio(
     ["Arsip Penuh", "Listing Terbaru"],
     horizontal=True,
     key="car_source_choice",
-    help="Arsip penuh menggabungkan Excel dan seluruh snapshot OLX tersimpan. Listing terbaru hanya membaca snapshot terakhir.",
+    help="Arsip Penuh memakai dataset OLX aktif yang sudah dibersihkan. Snapshot terbaru tersedia terpisah di Listing Terbaru.",
 )
 cars = archive.copy() if source_choice == "Arsip Penuh" else latest.copy()
 if cars.empty:
@@ -50,11 +50,12 @@ cars, segment_summary = _cluster_cached(cars)
 if source_choice == "Listing Terbaru":
     st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()}. Status dan isi iklan dapat berubah sejak pengambilan data.")
 else:
-    origins = cars.get("source_origins", pd.Series("", index=cars.index)).fillna("")
-    dataset_count = int(origins.str.contains("OLX Indonesia", regex=False).sum())
-    legacy_excel_count = int(origins.str.contains("Dataset Excel", regex=False).sum())
-    olx_count = int(origins.str.contains("Arsip snapshot OLX", regex=False).sum())
-    st.caption(f"Arsip Penuh · {cars['listing_id'].nunique():,} mobil unik · dataset OLX aktif: {dataset_count:,} · arsip Excel lama: {legacy_excel_count:,} · snapshot OLX: {olx_count:,}. Sumber dapat tumpang tindih dan iklan arsip mungkin sudah tidak aktif.".replace(",", "."))
+    st.caption(
+        (
+            f"Arsip Penuh · {cars['listing_id'].nunique():,} listing bersih dari dataset OLX aktif. "
+            "Arsip Excel lama dan snapshot tidak dicampur ke sumber ini."
+        ).replace(",", ".")
+    )
 render_data_source_status()
 st.caption(listing_data_context(cars))
 
@@ -283,6 +284,6 @@ with right:
                     st.link_button("Buka iklan sumber", str(url), icon=":material/open_in_new:", width="stretch")
 
 if source_choice == "Arsip Penuh":
-    st.warning("Arsip bukan stok aktif. Dataset OLX dan snapshot mencatat waktu pengambilan, tetapi iklan dapat berubah atau tidak aktif. Hanya arsip Excel lama yang tidak memiliki tanggal pengambilan.")
+    st.warning("Dataset ini sudah dibersihkan untuk analisis, tetapi bukan stok aktif. Iklan dapat berubah atau tidak aktif; snapshot terbaru tersedia pada pilihan Listing Terbaru.")
 else:
     st.caption("Listing terlihat saat snapshot terakhir diambil, tetapi status iklan dapat berubah. AutoMatch tidak memeriksa kondisi fisik atau dokumen kendaraan.")

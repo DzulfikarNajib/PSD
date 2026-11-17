@@ -147,10 +147,27 @@ def _dki_scope(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_combined_archive() -> pd.DataFrame:
-    """Merge Excel and OLX snapshots into one searchable row per unique listing."""
+    """Load the active cleaned dataset; use legacy merging only as a fallback."""
     excel = load_historical_data()
     preprocessing_audit = excel.attrs.get("preprocessing_audit", {})
     local_excluded_financing_count = int(excel.attrs.get("excluded_financing_count", 0))
+
+    # The migrated OLX dataset is the canonical analytical source. Keep older
+    # Excel seeds and Supabase snapshots out of the full archive to avoid
+    # silently inflating the cleaned 6.3k-row dataset with legacy records.
+    if preprocessing_audit.get("source") == "OLX Indonesia - DKI Jakarta":
+        archive = excel.copy()
+        archive["source_origins"] = "OLX Indonesia"
+        archive["observation_count"] = 1
+        archive.attrs["excluded_financing_count"] = local_excluded_financing_count
+        archive.attrs["excluded_outlier_price_count"] = int(excel.attrs.get("excluded_outlier_price_count", 0))
+        archive.attrs["preprocessing_audit"] = preprocessing_audit
+        _set_data_source_status(
+            "local",
+            "Menggunakan dataset OLX Indonesia yang sudah dibersihkan. Arsip Excel lama dan snapshot tersedia sebagai sumber terpisah.",
+        )
+        return archive.reset_index(drop=True)
+
     seeded, dataset_seed, snapshots = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     if supabase_is_configured():
         try:
@@ -208,9 +225,12 @@ def load_combined_archive() -> pd.DataFrame:
 
 
 def load_training_archive() -> pd.DataFrame:
-    """Provide Excel plus OLX snapshot observations to explicit model training."""
+    """Provide canonical cleaned data for training, with legacy merge fallback."""
     excel = load_historical_data()
     excluded_financing_count = int(excel.attrs.get("excluded_financing_count", 0))
+    if excel.attrs.get("preprocessing_audit", {}).get("source") == "OLX Indonesia - DKI Jakarta":
+        _set_data_source_status("local", "Pelatihan memakai dataset OLX Indonesia aktif yang sudah dibersihkan.")
+        return excel
     if not supabase_is_configured():
         _set_data_source_status("local", "Menggunakan arsip lokal untuk evaluasi model. Supabase belum dikonfigurasi.")
         return excel
