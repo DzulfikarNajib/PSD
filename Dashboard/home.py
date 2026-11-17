@@ -52,7 +52,7 @@ render_data_source_status()
 st.markdown("## Ringkasan arsip mobil")
 if archive.empty:
     empty_metrics = st.columns(4)
-    empty_metrics[0].metric("Sumber data", "OLX Indonesia · DKI Jakarta", border=True)
+    empty_metrics[0].metric("Sumber data", "OLX · DKI Jakarta", border=True)
     empty_metrics[1].metric("Listing bersih", "-", border=True)
     empty_metrics[2].metric("Rentang tahun", "-", border=True)
     empty_metrics[3].metric("Pembaruan terakhir", "-", border=True)
@@ -76,11 +76,11 @@ else:
     year_range = f"{year_min}-{year_max}" if year_min is not None and year_max is not None else "-"
     latest_value = preprocessing_audit.get("latest_fetched_at")
     last_update = format_timestamp_wib(latest_value)
-    metric_cols[0].metric("Sumber data", "OLX Indonesia · DKI Jakarta", border=True)
+    metric_cols[0].metric("Sumber data", "OLX · DKI Jakarta", border=True)
     metric_cols[1].metric("Total listing bersih", f"{clean_count:,}".replace(",", "."), border=True)
     metric_cols[2].metric("Rentang tahun produksi", year_range, border=True)
     metric_cols[3].metric("Pembaruan terakhir", last_update, border=True)
-    st.caption("Angka cakupan berasal dari pipeline preprocessing dataset aktif. Harga yang ditampilkan adalah harga penawaran; iklan arsip belum tentu masih aktif.")
+    st.caption("Sumber: OLX Indonesia — DKI Jakarta. Jumlah listing berasal dari data yang sudah diproses; harga adalah harga penawaran dan iklan arsip belum tentu masih aktif.")
 
     st.markdown("### Mulai dari pilihan yang tersedia")
     st.caption("Beranda merangkum arsip. Buka Pahami Pasar untuk melihat distribusi dan perbandingan grafik secara lebih rinci.")
