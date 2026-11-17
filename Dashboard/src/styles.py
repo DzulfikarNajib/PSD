@@ -71,11 +71,13 @@ div[class*="st-key-automatch_topnav"] {
 div[class*="st-key-automatch_topnav"] [data-testid="stHorizontalBlock"] { gap: .35rem; align-items:center !important; }
 div[class*="st-key-automatch_topnav"] [data-testid="stColumn"] { display:flex; align-items:center; }
 div[class*="st-key-automatch_topnav"] [data-testid="stMarkdownContainer"] { margin:0; padding:0; }
-div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] { min-width:max-content; }
+div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] { width:100%; }
 div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a {
     min-height:2.5rem;
     display:flex;
     align-items:center;
+    justify-content:center;
+    width:100%;
     padding:.35rem .48rem;
     border-radius:0;
     color:var(--dashboard-muted);

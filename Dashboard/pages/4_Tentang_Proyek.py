@@ -63,6 +63,15 @@ if not prices.empty:
 
 st.markdown("### Data Overview & Alur Data Preprocessing")
 if preprocessing_audit:
+    raw_count = int(preprocessing_audit.get("raw_rows", 0))
+    clean_count = int(preprocessing_audit.get("clean_rows", len(active_data)))
+    st.caption(
+        (
+            f"CSV sumber berisi {raw_count:,} baris mentah. Aplikasi membersihkan data saat dibaca; "
+            f"hanya {clean_count:,} listing bersih yang digunakan untuk analisis dan pelatihan model. "
+            "Jumlah mentah ditampilkan di bawah agar setiap tahap pembersihan dapat diaudit."
+        ).replace(",", ".")
+    )
     funnel = build_preprocessing_funnel(preprocessing_audit)
     funnel["Listing tersisa"] = funnel["Listing tersisa"].map(lambda value: f"{int(value):,}".replace(",", "."))
     funnel["Dibuang pada tahap ini"] = funnel["Dibuang pada tahap ini"].map(lambda value: f"{int(value):,}".replace(",", "."))
