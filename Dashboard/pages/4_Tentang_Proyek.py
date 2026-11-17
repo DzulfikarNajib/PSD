@@ -13,7 +13,13 @@ from src.modeling import (
     get_test_predictions,
 )
 from src.styles import apply_theme
-from src.ui import format_rupiah, format_rupiah_compact, apply_rupiah_ticks
+from src.ui import (
+    format_rupiah,
+    format_rupiah_compact,
+    apply_rupiah_ticks,
+    listing_data_context,
+    render_data_source_status,
+)
 
 
 apply_theme()
@@ -36,38 +42,44 @@ with st.container(key="project_editorial_hero"):
     with intro_copy:
         st.caption("PENGANTAR SAINS DATA · PROYEK APLIKASI")
         st.title("Tentang Proyek")
-        st.markdown("### Dari data iklan menuju pilihan yang lebih terarah.")
-        st.write("AutoMatch membantu calon pembeli menyaring mobil bekas, membandingkan iklan, dan memahami konteks harga penawaran. Halaman ini merangkum sumber data, metode, temuan, serta batasannya.")
+        st.markdown("### Dari data iklan ke konteks keputusan.")
+        st.write("AutoMatch merangkum arsip mobil bekas agar pengguna dapat menyaring pilihan, membandingkan listing, dan membaca konteks harga penawaran. Di sini kamu bisa melihat sumber, proses, evaluasi model, dan batas penggunaan hasilnya.")
         if st.button("Jelajahi arsip mobil", icon=":material/directions_car:", type="primary", key="project_go_search"):
             st.switch_page("pages/2_Find_Your_Car.py")
 
 st.markdown("### Ringkasan Data")
+render_data_source_status()
 metrics = st.columns(4)
 metrics[0].metric("Excel DKI", f"{len(excel):,}".replace(",", "."), border=True)
 metrics[1].metric("Mobil unik di arsip penuh", f"{unique_archive_count:,}".replace(",", "."), border=True)
 metrics[2].metric("Snapshot OLX tersimpan", f"{snapshot_count:,}".replace(",", "."), border=True)
 metrics[3].metric("Data layak untuk model", f"{len(model_data):,}".replace(",", "."), border=True)
-st.caption("Arsip penuh menghitung satu baris per listing unik; jumlah snapshot menghitung pengambilan OLX yang terpisah. Dataset Excel tidak memiliki tanggal pengambilan.")
+st.caption("Arsip penuh menghitung listing unik. Snapshot menghitung sesi pengambilan OLX. Dataset Excel tidak memiliki tanggal pengambilan.")
+st.caption(listing_data_context(archive))
 if not prices.empty:
     st.caption(f"Dataset Excel: rentang harga penawaran {format_rupiah_compact(prices.min())} s/d {format_rupiah_compact(prices.max())} (Median: {format_rupiah_compact(prices.median())}).")
 
-st.markdown("### Tujuh Komponen Metodologi Sains Data")
-cards = [
-    ("1. Project Overview", "Membantu calon pembeli menyaring pilihan, membandingkan iklan, dan memahami konteks harga. Aplikasi memberi konteks awal; keputusan tetap memerlukan inspeksi fisik dan dokumen resmi."),
-    ("2. Data Overview", f"Excel menyumbang {len(excel):,} listing DKI tervalidasi; snapshot OLX baru mencatat waktu pengambilan. Arsip penuh merangkum mobil unik, snapshot menghitung observasi berkala.".replace(",", ".")),
-    ("3. Exploratory Data Analysis", "Pahami Pasar merangkum tren merek, bahan bakar, harga, transmisi, dan hubungan harga dengan tahun/odometer. Analisis deskriptif memberikan gambaran pasar penawaran."),
-    ("4. Data Preprocessing", "Kolom dinormalisasi, harga dan spesifikasi divalidasi, serta URL dipakai untuk deduplikasi. Cakupan dibatasi pada lima kota administrasi DKI Jakarta."),
-    ("5. Modeling (Supervised Regression)", "Tiga algoritma regresi (Linear Regression, Decision Tree, Random Forest) dibandingkan pada data holdout (test set 20%) menggunakan metrik MAE, RMSE, dan R²."),
-    ("6. Key Insights", "Merek populer seperti Toyota dan Honda mendominasi ketersediaan unit. Mobil transmisi otomatis memiliki premi harga rata-rata lebih tinggi dibanding transmisi manual."),
-    ("7. Kesimpulan & Rekomendasi", "Gunakan filter dan kalkulator harga sebagai titik awal penawaran. Selalu periksa kondisi mesin, riwayat servis, dan keaslian surat sebelum melakukan transaksi."),
+st.markdown("### Alur data hingga keputusan")
+methodology = [
+    ("1. Tujuan Proyek", "Menyaring pilihan, membandingkan iklan, dan memberi konteks harga penawaran. Hasil aplikasi menjadi bahan pertimbangan awal, bukan pengganti pemeriksaan kendaraan."),
+    ("2. Sumber Data", f"Dataset Excel dan snapshot OLX tersimpan menyediakan listing dari wilayah cakupan proyek. Excel tidak mencatat waktu pengambilan; snapshot OLX mencatat waktu refresh."),
+    ("3. Analisis Eksploratif", "Pahami Pasar membandingkan komposisi dan sebaran harga. Cari Mobil memakai K-Means untuk mengelompokkan listing menurut harga, tahun, kilometer, dan CC. Profil kelompok relatif pada sumber aktif, bukan label kualitas mobil."),
+    ("4. Persiapan Data", "Kolom dibersihkan dan dinormalisasi, nilai harga serta spesifikasi diperiksa, lalu listing dideduplikasi. Cakupan wilayah mengikuti data yang tersedia untuk proyek."),
+    ("5. Pemodelan Regresi", "Linear Regression, Decision Tree, dan Random Forest dibandingkan pada data uji holdout 20% dengan MAE, RMSE, dan R². Model supervised mengestimasi harga penawaran saat ini dari spesifikasi, bukan meramal kenaikan harga tahun depan."),
+    ("6. Membaca Temuan", "Gunakan grafik dan ringkasan yang dihitung dari arsip aktif. Perbedaan antarkelompok bersifat deskriptif dan tidak membuktikan penyebab atau kualitas kendaraan."),
+    ("7. Batas Penggunaan", "Gunakan hasil untuk menyusun shortlist dan pertanyaan saat negosiasi. Periksa kondisi, riwayat servis, dokumen, dan iklan sumber secara langsung."),
 ]
-for start, size in ((0, 4), (4, 3)):
-    grid = st.columns(size, gap="small")
-    for col, (heading, body) in zip(grid, cards[start : start + size]):
-        with col:
-            with st.container(border=True, key=f"project_card_{start}_{heading.split('.')[0].strip()}"):
-                st.markdown(f"#### {heading}")
-                st.caption(body)
+data_flow, decision_flow = st.columns([1.2, 1], gap="large", vertical_alignment="top")
+with data_flow:
+    st.markdown("#### Sumber dan analisis")
+    for heading, body in methodology[:4]:
+        st.markdown(f"**{heading}**")
+        st.write(body)
+with decision_flow:
+    st.markdown("#### Model dan penggunaan hasil")
+    for heading, body in methodology[4:]:
+        st.markdown(f"**{heading}**")
+        st.write(body)
 
 st.markdown("### Evaluasi Metodologi & Kinerja Model")
 metadata = load_model_metadata()
@@ -94,7 +106,7 @@ if metadata.get("models"):
             best_model_name = metadata.get("best_model", "Random Forest Regressor")
             best_r2 = metadata.get("models", {}).get(best_model_name, {}).get("R2", 0)
             best_mae = metadata.get("models", {}).get(best_model_name, {}).get("MAE", 0)
-            st.success(f"**Model Pilihan:** `{best_model_name}` terpilih karena menghasilkan MAE terendah ({format_rupiah_compact(best_mae)}) dan R² sebesar {best_r2:.4f}, mengungguli Linear Regression baseline.")
+            st.info(f"Model dengan MAE terendah pada evaluasi tersimpan: **{best_model_name}**. MAE {format_rupiah_compact(best_mae)} dan R² {best_r2:.4f} menggambarkan hasil pada pembagian data uji ini; performa dapat berubah pada data lain.")
 
     with eval_col2:
         with st.container(border=True):
@@ -133,7 +145,7 @@ if metadata.get("models"):
                 apply_rupiah_ticks(fig_scatter, axis="x", min_val=0, max_val=float(max_bound), n_ticks=5)
                 apply_rupiah_ticks(fig_scatter, axis="y", min_val=0, max_val=float(max_bound), n_ticks=5)
                 st.plotly_chart(fig_scatter, use_container_width=True, config={"displayModeBar": False}, key="project_actual_vs_predicted")
-                st.caption(f"Scatter plot menunjukkan kedekatan nilai prediksi dengan harga aktual pada {len(test_preds):,} sampel data uji. Titik yang mendekati garis oranye menunjukkan prediksi akurat.")
+                st.caption(f"Setiap titik membandingkan harga aktual dan prediksi pada {len(test_preds):,} sampel uji. Titik yang lebih dekat ke garis diagonal memiliki selisih lebih kecil pada sampel tersebut.")
             else:
                 st.caption("Grafik data uji belum tersedia.")
 
@@ -142,7 +154,7 @@ if eligible:
     st.success(f"Tersedia {len(model_data):,} listing unik yang memenuhi kriteria minimum data. {eligibility_message}".replace(",", "."))
 else:
     st.info(f"Prediksi belum layak ditampilkan: {eligibility_message} Saat ini ada {len(model_data):,} listing unik yang lolos preprocessing.".replace(",", "."))
-st.caption("Gerbang validasi: minimal 100 listing unik, 3 merek, dan 5 model berbeda. Target pemodelan adalah harga penawaran iklan historis DKI Jakarta.")
+st.caption("Gerbang validasi: minimal 100 listing unik, 3 merek, dan 5 model berbeda. Target model adalah harga penawaran dalam data historis proyek, bukan harga transaksi.")
 
 with st.expander("Alur Penggunaan Aplikasi AutoMatch"):
     st.markdown("**Beranda → Cari Mobil → Bandingkan Listing → Cek Harga Iklan → Buka Iklan Sumber.** Halaman Pahami Pasar dapat diakses kapan saja untuk membaca tren agregat pasar.")

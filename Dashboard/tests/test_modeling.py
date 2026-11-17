@@ -1,7 +1,8 @@
 import pandas as pd
 
 from src.modeling import (evaluate_regression_models, model_is_validated,
-                          prepare_model_data, training_eligibility)
+                          get_test_predictions, prepare_model_data,
+                          training_eligibility)
 
 
 def make_listing_df(rows: int = 120):
@@ -27,10 +28,16 @@ def make_listing_df(rows: int = 120):
 
 def test_model_training_on_reasonable_data(tmp_path):
     df = make_listing_df()
-    result = evaluate_regression_models(df, tmp_path / "model.joblib", tmp_path / "metrics.json")
+    metrics_path = tmp_path / "metrics.json"
+    result = evaluate_regression_models(df, tmp_path / "model.joblib", metrics_path)
     assert result["status"] == "ready"
     assert model_is_validated(result)
     assert set(result["models"]).issuperset({"Linear Regression", "Decision Tree Regressor", "Random Forest Regressor"})
+
+    holdout = get_test_predictions(metadata_path=metrics_path)
+    assert len(holdout) == 24
+    assert {"actual", "predicted", "make", "year"}.issubset(holdout.columns)
+    assert len(result["holdout_predictions"]) == len(holdout)
 
 
 def test_repeated_listing_snapshots_use_latest_observation():

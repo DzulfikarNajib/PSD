@@ -3,17 +3,49 @@
 import streamlit as st
 
 
+COLORS = {
+    "background": "#F8FAFC",
+    "surface": "#FFFFFF",
+    "text": "#0F172A",
+    "muted": "#475569",
+    "accent": "#008B8B",
+    "accent_hover": "#066B6B",
+    "border": "#E2E8F0",
+    "grid": "#F1F5F9",
+    "warning": "#F59E0B",
+    "under_background": "#ECFDF5",
+    "under_text": "#047857",
+    "under_border": "#A7F3D0",
+    "fair_background": "#F0FDFA",
+    "fair_text": "#008B8B",
+    "fair_border": "#99F6E4",
+    "over_background": "#FEF2F2",
+    "over_text": "#B91C1C",
+    "over_border": "#FECACA",
+}
+CHART_PALETTE = (COLORS["accent"], "#0F766E", "#0369A1", COLORS["warning"], "#10B981", "#64748B")
+
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 :root {
     --dashboard-bg: #F8FAFC;
+    --dashboard-soft: #FFFFFF;
     --dashboard-surface: #FFFFFF;
     --dashboard-text: #0F172A;
     --dashboard-accent: #008B8B;
     --dashboard-accent-hover: #066B6B;
     --dashboard-muted: #475569;
     --dashboard-border: #E2E8F0;
+    --status-under-background: #ECFDF5;
+    --status-under-text: #047857;
+    --status-under-border: #A7F3D0;
+    --status-fair-background: #F0FDFA;
+    --status-fair-text: #008B8B;
+    --status-fair-border: #99F6E4;
+    --status-over-background: #FEF2F2;
+    --status-over-text: #B91C1C;
+    --status-over-border: #FECACA;
 }
 
 .stApp {
@@ -23,88 +55,39 @@ CSS = """
 }
 
 [data-testid="stAppViewContainer"] { background: var(--dashboard-bg); }
-[data-testid="stMainBlockContainer"] { max-width: 1540px; padding-top: 3.5rem; padding-bottom: 4rem; }
-div[class*="st-key-automatch_topnav"] {
-    position: relative;
-    top: auto;
-    z-index: 999;
-    background: rgba(255, 255, 255, .98);
-    border: 1px solid var(--dashboard-border);
-    border-radius: 16px;
-    margin: 0 -1.5rem 1.35rem;
-    padding: .3rem 1.25rem;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, .03);
-}
-div[class*="st-key-automatch_topnav"] [data-testid="stHorizontalBlock"] { gap: .4rem; align-items:center !important; }
-div[class*="st-key-automatch_topnav"] [data-testid="stColumn"] { display:flex; align-items:center; }
-div[class*="st-key-automatch_topnav"] [data-testid="stMarkdownContainer"] { margin:0; padding:0; }
-div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] { min-width: max-content; }
-div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a {
-    min-height: 2.5rem;
-    display: flex;
-    align-items: center;
-    padding: .35rem .55rem;
-    border-radius: 0;
-    color: var(--dashboard-muted);
-    font-size: .84rem;
-    font-weight: 600;
-    text-decoration: none;
-    white-space: nowrap;
-}
-div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a:hover { color: var(--dashboard-accent); background: transparent; }
-div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a {
-    color: var(--dashboard-accent) !important;
-    border-bottom: 2px solid var(--dashboard-accent);
-}
-.automatch-brand {
-    display:flex;
-    align-items:center;
-    justify-content:flex-start;
-    gap:.8rem;
-    height:2.65rem;
-    min-width:0;
-    white-space:nowrap;
-}
-.automatch-brand img {
-    display:block;
-    flex:0 0 auto;
-    width:7rem;
-    height:1.8rem;
-    object-fit:contain;
-    object-position:left center;
-}
-.automatch-brand span {
-    display:block;
-    color: var(--dashboard-text);
-    font-family:"Plus Jakarta Sans",Inter,sans-serif;
-    font-size:.9rem;
-    font-weight:650;
-    line-height:1;
-    letter-spacing:-.015em;
-}
-div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.5rem; border-radius:999px; padding:.2rem .75rem; font-size:.8rem; white-space:nowrap; }
-
+[data-testid="stMainBlockContainer"] { max-width: 1480px; padding-top: 2.35rem; padding-bottom: 3rem; }
 /* Hero Banner */
 div[class*="st-key-home_hero"] {
     position: relative;
     overflow: hidden;
-    min-height: 400px;
+    min-height: 410px;
     display: flex;
     align-items: center;
     background-color: #F8FAFC;
-    background-image: linear-gradient(90deg, rgba(248,250,252,0.98) 0%, rgba(248,250,252,0.95) 46%, rgba(248,250,252,0.65) 66%, rgba(248,250,252,0.08) 100%), var(--automatch-hero-image);
+    background-image: linear-gradient(90deg, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.96) 42%, rgba(255,255,255,0.72) 60%, rgba(255,255,255,0.08) 100%), var(--automatch-hero-image);
     background-position: center, right center;
     background-repeat: no-repeat, no-repeat;
-    background-size: cover, contain;
+    background-size: cover, cover;
     border: 1px solid var(--dashboard-border);
     border-radius: 20px;
     padding: 2.4rem 2.8rem;
-    box-shadow: 0 2px 10px rgba(15, 23, 42, .03);
+    box-shadow: 0 1px 5px rgba(15, 23, 42, .025);
 }
 div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] {
     max-width: 560px;
+    width: 100%;
+    align-items: flex-start;
     text-align: left;
 }
+div[class*="st-key-home_hero"] [data-testid="stButton"] {
+    width: auto;
+    align-self: flex-start;
+}
+div[class*="st-key-home_hero"] [data-testid="stElementContainer"]:has([data-testid="stButton"]) {
+    width: fit-content;
+    align-self: flex-start;
+}
+div[class*="st-key-home_hero"] [data-testid="stButton"] > button { width: auto; }
 div[class*="st-key-home_hero"] h1 {
     font-size: clamp(2.4rem, 4.5vw, 3.8rem);
     margin-bottom: .25rem;
@@ -117,6 +100,11 @@ div[class*="st-key-home_hero"] h3 {
     font-weight: 700;
     margin-top: 0;
 }
+div[class*="st-key-home_hero"] [data-testid="stCaptionContainer"] p {
+    color: var(--dashboard-muted);
+    font-weight: 600;
+    letter-spacing: .02em;
+}
 div[class*="st-key-home_hero"] p {
     color: var(--dashboard-muted);
     font-size: .95rem;
@@ -124,7 +112,7 @@ div[class*="st-key-home_hero"] p {
 }
 
 div[class*="st-key-project_editorial_hero"] {
-    background: linear-gradient(110deg, #F0FDFA, #FFFFFF 65%);
+    background: #FFFFFF;
     border: 1px solid var(--dashboard-border);
     border-radius: 20px;
     padding: 1.5rem 1.8rem;
@@ -172,24 +160,26 @@ h1, h2, h3, h4 {
     background: var(--dashboard-surface);
     border: 1px solid var(--dashboard-border);
     border-radius: 16px;
-    box-shadow: 0 1px 4px rgba(15, 23, 42, .03);
+    box-shadow: none;
 }
 .card {
     background: var(--dashboard-surface);
     border: 1px solid var(--dashboard-border);
     border-radius: 16px;
     padding: 1.1rem 1.25rem;
-    box-shadow: 0 1px 4px rgba(15, 23, 42, .03);
+    box-shadow: none;
 }
 [data-testid="stImage"] img { border-radius: 12px; aspect-ratio: 16 / 9; object-fit: cover; }
 [data-testid="stImage"] figcaption { color: var(--dashboard-muted); font-size: .78rem; }
 
 [data-testid="stPlotlyChart"] { padding: .4rem; border-radius: 14px; background: #FFFFFF; }
 .stMarkdown p { line-height: 1.65; }
+[data-testid="stCaptionContainer"] p { line-height: 1.5; }
 
 /* Buttons & Inputs */
 .stButton > button, [data-testid="stLinkButton"] a {
-    border-radius: 999px;
+    min-height: 2.75rem;
+    border-radius: 10px;
     font-weight: 600;
     font-size: .86rem;
     border: 1px solid var(--dashboard-border);
@@ -207,6 +197,14 @@ h1, h2, h3, h4 {
 }
 .stButton > button:hover {
     border-color: var(--dashboard-accent);
+}
+.stButton > button:active, [data-testid="stLinkButton"] a:active { transform: translateY(1px); }
+.stButton > button:not(:disabled), [data-testid="stLinkButton"] a, [data-testid="stPageLink"] a { cursor: pointer; }
+.stButton > button:focus-visible,
+[data-testid="stPageLink"] a:focus-visible,
+[data-testid="stLinkButton"] a:focus-visible {
+    outline: 3px solid rgba(0, 139, 139, .38);
+    outline-offset: 2px;
 }
 
 .car-price {
@@ -233,6 +231,8 @@ h1, h2, h3, h4 {
 .listing-spec span { color: var(--dashboard-muted); }
 .listing-spec b { color: var(--dashboard-text); font-weight: 600; text-align:right; }
 .price-hero-value { color: var(--dashboard-accent); font-family:"Plus Jakarta Sans",sans-serif; font-size:clamp(1.65rem,2.7vw,2.3rem); font-weight:800; letter-spacing:-.03em; }
+div[class*="st-key-price_analysis_hero"] [data-testid="stVerticalBlock"] { gap:.65rem; padding-bottom:.45rem; }
+.price-result-status { margin:.1rem 0 .25rem; }
 
 /* Status Badges */
 .badge-underpriced {
@@ -241,9 +241,9 @@ h1, h2, h3, h4 {
     border-radius: 999px;
     font-size: .82rem;
     font-weight: 700;
-    background-color: #ECFDF5;
-    color: #047857;
-    border: 1px solid #A7F3D0;
+    background-color: var(--status-under-background);
+    color: var(--status-under-text);
+    border: 1px solid var(--status-under-border);
 }
 .badge-fair {
     display: inline-block;
@@ -251,9 +251,9 @@ h1, h2, h3, h4 {
     border-radius: 999px;
     font-size: .82rem;
     font-weight: 700;
-    background-color: #F0FDFA;
-    color: #008B8B;
-    border: 1px solid #99F6E4;
+    background-color: var(--status-fair-background);
+    color: var(--status-fair-text);
+    border: 1px solid var(--status-fair-border);
 }
 .badge-overpriced {
     display: inline-block;
@@ -261,9 +261,9 @@ h1, h2, h3, h4 {
     border-radius: 999px;
     font-size: .82rem;
     font-weight: 700;
-    background-color: #FEF2F2;
-    color: #B91C1C;
-    border: 1px solid #FECACA;
+    background-color: var(--status-over-background);
+    color: var(--status-over-text);
+    border: 1px solid var(--status-over-border);
 }
 
 div.stAlert { border-radius: 12px; }
@@ -276,22 +276,22 @@ div.stAlert { border-radius: 12px; }
 [data-testid="stDataFrame"] { border: 1px solid var(--dashboard-border); border-radius: 12px; }
 
 @media (max-width: 768px) {
-    [data-testid="stMainBlockContainer"] { padding-top: 3.5rem; }
-    div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin: 0 -1rem 1rem; padding:.4rem .75rem; }
+    [data-testid="stMainBlockContainer"] { padding-top: 1.5rem; padding-bottom: 2rem; }
     div[class*="st-key-home_hero"] {
         min-height: 440px;
         align-items: flex-end;
         padding: 1.5rem;
-        background-image: linear-gradient(0deg, rgba(248,250,252,0.98) 0%, rgba(248,250,252,0.92) 55%, rgba(248,250,252,0.15) 100%), var(--automatch-hero-image);
+        background-image: linear-gradient(0deg, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.96) 52%, rgba(255,255,255,0.12) 100%), var(--automatch-hero-image);
         background-position: center, center top;
         background-size: cover, cover;
     }
     div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] { max-width: 100%; }
-    .automatch-brand { gap:0; }
-    .automatch-brand span { display:none; }
     .car-photo-fallback { min-height: 130px; }
     .car-price { font-size: 1.2rem; }
     [data-testid="stMetricValue"] { font-size: 1.15rem !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
 </style>
 """

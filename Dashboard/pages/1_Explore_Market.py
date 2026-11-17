@@ -8,13 +8,20 @@ import streamlit as st
 
 from src.data_loader import load_history_data, load_live_data, load_combined_archive
 from src.styles import apply_theme
-from src.ui import format_rupiah, format_rupiah_compact, apply_rupiah_ticks, render_empty_state
+from src.ui import (
+    format_rupiah,
+    format_rupiah_compact,
+    apply_rupiah_ticks,
+    listing_data_context,
+    render_data_source_status,
+    render_empty_state,
+)
 
 
 apply_theme()
 st.title("Pahami Pasar")
-st.caption("Pelajari tren, pola sebaran harga, dan komposisi mobil bekas yang tercatat di AutoMatch.")
-st.info("Harga yang dianalisis adalah harga penawaran pada iklan. Grafik merangkum data yang terkumpul, bukan seluruh pasar atau harga transaksi final.", icon=":material/info:")
+st.caption("Bandingkan komposisi kendaraan dan pola harga dari listing yang tersimpan.")
+st.info("Semua angka harga adalah harga penawaran. Hasil menggambarkan arsip AutoMatch, bukan seluruh pasar atau harga transaksi.", icon=":material/info:")
 
 history, live, archive = load_history_data(), load_live_data(), load_combined_archive()
 if archive.empty and history.empty and live.empty:
@@ -42,6 +49,8 @@ else:
 if source.empty:
     st.info("Belum ada data di pilihan ini. Pilih Arsip Penuh atau lakukan refresh manual untuk memperoleh listing terbaru.")
     st.stop()
+render_data_source_status()
+st.caption(listing_data_context(source))
 
 for field in ["price", "year", "mileage_km", "engine_cc"]:
     if field in source:
@@ -57,13 +66,13 @@ with col_scope:
         ["Pasar Umum (≤ Persentil 95)", "Semua Data"],
         horizontal=True,
         key="market_scope_choice",
-        help="Pasar Umum menyaring outlier mobil mewah ekstrem (di atas persentil 95) agar grafik tidak gepeng dan pola pasar umum terbaca jelas.",
+        help="Pasar Umum mengecualikan harga di atas persentil ke-95. Pilihan ini membantu membaca sebaran utama tanpa menghapus data dari arsip.",
     )
 
 if not priced.empty and scope_choice == "Pasar Umum (≤ Persentil 95)":
     p95 = priced["price"].quantile(0.95)
     filtered_priced = priced[priced["price"] <= p95].copy()
-    scope_note = f"Menampilkan {len(filtered_priced):,} listing pasar umum (maks. {format_rupiah_compact(p95)}). Outlier mobil mewah ekstrem di atas persentil 95 disaring agar visualisasi tidak terdistorsi."
+    scope_note = f"Grafik harga menampilkan {len(filtered_priced):,} listing sampai persentil ke-95 (maks. {format_rupiah_compact(p95)}); ringkasan sumber tetap memakai seluruh arsip."
 else:
     filtered_priced = priced.copy()
     scope_note = f"Menampilkan seluruh {len(filtered_priced):,} listing bertarif valid termasuk mobil bernilai tinggi."
@@ -74,7 +83,21 @@ kpis[0].metric("Mobil unik", f"{unique_count:,}".replace(",", "."), border=True)
 kpis[1].metric("Snapshot OLX", f"{snapshot_count:,}".replace(",", "."), border=True)
 kpis[2].metric("Merek tersedia", f"{make_count:,}".replace(",", "."), border=True)
 kpis[3].metric("Median harga iklan", format_rupiah_compact(priced["price"].median()) if len(priced) else "-", border=True)
-st.caption(f"Sumber: **{source_label}** · {len(source):,} baris data · {unique_count:,} mobil unik. {scope_note}")
+st.caption(f"Sumber: **{source_label}** · {len(source):,} baris · {unique_count:,} mobil unik. {scope_note}".replace(",", "."))
+
+if not priced.empty:
+    price_median = float(priced["price"].median())
+    make_counts = source["make"].fillna("").astype(str).str.strip().replace("", pd.NA).dropna().value_counts()
+    if not make_counts.empty:
+        most_common_make = make_counts.index[0]
+        make_share = int(round(make_counts.iloc[0] / unique_count * 100)) if unique_count else 0
+        insight = (
+            f"Median harga iklan pada sumber ini {format_rupiah_compact(price_median)}. "
+            f"Merek terbanyak adalah {most_common_make} ({make_counts.iloc[0]:,} dari {unique_count:,} mobil unik, {make_share}%)."
+        ).replace(",", ".")
+    else:
+        insight = f"Median harga iklan pada sumber ini {format_rupiah_compact(price_median)} dari {len(priced):,} listing dengan harga valid.".replace(",", ".")
+    st.info(insight, title="Ringkasan sumber", icon=":material/insights:")
 
 TEAL = "#008B8B"
 DARK_TEAL = "#066B6B"
@@ -169,7 +192,8 @@ with comp_col2:
             if not t_auto.empty and not t_man.empty:
                 diff = float(t_auto.iloc[0]) - float(t_man.iloc[0])
                 diff_pct = (diff / float(t_man.iloc[0])) * 100
-                st.caption(f"Mobil transmisi otomatis memiliki median harga lebih tinggi sekitar **{diff_pct:+.1f}%** ({format_rupiah_compact(abs(diff))}) dibanding manual.")
+                direction = "lebih tinggi" if diff > 0 else "lebih rendah" if diff < 0 else "sama"
+                st.caption(f"Pada sampel ini, median penawaran otomatis {direction} {format_rupiah_compact(abs(diff))} ({abs(diff_pct):.1f}%) dibanding manual. Ini perbandingan deskriptif, bukan efek transmisi saja.")
         else:
             st.caption("Data transmisi belum cukup untuk perbandingan harga.")
 
@@ -243,7 +267,7 @@ with year_scatter_col:
             st.plotly_chart(finish_chart(fig_scat, 320), use_container_width=True, config={"displayModeBar": False}, key="market_scatter_year_clean")
             
             corr = scatter_df["year"].corr(scatter_df["price"])
-            st.caption(f"Korelasi linear sampel: **{corr:.2f}** ({len(scatter_df):,} mobil). Mobil tahun lebih baru cenderung memiliki penawaran lebih tinggi.")
+            st.caption(f"Korelasi linear tahun dan harga pada {len(scatter_df):,} listing: **{corr:.2f}**. Nilai ini menunjukkan hubungan dalam sampel, bukan sebab-akibat.".replace(",", "."))
         else:
             st.caption("Data tahun dan harga belum mencukupi untuk scatter plot.")
 
@@ -285,7 +309,8 @@ with spec_cols[1]:
             fig_cc.update_xaxes(title=None, showgrid=False)
             fig_cc.update_yaxes(title="Jumlah Mobil")
             st.plotly_chart(finish_chart(fig_cc, 300), use_container_width=True, config={"displayModeBar": False}, key="market_cc_chart")
-            st.caption(f"Tercatat pada {len(engines):,} mobil. Rentang 1.001 - 1.500 cc mendominasi mobil harian perkotaan.".replace(",", "."))
+            top_engine = engine_counts.sort_values("Jumlah", ascending=False).iloc[0]
+            st.caption(f"Kapasitas tercatat pada {len(engines):,} listing. Rentang terbanyak: **{top_engine['Rentang']}**, {int(top_engine['Jumlah']):,} listing. Data ini tidak menunjukkan kecocokan untuk penggunaan tertentu.".replace(",", "."))
         else:
             st.caption("Data kapasitas mesin belum mencukupi.")
 

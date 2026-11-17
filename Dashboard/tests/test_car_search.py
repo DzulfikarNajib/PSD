@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.car_search import budget_summary, compare_listings, filter_listings
+from src.car_search import assess_price_position, budget_summary, compare_listings, filter_listings
 
 
 def sample_listings():
@@ -23,3 +23,14 @@ def test_compare_and_budget_summary():
     assert compare_listings(df, ["a"]).empty
     summary = budget_summary(df, [100_000_000, 150_000_000, 150_000_000])
     assert summary["listing_count"].tolist() == [0, 2]
+
+
+def test_price_position_withholds_label_for_fewer_than_five_comparables():
+    result = assess_price_position(160_000_000, [150_000_000, 170_000_000])
+    assert result["count"] == 2
+    assert result["label"] is None
+
+
+def test_price_position_labels_large_enough_comparable_sample():
+    result = assess_price_position(130_000_000, [150_000_000] * 5)
+    assert result["label"] == "Di bawah pembanding"

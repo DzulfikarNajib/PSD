@@ -90,3 +90,43 @@ def render_empty_state(title: str, message: str) -> None:
     import streamlit as st
 
     st.info(f"**{title}**\n\n{message}")
+
+
+def listing_data_context(data: pd.DataFrame) -> str:
+    """Summarize listing count, snapshot age, and completeness of key specifications."""
+    count = data["listing_id"].nunique() if "listing_id" in data else len(data)
+    parts = [f"{count:,} listing unik".replace(",", ".")]
+    if "fetched_at" in data:
+        timestamps = pd.to_datetime(data["fetched_at"], errors="coerce", utc=True).dropna()
+        if not timestamps.empty:
+            latest = timestamps.max()
+            now = pd.Timestamp.now(tz="UTC")
+            age_days = max(0, int((now - latest).total_seconds() // 86_400))
+            captured = latest.tz_convert("Asia/Jakarta").strftime("%d %b %Y, %H:%M WIB")
+            age_text = "hari ini" if age_days == 0 else f"{age_days} hari lalu"
+            parts.append(f"snapshot terakhir {captured} ({age_text})")
+        elif count:
+            parts.append("tanggal pengambilan tidak tercatat")
+    specs = []
+    for column, label in (("engine_cc", "CC"), ("body_type", "tipe bodi"), ("variant", "varian")):
+        if column in data and count:
+            present = int(data[column].notna().sum())
+            if data[column].dtype == object:
+                present = int(data[column].fillna("").astype(str).str.strip().ne("").sum())
+            specs.append(f"{label} {present}/{len(data)}")
+    if specs:
+        parts.append("kelengkapan: " + ", ".join(specs))
+    return " · ".join(parts)
+
+
+def render_data_source_status() -> None:
+    """Show whether this session is reading Supabase or using a local fallback."""
+    import streamlit as st
+
+    from src.data_loader import get_data_source_status
+
+    status = get_data_source_status()
+    if status.get("mode") == "fallback":
+        st.warning(status.get("message", "Sumber data cadangan sedang digunakan."), icon=":material/cloud_off:")
+    elif status.get("mode") == "local":
+        st.caption(status.get("message", "Menggunakan data lokal yang tersimpan."))

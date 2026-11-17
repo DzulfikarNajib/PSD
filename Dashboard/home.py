@@ -6,7 +6,6 @@ import base64
 from pathlib import Path
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
 from src.api_handler import safe_refresh_snapshot
@@ -14,9 +13,8 @@ from src.data_loader import (
     get_last_updated_text,
     load_combined_archive,
 )
-from src.supabase_store import is_configured as supabase_is_configured
 from src.styles import apply_theme
-from src.ui import format_rupiah, render_empty_state
+from src.ui import format_rupiah, listing_data_context, render_data_source_status, render_empty_state
 
 
 DEFAULT_SEARCH_URL = "https://www.olx.co.id/mobil-bekas_c198/q-mobil"
@@ -41,15 +39,16 @@ st.markdown(
 )
 
 with st.container(key="home_hero"):
-    st.caption("TEMUKAN PILIHANMU")
+    st.caption("PANDUAN MEMILIH MOBIL BEKAS")
     st.markdown("# AutoMatch")
-    st.markdown("### Find the car that fits you.")
-    st.write("Cari dan bandingkan mobil bekas berdasarkan kebutuhan serta anggaranmu. Pahami harga iklannya, lalu periksa langsung sebelum memutuskan.")
+    st.markdown("### Temukan mobil yang sesuai kebutuhanmu.")
+    st.write("Saring pilihan menurut anggaran dan spesifikasi, bandingkan harga penawaran, lalu periksa kondisi mobil sebelum memutuskan.")
     if st.button("Mulai cari mobil", icon=":material/search:", type="primary", key="home_start_search"):
         st.switch_page("pages/2_Find_Your_Car.py")
-    st.caption("Telusuri arsip mobil tersimpan. Listing OLX diperbarui hanya saat refresh manual.")
+    st.caption("Data berasal dari arsip tersimpan. Listing OLX hanya diperbarui saat kamu menjalankan refresh manual.")
 
-st.markdown("## Pilihan di arsip AutoMatch")
+render_data_source_status()
+st.markdown("## Ringkasan arsip mobil")
 if archive.empty:
     empty_metrics = st.columns(4)
     for col, label in zip(empty_metrics, ["Mobil unik", "Jumlah merek", "Median harga iklan", "Snapshot OLX terbaru"]):
@@ -79,53 +78,34 @@ else:
     if not prices.empty:
         median_price = prices.median()
         st.caption(f"Rentang harga iklan tersimpan: {_compact_rupiah(prices.min())} s/d {_compact_rupiah(prices.max())} · Median: {_compact_rupiah(median_price)}.")
-    st.caption(
-        f"Sumber: arsip Excel + snapshot OLX tersimpan · waktu snapshot OLX terbaru: {last_update}. "
-        "Arsip penuh menghitung satu listing unik; iklan historis belum tentu masih aktif dan sampel bukan seluruh pasar."
-    )
+    st.caption(f"Sumber: Excel dan snapshot OLX tersimpan. Snapshot OLX terbaru: {last_update}. Harga adalah harga penawaran; iklan arsip belum tentu masih aktif dan data tidak mewakili seluruh pasar.")
+    st.caption(listing_data_context(archive))
 
-    st.markdown("### Kenali pilihan dalam arsip")
-    brand_col, fuel_col = st.columns([1.12, 1], gap="large")
+    st.markdown("### Mulai dari pilihan yang tersedia")
+    st.caption("Beranda merangkum arsip. Buka Pahami Pasar untuk melihat distribusi dan perbandingan grafik secara lebih rinci.")
+    brand_col, fuel_col = st.columns(2, gap="large")
     with brand_col:
         with st.container(border=True):
-            st.markdown("**Jelajahi merek yang tersedia**")
-            brand_counts = brands[brands.ne("")].value_counts().head(8)
+            st.markdown("#### Jelajahi berdasarkan merek")
+            brand_counts = brands[brands.ne("")].value_counts()
             if not brand_counts.empty:
-                chart = go.Figure(go.Bar(
-                    x=brand_counts.values,
-                    y=brand_counts.index,
-                    orientation="h",
-                    text=[f"{value:,}".replace(",", ".") for value in brand_counts.values],
-                    textposition="outside",
-                    cliponaxis=False,
-                    marker=dict(color="#008B8B", line=dict(width=0), cornerradius=6),
-                    hovertemplate="%{y}: %{x:,} listing unik<extra></extra>",
-                ))
-                chart.update_layout(
-                    height=310,
-                    margin=dict(l=4, r=34, t=12, b=8),
-                    paper_bgcolor="#FFFFFF",
-                    plot_bgcolor="#FFFFFF",
-                    font=dict(family="Inter, sans-serif", color="#0F172A", size=12),
-                    xaxis=dict(visible=False, range=[0, float(brand_counts.max()) * 1.17]),
-                    yaxis=dict(autorange="reversed", showgrid=False, tickfont=dict(size=12, color="#475569")),
-                    bargap=.34,
-                )
-                st.plotly_chart(chart, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="home_brands")
-                st.markdown(f"**{brand_counts.index[0]} paling banyak di arsip:** {brand_counts.iloc[0]:,} mobil unik. Jumlah ini menunjukkan banyaknya pilihan tersimpan, bukan kualitas mobil.".replace(",", "."))
+                lead_make = str(brand_counts.index[0])
+                lead_count = int(brand_counts.iloc[0])
+                st.metric("Merek dengan listing terbanyak", lead_make, border=True)
+                st.caption(f"{lead_count:,} listing unik dalam arsip. Jumlah listing menunjukkan ketersediaan data, bukan kualitas atau rekomendasi mobil.".replace(",", "."))
                 popular = [make for make in ["BMW", "Toyota", "Honda", "Daihatsu", "Suzuki", "Mercedes-Benz"] if make.casefold() in {v.casefold() for v in brands.unique()}]
                 if popular:
-                    st.caption("Pilih merek untuk melihat listing:")
-                    shortcut_cols = st.columns(min(len(popular), 3))
+                    st.markdown("**Merek populer**")
+                    shortcut_cols = st.columns(min(len(popular), 3), gap="small")
                     for idx, make in enumerate(popular):
                         with shortcut_cols[idx % len(shortcut_cols)]:
                             if st.button(make, key=f"home_brand_{idx}", use_container_width=True):
                                 st.session_state["prefill_make"] = make
                                 st.session_state["car_source_choice"] = "Arsip Penuh"
                                 st.switch_page("pages/2_Find_Your_Car.py")
-                choices = sorted(brands[brands.ne("")].unique())
+                choices = sorted(brands[brands.ne("")].unique(), key=str.casefold)
                 if choices:
-                    other_brand = st.selectbox("Atau pilih merek lain", choices, key="home_brand_choice")
+                    other_brand = st.selectbox("Pilih merek lain", choices, key="home_brand_choice")
                     if st.button(f"Lihat {other_brand}", icon=":material/search:", key="home_find_brand"):
                         st.session_state["prefill_make"] = other_brand
                         st.session_state["car_source_choice"] = "Arsip Penuh"
@@ -134,48 +114,30 @@ else:
                 st.caption("Informasi merek belum tersedia di arsip ini.")
     with fuel_col:
         with st.container(border=True):
-            st.markdown("**Bahan bakar apa yang tersedia?**")
+            st.markdown("#### Jelajahi berdasarkan bahan bakar")
             if not fuels.empty:
-                fuel_data = fuels.sort_values(ascending=True).rename_axis("Bahan bakar").rename("Listing unik").reset_index()
-                chart = go.Figure(go.Bar(
-                    x=fuel_data["Listing unik"], y=fuel_data["Bahan bakar"], orientation="h",
-                    text=[f"{value:,}".replace(",", ".") for value in fuel_data["Listing unik"]],
-                    textposition="outside", cliponaxis=False,
-                    marker=dict(color="#008B8B", line=dict(width=0), cornerradius=6),
-                    hovertemplate="%{y}: %{x:,} mobil unik<extra></extra>",
-                ))
-                chart.update_layout(
-                    height=310,
-                    paper_bgcolor="#FFFFFF",
-                    plot_bgcolor="#FFFFFF",
-                    margin=dict(l=4, r=34, t=12, b=8),
-                    showlegend=False,
-                    font=dict(family="Inter, sans-serif", color="#0F172A", size=12),
-                    xaxis=dict(visible=False, range=[0, float(fuel_data["Listing unik"].max()) * 1.2]),
-                    yaxis=dict(autorange="reversed", showgrid=False, tickfont=dict(size=12, color="#475569")),
-                    bargap=.34,
-                )
-                st.plotly_chart(chart, width="stretch", config={"displayModeBar": False}, theme="streamlit", key="home_fuels")
                 dominant_fuel = str(fuels.index[0])
                 dominant_count = int(fuels.iloc[0])
-                st.markdown(f"**{dominant_fuel} paling banyak tercatat:** {dominant_count:,} mobil. Komposisi ini mewakili arsip tersimpan.".replace(",", "."))
+                st.metric("Bahan bakar paling sering dicatat", dominant_fuel, border=True)
+                st.caption(f"{dominant_count:,} listing unik memiliki kategori bahan bakar ini. Ketersediaan hanya menggambarkan arsip tersimpan.".replace(",", "."))
                 fuel_choices = sorted(fuels.items(), key=lambda item: str(item[0]).casefold())
-                st.markdown("**Lihat pilihan berdasarkan bahan bakar**")
-                for idx, (fuel, count) in enumerate(fuel_choices):
-                    if st.button(f"{fuel} · {int(count):,} mobil".replace(",", "."), key=f"home_find_fuel_{idx}", width="stretch"):
-                        st.session_state["prefill_fuel"] = str(fuel)
-                        st.session_state["car_source_choice"] = "Arsip Penuh"
-                        st.switch_page("pages/2_Find_Your_Car.py")
+                fuel_choice = st.selectbox("Pilih bahan bakar", [str(fuel) for fuel, _ in fuel_choices], key="home_fuel_choice")
+                fuel_count = int(fuels.get(fuel_choice, 0))
+                st.caption(f"{fuel_count:,} mobil unik tercatat dalam kategori ini.".replace(",", "."))
+                if st.button("Lihat listing", icon=":material/search:", key="home_find_fuel"):
+                    st.session_state["prefill_fuel"] = fuel_choice
+                    st.session_state["car_source_choice"] = "Arsip Penuh"
+                    st.switch_page("pages/2_Find_Your_Car.py")
             else:
                 st.caption("Data bahan bakar belum tersedia di arsip ini.")
 
 with st.expander("Perbarui listing OLX (manual)", expanded=st.session_state.pop("open_refresh_panel", False)):
-    st.caption("Refresh memakai kredit API bersama. Hanya tombol di bawah yang mengirim permintaan; pencarian arsip tetap dapat digunakan tanpa refresh.")
+    st.caption("Refresh mengirim permintaan ke OLX melalui API dan memakai kredit bersama. Arsip yang tersimpan tetap bisa dicari tanpa refresh.")
     with st.form("refresh_listings_form"):
         search_url = st.text_input("URL pencarian OLX", value=DEFAULT_SEARCH_URL, key="refresh_search_url_jabodetabek_v1")
         max_pages = st.slider("Jumlah halaman (menggunakan kredit API)", min_value=1, max_value=5, value=1, step=1)
         refresh = st.form_submit_button("Refresh Listings", type="primary")
-    st.caption("Aplikasi menyimpan listing yang lokasinya dapat dikenali sebagai lima wilayah DKI Jakarta. Hasil API bukan seluruh stok Jakarta. Snapshot baru ditambahkan ke arsip; kredit digunakan sesuai halaman yang berhasil diambil.")
+    st.caption("Hanya listing yang lokasinya dapat dikenali di lima wilayah DKI Jakarta yang disimpan. Hasil API bukan seluruh stok Jakarta. Refresh menambahkan snapshot baru ke arsip.")
     if refresh:
         try:
             with st.spinner("Mengambil snapshot dari Datawebot..."):

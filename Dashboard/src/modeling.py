@@ -119,6 +119,19 @@ def evaluate_regression_models(df: pd.DataFrame, model_path: str | Path | None =
         }
         pipelines[name] = pipeline
     winner = min(results, key=lambda name: results[name]["MAE"])
+    holdout_pipeline = pipelines[winner]
+    holdout_prediction = holdout_pipeline.predict(X_test)
+    holdout_records = [
+        {
+            "actual": float(actual),
+            "predicted": float(predicted),
+            "make": str(make) if pd.notna(make) else "",
+            "year": float(year) if pd.notna(year) else None,
+        }
+        for actual, predicted, make, year in zip(
+            y_test.to_numpy(), holdout_prediction, X_test["make"].to_numpy(), X_test["year"].to_numpy()
+        )
+    ]
     final_pipeline = Pipeline([("preprocessor", _preprocessor()), ("model", estimators[winner])])
     final_pipeline.fit(X, y)
     destination = Path(model_path) if model_path else MODEL_PATH
@@ -132,6 +145,9 @@ def evaluate_regression_models(df: pd.DataFrame, model_path: str | Path | None =
         "models": results, "training_unique_listings": len(prepared),
         "minimum_unique_listings": MINIMUM_UNIQUE_LISTINGS,
         "selection_metric": "lowest holdout MAE", "target": "asking price",
+        "holdout_predictions": holdout_records,
+        "holdout_test_size": 0.2,
+        "holdout_random_state": 42,
     }
     metrics_destination.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
     return metadata
@@ -189,25 +205,16 @@ def get_feature_importance(model_path: str | Path | None = None) -> pd.DataFrame
     return df.sort_values("importance", ascending=False)
 
 
-def get_test_predictions(df: pd.DataFrame | None = None, model_path: str | Path | None = None) -> pd.DataFrame:
-    """Return DataFrame of test-set actual vs predicted prices."""
-    path = Path(model_path) if model_path else MODEL_PATH
-    metadata = load_model_metadata()
-    if not path.exists() or not model_is_validated(metadata):
+def get_test_predictions(
+    df: pd.DataFrame | None = None,
+    model_path: str | Path | None = None,
+    metadata_path: str | Path | None = None,
+) -> pd.DataFrame:
+    """Return saved holdout predictions made before the final model was refit."""
+    metadata = load_model_metadata(metadata_path)
+    if not model_is_validated(metadata):
         return pd.DataFrame(columns=["actual", "predicted"])
-    if df is None:
-        from src.data_loader import load_training_archive
-        df = load_training_archive()
-    prepared = prepare_model_data(df)
-    if len(prepared) < MINIMUM_UNIQUE_LISTINGS:
+    predictions = metadata.get("holdout_predictions")
+    if not isinstance(predictions, list) or not predictions:
         return pd.DataFrame(columns=["actual", "predicted"])
-    X, y = prepared[FEATURES], prepared["price"]
-    _, X_test, _, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    pipeline = joblib.load(path)
-    preds = pipeline.predict(X_test)
-    return pd.DataFrame({
-        "actual": y_test.values,
-        "predicted": preds,
-        "make": X_test["make"].values if "make" in X_test else "",
-        "year": X_test["year"].values if "year" in X_test else 0,
-    })
+    return pd.DataFrame(predictions)

@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.data_loader import get_last_updated_text, load_combined_archive, load_live_data, load_training_archive
+from src.car_search import assess_price_position
 from src.modeling import (
     MODEL_PATH,
     evaluate_regression_models,
@@ -17,7 +18,12 @@ from src.modeling import (
     training_eligibility,
 )
 from src.styles import apply_theme
-from src.ui import format_rupiah, format_rupiah_compact
+from src.ui import (
+    format_rupiah,
+    format_rupiah_compact,
+    listing_data_context,
+    render_data_source_status,
+)
 
 
 def _number(value, default=0):
@@ -86,8 +92,8 @@ def _delta_text(value, reference):
 
 apply_theme()
 st.title("Cek Harga Iklan")
-st.caption("Periksa posisi penawaran harga mobil terhadap median pasar unit sejenis dan estimasi model regresi machine learning.")
-st.caption("Hasil analisis memberikan konteks harga iklan awal; bukan jaminan harga transaksi final atau kelayakan fisik unit.")
+st.caption("Bandingkan harga iklan dengan listing serupa dan, bila tersedia, estimasi model.")
+st.caption("Harga iklan dan estimasi adalah konteks awal. Keduanya bukan harga transaksi pasti dan tidak menggantikan pemeriksaan kondisi mobil.")
 
 prefill = st.session_state.pop("price_checker_prefill", {})
 auto_check_prefill = bool(prefill.pop("_auto_calculate", False))
@@ -95,14 +101,21 @@ prefill_source = prefill.pop("_comparison_source", None)
 if prefill:
     if prefill_source in {"Arsip Penuh", "Listing Terbaru"}:
         st.session_state["price_comparison_source"] = prefill_source
-    for widget_key in (
-        "calculator_make", "calculator_model", "calculator_year", "calculator_mileage",
-        "calculator_engine_cc", "calculator_transmission", "calculator_fuel_type",
-        "calculator_body_type", "calculator_asking_price",
-    ):
+    prefill_widgets = {
+        "calculator_make": "make",
+        "calculator_model": "model",
+        "calculator_year": "year",
+        "calculator_mileage": "mileage_km",
+        "calculator_engine_cc": "engine_cc",
+        "calculator_transmission": "transmission",
+        "calculator_fuel_type": "fuel_type",
+        "calculator_body_type": "body_type",
+        "calculator_asking_price": "price",
+    }
+    for widget_key, field in prefill_widgets.items():
         st.session_state.pop(widget_key, None)
-    if prefill.get("make"):
-        st.session_state["calculator_make"] = prefill["make"]
+        if prefill.get(field) is not None:
+            st.session_state[widget_key] = prefill[field]
     st.session_state.pop("price_calculation_result", None)
 
 live = load_live_data()
@@ -116,10 +129,13 @@ source = st.radio(
     help="Sumber ini mengubah data pembanding listing serupa. Model machine learning tetap menggunakan arsip historis tervalidasi.",
 )
 comparison_data = live.copy() if source == "Listing Terbaru" else archive.copy()
+render_data_source_status()
 if source == "Listing Terbaru":
     st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()} · listing dapat berubah atau sudah tidak aktif saat dibuka.")
 else:
     st.caption(f"Arsip Penuh · Excel + snapshot OLX tersimpan · {len(comparison_data):,} mobil unik. Arsip Excel tidak memiliki tanggal pengambilan dan tautannya mungkin sudah tidak aktif.".replace(",", "."))
+if not comparison_data.empty:
+    st.caption(listing_data_context(comparison_data))
 
 input_data = comparison_data if not comparison_data.empty else training_data.copy()
 for column in ("price", "year", "mileage_km", "engine_cc"):
@@ -158,6 +174,7 @@ else:
                 st.session_state["price_checker_prefill"] = {
                     **{key: (None if pd.isna(chosen.get(key)) else chosen.get(key)) for key in fields},
                     "_comparison_source": source,
+                    "_auto_calculate": True,
                 }
 
             if option_ids:
@@ -185,32 +202,55 @@ else:
                 available_models = sorted(input_data.loc[input_data["make"].astype(str).eq(make), "model"].dropna().astype(str).unique())
                 available_models = available_models or start_models
                 default_model = prefill.get("model") if prefill.get("model") in available_models else available_models[0]
-                model = st.selectbox("Model", available_models, index=available_models.index(default_model), key="calculator_model")
+                if st.session_state.get("calculator_model") not in available_models:
+                    st.session_state["calculator_model"] = default_model
+                model = st.selectbox("Model", available_models, key="calculator_model")
                 model_rows = input_data[input_data["make"].fillna("").astype(str).eq(make) & input_data["model"].fillna("").astype(str).eq(model)]
                 years_available = input_data.get("year", pd.Series(dtype=float)).dropna()
                 min_year = max(1950, int(years_available.min()) if not years_available.empty else 1990)
                 max_year = max(min_year, int(years_available.max()) if not years_available.empty else pd.Timestamp.now().year)
                 year_value = int(_number(prefill.get("year", 2020), 2020))
-                year = st.number_input("Tahun kendaraan", min_value=min_year, max_value=max(max_year, year_value), value=min(max(year_value, min_year), max(max_year, year_value)), step=1, key="calculator_year")
+                max_year = max(max_year, year_value)
+                if "calculator_year" not in st.session_state:
+                    st.session_state["calculator_year"] = min(max(year_value, min_year), max_year)
+                else:
+                    st.session_state["calculator_year"] = min(max(int(st.session_state["calculator_year"]), min_year), max_year)
+                year = st.number_input("Tahun kendaraan", min_value=min_year, max_value=max_year, step=1, key="calculator_year")
                 km_default = int(model_rows["mileage_km"].median()) if "mileage_km" in model_rows and model_rows["mileage_km"].notna().any() else 50_000
-                mileage = st.number_input("Kilometer", 0, 1_000_000, int(_number(prefill.get("mileage_km", km_default), km_default)), step=5_000, key="calculator_mileage")
                 cc_default = int(model_rows["engine_cc"].median()) if "engine_cc" in model_rows and model_rows["engine_cc"].notna().any() else 1_300
-                engine_cc = st.number_input("Kapasitas mesin (cc)", 0, 10_000, int(_number(prefill.get("engine_cc", cc_default), cc_default)), step=100, key="calculator_engine_cc")
+                if "calculator_mileage" not in st.session_state:
+                    st.session_state["calculator_mileage"] = int(_number(prefill.get("mileage_km", km_default), km_default))
+                if "calculator_engine_cc" not in st.session_state:
+                    st.session_state["calculator_engine_cc"] = int(_number(prefill.get("engine_cc", cc_default), cc_default))
+                st.session_state["calculator_mileage"] = min(max(int(st.session_state["calculator_mileage"]), 0), 1_000_000)
+                st.session_state["calculator_engine_cc"] = min(max(int(st.session_state["calculator_engine_cc"]), 0), 10_000)
+                mileage = st.number_input("Kilometer", 0, 1_000_000, step=5_000, key="calculator_mileage")
+                engine_cc = st.number_input("Kapasitas mesin (cc)", 0, 10_000, step=100, key="calculator_engine_cc")
                 cat_a, cat_b = st.columns(2)
                 transmission_options = ["Semua", *sorted(input_data.get("transmission", pd.Series(dtype=str)).dropna().astype(str).unique())]
                 fuel_options = ["Semua", *sorted(input_data.get("fuel_type", pd.Series(dtype=str)).dropna().astype(str).unique())]
                 body_options = ["Semua", *sorted(input_data.get("body_type", pd.Series(dtype=str)).dropna().astype(str).unique())]
                 with cat_a:
                     trans_default = prefill.get("transmission") if prefill.get("transmission") in transmission_options else "Semua"
-                    transmission = st.selectbox("Transmisi", transmission_options, index=transmission_options.index(trans_default), key="calculator_transmission")
+                    if st.session_state.get("calculator_transmission") not in transmission_options:
+                        st.session_state["calculator_transmission"] = trans_default
+                    transmission = st.selectbox("Transmisi", transmission_options, key="calculator_transmission")
                     fuel_default = prefill.get("fuel_type") if prefill.get("fuel_type") in fuel_options else "Semua"
-                    fuel_type = st.selectbox("Bahan bakar", fuel_options, index=fuel_options.index(fuel_default), key="calculator_fuel_type")
+                    if st.session_state.get("calculator_fuel_type") not in fuel_options:
+                        st.session_state["calculator_fuel_type"] = fuel_default
+                    fuel_type = st.selectbox("Bahan bakar", fuel_options, key="calculator_fuel_type")
                 with cat_b:
                     body_default = prefill.get("body_type") if prefill.get("body_type") in body_options else "Semua"
-                    body_type = st.selectbox("Tipe bodi", body_options, index=body_options.index(body_default), key="calculator_body_type")
+                    if st.session_state.get("calculator_body_type") not in body_options:
+                        st.session_state["calculator_body_type"] = body_default
+                    body_type = st.selectbox("Tipe bodi", body_options, key="calculator_body_type")
                     price_max = max(50_000_000_000, int(_number(input_data.get("price", pd.Series(dtype=float)).max(), 0)))
                     asking_default = int(_number(prefill.get("price", 150_000_000), 150_000_000))
-                asking_price = st.number_input("Harga iklan yang ingin dicek (Rp)", 1, price_max, min(max(asking_default, 1), price_max), step=5_000_000, key="calculator_asking_price")
+                if "calculator_asking_price" not in st.session_state:
+                    st.session_state["calculator_asking_price"] = min(max(asking_default, 1), price_max)
+                else:
+                    st.session_state["calculator_asking_price"] = min(max(int(st.session_state["calculator_asking_price"]), 1), price_max)
+                asking_price = st.number_input("Harga iklan yang ingin dicek (Rp)", 1, price_max, step=5_000_000, key="calculator_asking_price")
                 submitted = st.form_submit_button("Cek harga", type="primary", icon=":material/price_check:", use_container_width=True)
 
             features = {
@@ -252,32 +292,41 @@ else:
                     st.caption("Estimasi model belum tersedia. Perbandingan listing tetap dapat digunakan.")
         else:
             asking = float(result["asking_price"])
-            peers = result["peers"]
+            # Old Streamlit session state can outlive a deploy and may contain
+            # a result created before the peers field was added.
+            peers = result.get("peers")
+            if not isinstance(peers, pd.DataFrame):
+                peers = pd.DataFrame(columns=["price"])
             estimate = result["estimate"]
 
-            # Hitung Status Badge (Underpriced, Harga Wajar, Overpriced)
-            ref_median = float(peers["price"].median()) if not peers.empty else None
+            price_position = assess_price_position(asking, peers["price"] if not peers.empty else [])
             badge_html = ""
             kesimpulan_text = ""
+            badge_cls = ""
+            badge_label = ""
 
-            if ref_median and ref_median > 0:
-                diff_pct = ((asking - ref_median) / ref_median) * 100
+            if price_position["median"] is not None:
+                ref_median = price_position["median"]
+                diff_pct = price_position["difference_pct"] * 100
                 diff_nominal = abs(asking - ref_median)
-                if diff_pct < -8.0:
+                if price_position["label"] == "Di bawah pembanding":
                     badge_cls = "badge-underpriced"
-                    badge_label = "Underpriced"
-                    kesimpulan_text = f"Harga iklan Anda sekitar **{abs(diff_pct):.1f}%** ({format_rupiah_compact(diff_nominal)}) di bawah harga referensi pasar. Peluang bagus, namun tetap periksa kelengkapan fisik dan surat kendaraan."
-                elif diff_pct > 8.0:
+                    badge_label = price_position["label"]
+                    kesimpulan_text = f"Harga iklan **{abs(diff_pct):.1f}%** ({format_rupiah_compact(diff_nominal)}) di bawah median {price_position['count']} listing serupa yang tersedia. Ini indikasi relatif terhadap harga iklan, bukan bukti kondisi atau kualitas unit."
+                elif price_position["label"] == "Di atas pembanding":
                     badge_cls = "badge-overpriced"
-                    badge_label = "Overpriced"
-                    kesimpulan_text = f"Harga iklan Anda sekitar **{diff_pct:.1f}%** ({format_rupiah_compact(diff_nominal)}) di atas harga referensi pasar. Pertimbangkan ruang negosiasi sebelum memutuskan."
-                else:
+                    badge_label = price_position["label"]
+                    kesimpulan_text = f"Harga iklan **{diff_pct:.1f}%** ({format_rupiah_compact(diff_nominal)}) di atas median {price_position['count']} listing serupa yang tersedia. Ini indikasi relatif terhadap harga iklan, bukan nilai transaksi."
+                elif price_position["label"]:
                     badge_cls = "badge-fair"
-                    badge_label = "Harga Wajar"
-                    kesimpulan_text = f"Harga iklan Anda berada dalam koridor harga wajar pasar (selisih hanya sekitar **{abs(diff_pct):.1f}%** dari acuan unit sejenis)."
-                badge_html = f"<div style='margin-top:0.4rem;'><span class='{badge_cls}'>{badge_label}</span></div>"
+                    badge_label = price_position["label"]
+                    kesimpulan_text = f"Harga iklan berjarak **{abs(diff_pct):.1f}%** dari median {price_position['count']} listing serupa. Batas ±8% adalah ambang indikatif AutoMatch, bukan rentang statistik atau harga transaksi."
+                else:
+                    kesimpulan_text = f"Tersedia {price_position['count']} pembanding. Belum cukup untuk memberi indikasi posisi harga; median pembandingnya {format_rupiah_compact(ref_median)}."
+                if price_position["label"]:
+                    badge_html = f"<div class='price-result-status'><span class='{badge_cls}'>{badge_label}</span></div>"
 
-            with st.container(border=True):
+            with st.container(border=True, key="price_analysis_hero"):
                 st.markdown("#### Harga Iklan yang Dianalisis")
                 st.markdown(f"<div class='price-hero-value'>{format_rupiah(asking)}</div>", unsafe_allow_html=True)
                 if badge_html:
@@ -293,9 +342,10 @@ else:
                     else:
                         median = float(peers["price"].median())
                         low, high = float(peers["price"].min()), float(peers["price"].max())
-                        st.metric("Median Pasar", format_rupiah(median))
-                        st.caption(f"Rentang: {format_rupiah_compact(low)} s/d {format_rupiah_compact(high)} · {len(peers):,} listing".replace(",", "."))
+                        st.metric("Median listing serupa", format_rupiah(median))
+                        st.caption(f"Rentang pembanding: {format_rupiah_compact(low)} s/d {format_rupiah_compact(high)} · {len(peers):,} listing".replace(",", "."))
                         st.caption(f"Harga input: {_delta_text(asking, median)}.")
+                        st.caption("Label indikatif hanya muncul bila ada sedikitnya 5 pembanding dan memakai ambang ±8% dari median.")
 
             with result_cols[1]:
                 with st.container(border=True):
@@ -305,13 +355,17 @@ else:
                         st.caption("Model belum dilatih atau belum lolos validasi.")
                     else:
                         st.metric("Estimasi Model", format_rupiah(estimate))
+                        model_gap = asking - estimate
+                        model_gap_pct = (model_gap / estimate * 100) if estimate else 0.0
+                        model_direction = "di atas" if model_gap > 0 else "di bawah" if model_gap < 0 else "sama dengan"
+                        st.caption(
+                            f"Harga input {format_rupiah(abs(model_gap))} ({abs(model_gap_pct):.1f}%) {model_direction} estimasi model."
+                        )
                         if best_mae > 0:
-                            wajar_min = max(0.0, estimate - best_mae)
-                            wajar_max = estimate + best_mae
-                            st.caption(f"**Rentang Wajar (Prediksi ± MAE):**")
-                            st.caption(f"{format_rupiah_compact(wajar_min)} s/d {format_rupiah_compact(wajar_max)} (MAE: ± {format_rupiah_compact(best_mae)})")
-                        else:
-                            st.caption(f"Harga input: {_delta_text(asking, estimate)}.")
+                            st.caption(
+                                f"MAE uji: {format_rupiah_compact(best_mae)} rata-rata selisih prediksi per listing. "
+                                "Ini ukuran evaluasi model, bukan rentang harga mobil ini."
+                            )
 
             if kesimpulan_text:
                 with st.container(border=True):

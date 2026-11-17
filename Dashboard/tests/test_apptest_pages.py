@@ -68,3 +68,47 @@ def test_price_checker_uses_selected_listing_and_replaces_old_result():
     assert result["asking_price"] == 775_000_000
     assert result["estimate"] > 700_000_000
     assert len(result["peers"]) > 0
+    model_copy = "\n".join(caption.value for caption in app.caption)
+    assert "MAE uji:" in model_copy
+    assert "Harga input" in model_copy
+    assert "Rentang acuan model" not in model_copy
+
+
+def test_price_checker_handles_legacy_result_without_comparables():
+    app = AppTest.from_file(ROOT / "app.py", default_timeout=60).run()
+    app.session_state["price_calculation_result"] = {
+        "source": "Arsip Penuh",
+        "asking_price": 150_000_000,
+        "estimate": 204_659_401,
+    }
+
+    app.switch_page("pages/3_Price_Checker.py").run()
+
+    assert not app.exception, "\n".join(str(error.value) for error in app.exception)
+    assert any("Jumlah pembanding" in metric.label for metric in app.metric)
+    assert any("0" == metric.value for metric in app.metric if metric.label == "Jumlah pembanding")
+
+
+def test_saved_price_listing_fills_form_and_replaces_previous_result():
+    app = AppTest.from_file(ROOT / "app.py", default_timeout=60).run()
+    app.session_state["price_calculation_result"] = {
+        "source": "Arsip Penuh",
+        "asking_price": 150_000_000,
+        "estimate": 2_080_315_692,
+    }
+    app.switch_page("pages/3_Price_Checker.py").run()
+
+    selector = next(widget for widget in app.selectbox if widget.key == "saved_price_listing_archive")
+    selected_label = next(
+        option for option in selector.options
+        if str(option).startswith("Honda HR-V · 2017 · ")
+    )
+    selector.select(selected_label).run()
+
+    selected_price = int(str(selected_label).split(" · ")[-1].replace("Rp", "").replace(".", "").strip())
+    assert not app.exception, "\n".join(str(error.value) for error in app.exception)
+    assert app.session_state["calculator_make"] == "Honda"
+    assert app.session_state["calculator_model"] == "HR-V"
+    assert app.session_state["calculator_year"] == 2017
+    assert app.session_state["calculator_asking_price"] == selected_price
+    assert app.session_state["price_calculation_result"]["asking_price"] == selected_price

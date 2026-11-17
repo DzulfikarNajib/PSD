@@ -54,3 +54,30 @@ def budget_summary(df: pd.DataFrame, thresholds: list[int]) -> pd.DataFrame:
         return pd.DataFrame(columns=["budget_rp", "listing_count"])
     prices = pd.to_numeric(df["price"], errors="coerce")
     return pd.DataFrame([{"budget_rp": int(limit), "listing_count": int(prices.le(limit).sum())} for limit in sorted(set(thresholds))])
+
+
+def assess_price_position(
+    asking_price: float,
+    comparable_prices,
+    minimum_comparables: int = 5,
+    tolerance: float = 0.08,
+) -> dict:
+    """Compare an asking price with similar listings, withholding a label for small samples."""
+    prices = pd.to_numeric(pd.Series(comparable_prices), errors="coerce")
+    prices = prices[prices.gt(0)].dropna()
+    median = float(prices.median()) if not prices.empty else None
+    result = {"count": int(len(prices)), "median": median, "difference_pct": None, "label": None}
+    if median is None:
+        return result
+
+    difference_pct = (float(asking_price) - median) / median
+    result["difference_pct"] = difference_pct
+    if len(prices) < minimum_comparables:
+        return result
+    if difference_pct < -tolerance:
+        result["label"] = "Di bawah pembanding"
+    elif difference_pct > tolerance:
+        result["label"] = "Di atas pembanding"
+    else:
+        result["label"] = "Dekat median pembanding"
+    return result

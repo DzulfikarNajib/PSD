@@ -5,13 +5,26 @@ import streamlit as st
 
 from src.car_search import compare_listings, filter_listings
 from src.data_loader import get_last_updated_text, load_combined_archive, load_live_data
+from src.market_segments import cluster_market_segments
 from src.styles import apply_theme
-from src.ui import format_km, format_rupiah, render_empty_state
+from src.ui import (
+    format_km,
+    format_rupiah,
+    format_rupiah_compact,
+    listing_data_context,
+    render_data_source_status,
+    render_empty_state,
+)
+
+
+@st.cache_data(show_spinner=False)
+def _cluster_cached(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    return cluster_market_segments(frame)
 
 
 apply_theme()
 st.title("Cari Mobil")
-st.caption("Temukan mobil dari data yang tersimpan, lalu bandingkan pilihan sebelum membuka iklan sumber.")
+st.caption("Saring arsip berdasarkan anggaran dan spesifikasi. Bandingkan listing, lalu buka sumber iklan untuk memeriksa detailnya.")
 
 latest, archive = load_live_data(), load_combined_archive()
 if latest.empty and archive.empty:
@@ -32,14 +45,49 @@ if cars.empty:
 for column in ("price", "year", "mileage_km", "engine_cc"):
     if column in cars:
         cars[column] = pd.to_numeric(cars[column], errors="coerce")
+cars, segment_summary = _cluster_cached(cars)
 
 if source_choice == "Listing Terbaru":
-    st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()} · iklan yang tampil mungkin sudah berubah atau tidak aktif.")
+    st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()}. Status dan isi iklan dapat berubah sejak pengambilan data.")
 else:
     origins = cars.get("source_origins", pd.Series("", index=cars.index)).fillna("")
     excel_count = int(origins.str.contains("Dataset Excel", regex=False).sum())
     olx_count = int(origins.str.contains("Arsip snapshot OLX", regex=False).sum())
-    st.caption(f"Arsip Penuh · {cars['listing_id'].nunique():,} mobil unik · ditemukan di Excel {excel_count:,} · juga ditemukan di snapshot OLX {olx_count:,}. Sumber dapat tumpang tindih; iklan arsip mungkin sudah tidak aktif.".replace(",", "."))
+    st.caption(f"Arsip Penuh · {cars['listing_id'].nunique():,} mobil unik · ada di Excel: {excel_count:,} · ada di snapshot OLX: {olx_count:,}. Sumber dapat tumpang tindih dan iklan arsip mungkin sudah tidak aktif.".replace(",", "."))
+render_data_source_status()
+st.caption(listing_data_context(cars))
+
+segment_expanded = st.session_state.get("car_market_segment_filter", "Semua kelompok") != "Semua kelompok"
+with st.expander("Kelompok karakteristik", expanded=segment_expanded):
+    st.caption("K-Means mengelompokkan harga, tahun, kilometer, dan CC. Profil kelompok relatif pada sumber yang dipilih, bukan penilaian kualitas mobil.")
+    if segment_summary.empty:
+        st.info("Belum cukup listing dengan harga valid untuk membentuk kelompok karakteristik.")
+        segment_options = ["Semua kelompok"]
+    else:
+        segment_display = segment_summary.rename(columns={
+            "market_segment": "Kelompok",
+            "profile": "Profil relatif",
+            "listings": "Jumlah listing",
+            "median_price": "Median harga",
+            "median_year": "Median tahun",
+            "median_mileage_km": "Median kilometer",
+            "median_engine_cc": "Median CC",
+        }).copy()
+        segment_display["Median harga"] = segment_display["Median harga"].map(format_rupiah_compact)
+        segment_display["Median tahun"] = segment_display["Median tahun"].map(lambda value: f"{value:.0f}" if pd.notna(value) else "-")
+        segment_display["Median kilometer"] = segment_display["Median kilometer"].map(format_km)
+        segment_display["Median CC"] = segment_display["Median CC"].map(lambda value: f"{value:.0f} cc" if pd.notna(value) else "-")
+        st.dataframe(segment_display, hide_index=True, width="stretch", alt="Ringkasan kelompok listing berdasarkan harga, tahun, kilometer, dan CC")
+        segment_options = ["Semua kelompok", *segment_summary["market_segment"].tolist()]
+
+    if st.session_state.get("car_market_segment_filter", "Semua kelompok") not in segment_options:
+        st.session_state["car_market_segment_filter"] = "Semua kelompok"
+    selected_market_segment = st.selectbox(
+        "Jelajahi kelompok mobil",
+        segment_options,
+        key="car_market_segment_filter",
+        help="Memilih kelompok menyaring hasil ke mobil dengan profil harga dan spesifikasi yang mirip.",
+    )
 
 brand_values = sorted(cars["make"].dropna().astype(str).unique()) if "make" in cars else []
 pending_make = st.session_state.pop("prefill_make", None)
@@ -76,11 +124,12 @@ def _reset_filters():
     st.session_state["applied_car_filters"] = None
 
 
-left, right = st.columns([.9, 2.1], gap="large", vertical_alignment="top")
+left = st.expander("Filter pencarian", expanded=bool(st.session_state.get("applied_car_filters")))
+right = st.container()
 with left:
     with st.container(border=True):
         st.markdown("#### Filter Pencarian")
-        st.caption("Saring listing tersimpan; tidak memerlukan panggilan API.")
+        st.caption("Filter bekerja pada data yang sudah tersimpan dan tidak mengambil data baru dari OLX.")
         make_options = ["Semua", *brand_values]
         model_options = ["Semua", *model_values]
         if st.session_state.get("filter_model", "Semua") not in model_options:
@@ -129,6 +178,8 @@ default_filters = {
 }
 active_filters = st.session_state.get("applied_car_filters") or default_filters
 filtered = filter_listings(cars, **active_filters)
+if selected_market_segment != "Semua kelompok":
+    filtered = filtered[filtered["market_segment"].eq(selected_market_segment)]
 
 with right:
     query = st.text_input("Cari kata kunci", placeholder="Contoh: Avanza, SUV, Jakarta Selatan", key="car_search_query")

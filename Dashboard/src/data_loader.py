@@ -21,6 +21,35 @@ LIVE_PATH = DATA_DIR / "olx_live.csv"
 HISTORY_PATH = DATA_DIR / "olx_history.csv"
 HISTORICAL_PATH = DATA_DIR / "PSD_DATA_MOBIL_JAKARTA_FULL.csv"
 DKI_CITIES = {"jakarta pusat", "jakarta selatan", "jakarta timur", "jakarta barat", "jakarta utara"}
+_LAST_DATA_SOURCE_STATUS = {
+    "mode": "local",
+    "message": "Menggunakan data lokal yang tersimpan.",
+}
+
+
+def _set_data_source_status(mode: str, message: str) -> None:
+    """Keep source status per Streamlit session, with a safe fallback outside the app."""
+    global _LAST_DATA_SOURCE_STATUS
+    _LAST_DATA_SOURCE_STATUS = {"mode": mode, "message": message}
+    try:
+        import streamlit as st
+
+        st.session_state["automatch_data_source_status"] = dict(_LAST_DATA_SOURCE_STATUS)
+    except Exception:
+        pass
+
+
+def get_data_source_status() -> dict:
+    """Return the last archive-read status for the current user session."""
+    try:
+        import streamlit as st
+
+        status = st.session_state.get("automatch_data_source_status")
+        if isinstance(status, dict):
+            return status
+    except Exception:
+        pass
+    return dict(_LAST_DATA_SOURCE_STATUS)
 
 
 def _parse_engine_band(value) -> float:
@@ -94,8 +123,14 @@ def load_combined_archive() -> pd.DataFrame:
     if supabase_is_configured():
         try:
             seeded, snapshots = load_excel_seed(), load_snapshot_archive()
+            if seeded.empty and snapshots.empty:
+                _set_data_source_status("fallback", "Supabase belum berisi arsip. Menampilkan data lokal yang tersedia.")
+            else:
+                _set_data_source_status("cloud", "Arsip Supabase berhasil dibaca; dataset Excel lokal ikut digabung bila tersedia.")
         except Exception:
-            pass
+            _set_data_source_status("fallback", "Supabase tidak dapat dibaca. Menampilkan salinan lokal bila tersedia; periksa koneksi dan konfigurasi database.")
+    else:
+        _set_data_source_status("local", "Menggunakan data lokal. Supabase belum dikonfigurasi untuk sesi ini.")
     if not seeded.empty:
         seeded["data_source"] = "Dataset Excel"
         # Keep the local seed as a fallback/union so an interrupted import cannot
@@ -133,11 +168,14 @@ def load_training_archive() -> pd.DataFrame:
     """Provide Excel plus OLX snapshot observations to explicit model training."""
     excel = load_historical_data()
     if not supabase_is_configured():
+        _set_data_source_status("local", "Menggunakan arsip lokal untuk evaluasi model. Supabase belum dikonfigurasi.")
         return excel
     try:
         seeded, snapshots = load_excel_seed(), load_snapshot_archive()
     except Exception:
+        _set_data_source_status("fallback", "Supabase tidak dapat dibaca. Pelatihan memakai arsip lokal yang tersedia.")
         return excel
+    _set_data_source_status("cloud", "Arsip Supabase berhasil dibaca untuk evaluasi model.")
     pieces = [frame for frame in (excel, seeded, snapshots) if not frame.empty]
     combined = pd.concat(pieces, ignore_index=True, sort=False) if pieces else excel
     if not combined.empty:
@@ -165,10 +203,15 @@ def load_live_data() -> pd.DataFrame:
                 if "location" in cloud_data:
                     cloud_data = cloud_data[cloud_data["location"].map(is_dki_jakarta)].copy()
                 cloud_data["data_source"] = "Listing terbaru"
+                _set_data_source_status("cloud", "Snapshot terbaru berhasil dibaca dari Supabase.")
                 return cloud_data.reset_index(drop=True)
         except Exception:
             # Keep the saved local snapshot usable if the cloud database is temporarily unavailable.
-            pass
+            _set_data_source_status("fallback", "Supabase tidak dapat dibaca. Menampilkan snapshot lokal bila tersedia.")
+        else:
+            _set_data_source_status("fallback", "Belum ada snapshot di Supabase. Menampilkan snapshot lokal bila tersedia.")
+    else:
+        _set_data_source_status("local", "Menampilkan snapshot OLX lokal. Supabase belum dikonfigurasi.")
     ensure_data_files()
     try:
         df = pd.read_csv(LIVE_PATH)
@@ -186,9 +229,14 @@ def load_history_data() -> pd.DataFrame:
             observations = load_snapshot_archive()
             if not observations.empty:
                 observations["data_source"] = "Arsip snapshot OLX"
+                _set_data_source_status("cloud", "Riwayat snapshot berhasil dibaca dari Supabase.")
                 return observations.reset_index(drop=True)
         except Exception:
-            pass
+            _set_data_source_status("fallback", "Riwayat Supabase tidak dapat dibaca. Menampilkan riwayat lokal bila tersedia.")
+        else:
+            _set_data_source_status("fallback", "Riwayat Supabase belum tersedia. Menampilkan riwayat lokal bila ada.")
+    else:
+        _set_data_source_status("local", "Menampilkan riwayat OLX lokal. Supabase belum dikonfigurasi.")
     ensure_data_files()
     try:
         df = pd.read_csv(HISTORY_PATH)
@@ -205,9 +253,10 @@ def get_last_updated_text() -> str:
             if timestamp:
                 parsed = pd.to_datetime(timestamp, errors="coerce", utc=True)
                 if pd.notna(parsed):
+                    _set_data_source_status("cloud", "Waktu snapshot terbaru berhasil dibaca dari Supabase.")
                     return parsed.tz_convert(ZoneInfo("Asia/Jakarta")).strftime("%d %b %Y, %H:%M WIB")
         except Exception:
-            pass
+            _set_data_source_status("fallback", "Waktu snapshot Supabase tidak dapat dibaca. Waktu lokal ditampilkan bila tersedia.")
     df = load_history_data()
     if df.empty or "fetched_at" not in df.columns:
         return "Belum ada snapshot history."
