@@ -1,4 +1,4 @@
-"""Idempotently import the project's cleaned Excel archive into Supabase."""
+"""Idempotently import the active cleaned OLX dataset into Supabase."""
 
 from pathlib import Path
 import sys
@@ -13,17 +13,17 @@ if str(PROJECT_ROOT) not in sys.path:
 load_dotenv(PROJECT_ROOT / ".env")
 
 from src.data_loader import load_historical_data
-from src.supabase_store import import_excel_seed, is_configured
+from src.supabase_store import import_dataset_seed, is_configured
 
 
 def main():
     if not is_configured():
         raise SystemExit("Set SUPABASE_URL and SUPABASE_SECRET_KEY in Dashboard/.env before importing.")
-    archive = load_historical_data()
-    if archive.empty:
-        raise SystemExit("Dataset Excel tidak ditemukan atau tidak memiliki baris DKI yang valid.")
-    inserted = import_excel_seed(archive)
-    print(f"Import selesai: {inserted} baris baru dari {len(archive)} listing Excel valid. Aman dijalankan ulang.")
+    dataset = load_historical_data()
+    if dataset.empty:
+        raise SystemExit("Dataset OLX aktif tidak ditemukan atau tidak memiliki baris bersih DKI yang valid.")
+    inserted = import_dataset_seed(dataset)
+    print(f"Import selesai: {inserted} baris baru dari {len(dataset)} listing OLX bersih. Aman dijalankan ulang.")
 
 
 if __name__ == "__main__":

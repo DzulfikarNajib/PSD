@@ -18,6 +18,7 @@ FIELDS = [
     "location_normalized", "image_url", "url", "posted_at", "seller_type", "data_source",
 ]
 EXCEL_SEED_SNAPSHOT = "00000000-0000-0000-0000-000000000001"
+ACTIVE_DATASET_SNAPSHOT = "00000000-0000-0000-0000-000000000002"
 INTEGER_FIELDS = ("price", "year", "mileage_km", "engine_cc")
 
 
@@ -125,6 +126,18 @@ def load_excel_seed() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def load_dataset_seed() -> pd.DataFrame:
+    """Read the active, cleaned OLX dataset imported as a stable seed."""
+    rows, offset = [], 0
+    while True:
+        batch = _get({"select": "*", "data_source": "eq.olx_dataset", "order": "listing_id.asc"}, offset=offset)
+        rows.extend(batch)
+        if len(batch) < 1000:
+            break
+        offset += len(batch)
+    return pd.DataFrame(rows)
+
+
 def import_excel_seed(data: pd.DataFrame) -> int:
     """Idempotently seed Excel rows; a stable snapshot ID prevents duplicate imports."""
     rows = data.copy().drop_duplicates("listing_id", keep="first")
@@ -141,6 +154,25 @@ def import_excel_seed(data: pd.DataFrame) -> int:
         )
         if not response.ok:
             raise RuntimeError(f"Gagal mengimpor arsip Excel ke Supabase (HTTP {response.status_code}): {response.text[:400]}")
+        inserted += len(response.json()) if response.content else 0
+    return inserted
+
+
+def import_dataset_seed(data: pd.DataFrame) -> int:
+    """Idempotently seed the active cleaned OLX dataset into listing_snapshots."""
+    rows = data.copy().drop_duplicates("listing_id", keep="first")
+    rows["snapshot_id"] = ACTIVE_DATASET_SNAPSHOT
+    rows["data_source"] = "olx_dataset"
+    records = _records_for_insert(rows)
+    endpoint, headers = _headers("resolution=ignore-duplicates,return=representation")
+    inserted = 0
+    for start in range(0, len(records), 500):
+        response = requests.post(
+            endpoint, params={"on_conflict": "snapshot_id,listing_id"}, json=records[start:start + 500],
+            headers=headers, timeout=60,
+        )
+        if not response.ok:
+            raise RuntimeError(f"Gagal mengimpor dataset OLX ke Supabase (HTTP {response.status_code}): {response.text[:400]}")
         inserted += len(response.json()) if response.content else 0
     return inserted
 

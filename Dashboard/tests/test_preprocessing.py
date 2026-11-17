@@ -99,7 +99,7 @@ def test_financing_ads_are_separated_from_analytics_without_mutating_raw_rows():
     clean, flagged = split_financing_listings(raw)
     assert clean["listing_id"].tolist() == ["normal"]
     assert flagged["listing_id"].tolist() == ["low", "dp"]
-    assert flagged["financing_flag_reason"].tolist() == ["Harga di bawah Rp25 juta", "Teks pembiayaan"]
+    assert flagged["financing_flag_reason"].tolist() == ["Harga di bawah Rp30 juta, indikasi DP", "Teks pembiayaan"]
     assert len(raw) == 3
     assert clean.attrs["excluded_financing_count"] == 2
 

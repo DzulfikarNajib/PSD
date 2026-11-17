@@ -45,6 +45,41 @@ def format_km(value) -> str:
     return f"{number:,.0f} km".replace(",", ".")
 
 
+def format_timestamp_wib(value) -> str:
+    """Display a source timestamp in Jakarta local time."""
+    if value is None or pd.isna(value):
+        return "-"
+    timestamp = pd.Timestamp(value)
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.tz_localize("Asia/Jakarta")
+    else:
+        timestamp = timestamp.tz_convert("Asia/Jakarta")
+    return timestamp.strftime("%d %b %Y, %H:%M WIB")
+
+
+def build_preprocessing_funnel(audit: dict) -> pd.DataFrame:
+    """Build the dashboard's compact row-count funnel from preprocessing metadata."""
+    return pd.DataFrame([
+        {"Tahap": "Data mentah", "Listing tersisa": audit.get("raw_rows", 0), "Dibuang pada tahap ini": 0},
+        {
+            "Tahap": "Deduplikasi listing_id",
+            "Listing tersisa": audit.get("after_dedup_rows", 0),
+            "Dibuang pada tahap ini": audit.get("duplicate_rows_removed", 0) + audit.get("invalid_listing_id_rows", 0),
+        },
+        {
+            "Tahap": "Filter wilayah DKI Jakarta",
+            "Listing tersisa": audit.get("after_dki_rows", 0),
+            "Dibuang pada tahap ini": audit.get("outside_dki_rows_removed", 0),
+        },
+        {
+            "Tahap": "Penyaringan outlier harga",
+            "Listing tersisa": audit.get("clean_rows", 0),
+            "Dibuang pada tahap ini": audit.get("outlier_price_rows_removed", 0),
+        },
+        {"Tahap": "Data siap analisis & modeling", "Listing tersisa": audit.get("clean_rows", 0), "Dibuang pada tahap ini": 0},
+    ])
+
+
 def apply_rupiah_ticks(fig, axis="x", min_val=None, max_val=None, n_ticks=6):
     """Ensure Plotly axis uses human-readable Rupiah labels instead of G/M SI prefixes."""
     if min_val is None or max_val is None or min_val >= max_val:

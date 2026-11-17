@@ -11,11 +11,10 @@ import streamlit as st
 
 from src.api_handler import safe_refresh_snapshot
 from src.data_loader import (
-    get_last_updated_text,
     load_combined_archive,
 )
 from src.styles import apply_theme
-from src.ui import format_rupiah, render_data_source_status, render_empty_state
+from src.ui import format_rupiah, format_timestamp_wib, render_data_source_status, render_empty_state
 
 
 DEFAULT_SEARCH_URL = "https://www.olx.co.id/mobil-bekas_c198/q-mobil"
@@ -33,6 +32,7 @@ def _compact_rupiah(value: float) -> str:
 
 apply_theme()
 archive = load_combined_archive()
+preprocessing_audit = archive.attrs.get("preprocessing_audit", {})
 
 st.markdown(
     f'<style>div[class*="st-key-home_hero"] {{ --automatch-hero-image: url("data:image/jpeg;base64,{HERO_IMAGE_DATA}"); }}</style>',
@@ -52,11 +52,13 @@ render_data_source_status()
 st.markdown("## Ringkasan arsip mobil")
 if archive.empty:
     empty_metrics = st.columns(4)
-    for col, label in zip(empty_metrics, ["Mobil unik", "Jumlah merek", "Median harga iklan", "Snapshot OLX terbaru"]):
-        col.metric(label, "-", border=True)
+    empty_metrics[0].metric("Sumber data", "OLX Indonesia · DKI Jakarta", border=True)
+    empty_metrics[1].metric("Listing bersih", "-", border=True)
+    empty_metrics[2].metric("Rentang tahun", "-", border=True)
+    empty_metrics[3].metric("Pembaruan terakhir", "-", border=True)
     render_empty_state(
         "Arsip mobil belum tersedia",
-        "Dataset Excel atau snapshot OLX yang tersimpan akan tampil di sini. AutoMatch tidak membuat data contoh.",
+        "Dataset OLX atau snapshot yang tersimpan akan tampil di sini. AutoMatch tidak membuat data contoh.",
     )
 else:
     archive = archive.copy()
@@ -68,15 +70,17 @@ else:
     prices = archive.loc[archive["price"].gt(0), "price"] if "price" in archive else pd.Series(dtype=float)
     fuels = archive["fuel_type"].fillna("Tidak dicantumkan").astype(str).str.strip() if "fuel_type" in archive else pd.Series(dtype=str)
     fuels = fuels.replace("", "Tidak dicantumkan").value_counts()
-    timestamps = pd.to_datetime(archive.get("fetched_at"), errors="coerce", utc=True).dropna() if "fetched_at" in archive else pd.Series(dtype="datetime64[ns, UTC]")
-    last_update = get_last_updated_text() if not timestamps.empty else "Belum ada snapshot OLX"
-
     metric_cols = st.columns(4)
-    metric_cols[0].metric("Mobil unik", f"{unique_count:,}".replace(",", "."), border=True)
-    metric_cols[1].metric("Merek tersedia", f"{brands.nunique():,}".replace(",", "."), border=True)
-    metric_cols[2].metric("Median harga iklan", _compact_rupiah(prices.median()) if not prices.empty else "-", border=True)
-    metric_cols[3].metric("Snapshot OLX terbaru", last_update.split(",")[0] if not timestamps.empty else "-", border=True)
-    st.caption(f"Sumber: Excel dan snapshot OLX tersimpan · pembaruan OLX terakhir: {last_update}. Angka adalah harga penawaran; iklan arsip belum tentu masih aktif.")
+    clean_count = int(preprocessing_audit.get("clean_rows", unique_count))
+    year_min, year_max = preprocessing_audit.get("year_min"), preprocessing_audit.get("year_max")
+    year_range = f"{year_min}-{year_max}" if year_min is not None and year_max is not None else "-"
+    latest_value = preprocessing_audit.get("latest_fetched_at")
+    last_update = format_timestamp_wib(latest_value)
+    metric_cols[0].metric("Sumber data", "OLX Indonesia · DKI Jakarta", border=True)
+    metric_cols[1].metric("Total listing bersih", f"{clean_count:,}".replace(",", "."), border=True)
+    metric_cols[2].metric("Rentang tahun produksi", year_range, border=True)
+    metric_cols[3].metric("Pembaruan terakhir", last_update, border=True)
+    st.caption("Angka cakupan berasal dari pipeline preprocessing dataset aktif. Harga yang ditampilkan adalah harga penawaran; iklan arsip belum tentu masih aktif.")
 
     st.markdown("### Mulai dari pilihan yang tersedia")
     st.caption("Beranda merangkum arsip. Buka Pahami Pasar untuk melihat distribusi dan perbandingan grafik secara lebih rinci.")

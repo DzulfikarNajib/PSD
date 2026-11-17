@@ -9,17 +9,18 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from src.preprocessing import is_dki_jakarta, parse_mileage_km, split_financing_listings
+from src.preprocessing import HIGH_PRICE_OUTLIER_REASON, is_dki_jakarta, normalize_timestamp_utc, parse_engine_cc, parse_mileage_km, preprocess_listing_dataset, split_financing_listings
 from src.supabase_store import is_configured as supabase_is_configured
 from src.supabase_store import latest_timestamp as supabase_latest_timestamp
 from src.supabase_store import load_latest_snapshot
-from src.supabase_store import load_snapshot_archive, load_excel_seed
+from src.supabase_store import load_snapshot_archive, load_excel_seed, load_dataset_seed
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT_DIR / "data"
 LIVE_PATH = DATA_DIR / "olx_live.csv"
 HISTORY_PATH = DATA_DIR / "olx_history.csv"
 HISTORICAL_PATH = DATA_DIR / "PSD_DATA_MOBIL_JAKARTA_FULL.csv"
+ACTIVE_DATASET_PATH = DATA_DIR / "olx_jakarta_mobil_bekas_full.csv"
 DKI_CITIES = {"jakarta pusat", "jakarta selatan", "jakarta timur", "jakarta barat", "jakarta utara"}
 _LAST_DATA_SOURCE_STATUS = {
     "mode": "local",
@@ -69,46 +70,54 @@ def _parse_engine_band(value) -> float:
 
 
 def load_historical_data() -> pd.DataFrame:
-    """Load the supplied Excel-derived dataset as clean, DKI-only observations."""
+    """Load the active OLX archive as clean, deduplicated DKI observations."""
+    return load_historical_data_with_audit()[0]
+
+
+def load_historical_data_with_audit() -> tuple[pd.DataFrame, dict]:
+    """Load the active source and return both cleaned rows and their audit."""
+    if ACTIVE_DATASET_PATH.exists():
+        try:
+            raw = pd.read_csv(ACTIVE_DATASET_PATH)
+        except (pd.errors.EmptyDataError, pd.errors.ParserError, OSError):
+            return pd.DataFrame(), {}
+        data, audit = preprocess_listing_dataset(raw)
+        data["data_source"] = "OLX Indonesia"
+        audit["source"] = "OLX Indonesia - DKI Jakarta"
+        data.attrs["preprocessing_audit"] = audit
+        return data, audit
+
     if not HISTORICAL_PATH.exists():
-        return pd.DataFrame()
+        return pd.DataFrame(), {}
     try:
         raw = pd.read_csv(HISTORICAL_PATH)
     except (pd.errors.EmptyDataError, pd.errors.ParserError, OSError):
-        return pd.DataFrame()
+        return pd.DataFrame(), {}
     required = {"URL_Detail", "Harga_IDR", "Provinsi", "Kota_Kabupaten", "Merk", "Model", "Tahun", "Jarak_Tempuh"}
     if not required.issubset(raw.columns):
-        return pd.DataFrame()
+        return pd.DataFrame(), {}
     data = pd.DataFrame({
         "listing_id": raw["URL_Detail"].fillna("").astype(str).str.strip().str.split("?").str[0].str.rstrip("/").str.lower(),
         "make": raw["Merk"], "model": raw["Model"], "variant": raw["Judul"] if "Judul" in raw else "",
         "price": pd.to_numeric(raw["Harga_IDR"], errors="coerce"),
         "year": raw["Tahun"].map(lambda x: pd.to_numeric(str(x), errors="coerce") if str(x).strip().isdigit() else float("nan")),
         "mileage_km": raw["Jarak_Tempuh"].map(parse_mileage_km),
-        "engine_cc": raw["Kapasitas_Mesin"].map(_parse_engine_band) if "Kapasitas_Mesin" in raw else float("nan"),
+        "engine_cc": raw["Kapasitas_Mesin"].map(parse_engine_cc) if "Kapasitas_Mesin" in raw else float("nan"),
         "fuel_type": raw["Tipe_Bahan_Bakar"] if "Tipe_Bahan_Bakar" in raw else "",
         "transmission": raw["Transmisi"] if "Transmisi" in raw else "",
         "body_type": raw["Tipe_Bodi"] if "Tipe_Bodi" in raw else "",
         "location": raw["Kota_Kabupaten"], "province": raw["Provinsi"],
         "url": raw["URL_Detail"], "fetched_at": pd.NA,
     })
-    data["location"] = data["location"].fillna("").astype(str).str.strip()
-    data["province"] = data["province"].fillna("").astype(str).str.strip().str.lower()
-    data = data[data["province"].isin({"jakarta d.k.i.", "dki jakarta", "daerah khusus ibukota jakarta"})]
-    data = data[data["location"].str.lower().isin(DKI_CITIES)]
-    data = data[data["listing_id"].ne("") & data["price"].ge(1_000_000)]
-    data = data.drop_duplicates("listing_id", keep="first")
-    for col in ("make", "model", "variant", "fuel_type", "transmission", "body_type"):
-        if col in data:
-            data[col] = data[col].fillna("").astype(str).str.strip()
-    data["location_normalized"] = data["location"].str.lower()
     data["image_url"] = ""
     data["color"] = ""
     data["seller_type"] = ""
     data["data_source"] = "Dataset Excel"
-    data, flagged = split_financing_listings(data)
-    data.attrs["excluded_financing_count"] = len(flagged)
-    return data.reset_index(drop=True)
+    data, audit = preprocess_listing_dataset(data)
+    data["data_source"] = "Dataset Excel"
+    audit["source"] = "Dataset Excel - DKI Jakarta"
+    data.attrs["preprocessing_audit"] = audit
+    return data, audit
 
 
 def _listing_identity(frame: pd.DataFrame) -> pd.Series:
@@ -120,33 +129,49 @@ def _listing_identity(frame: pd.DataFrame) -> pd.Series:
 
 def _analytical_financing_filter(frame: pd.DataFrame) -> pd.DataFrame:
     """Exclude likely DP/credit offers from analytical views, leaving stored files intact."""
-    eligible, flagged = split_financing_listings(frame)
-    eligible.attrs["excluded_financing_count"] = len(flagged)
+    normalized = frame.copy()
+    if "fetched_at" in normalized:
+        normalized["fetched_at"] = normalized["fetched_at"].map(normalize_timestamp_utc)
+    eligible, flagged = split_financing_listings(normalized)
     return eligible
+
+
+def _dki_scope(frame: pd.DataFrame) -> pd.DataFrame:
+    """Apply the dashboard's DKI-only scope to any stored listing source."""
+    if frame.empty:
+        return frame.copy()
+    location = frame.get("location", pd.Series("", index=frame.index)).fillna("").astype(str)
+    normalized = frame.get("location_normalized", pd.Series("", index=frame.index)).fillna("").astype(str)
+    location = location.where(location.str.strip().ne(""), normalized)
+    return frame.loc[location.map(is_dki_jakarta)].copy()
 
 
 def load_combined_archive() -> pd.DataFrame:
     """Merge Excel and OLX snapshots into one searchable row per unique listing."""
     excel = load_historical_data()
-    seeded, snapshots = pd.DataFrame(), pd.DataFrame()
+    preprocessing_audit = excel.attrs.get("preprocessing_audit", {})
+    local_excluded_financing_count = int(excel.attrs.get("excluded_financing_count", 0))
+    seeded, dataset_seed, snapshots = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     if supabase_is_configured():
         try:
-            seeded, snapshots = load_excel_seed(), load_snapshot_archive()
-            if seeded.empty and snapshots.empty:
+            seeded, dataset_seed, snapshots = load_excel_seed(), load_dataset_seed(), load_snapshot_archive()
+            if seeded.empty and dataset_seed.empty and snapshots.empty:
                 _set_data_source_status("fallback", "Supabase belum berisi arsip. Menampilkan data lokal yang tersedia.")
             else:
-                _set_data_source_status("cloud", "Arsip Supabase berhasil dibaca; dataset Excel lokal ikut digabung bila tersedia.")
+                _set_data_source_status("cloud", "Arsip Supabase berhasil dibaca; dataset lokal ikut digabung bila tersedia.")
         except Exception:
             _set_data_source_status("fallback", "Supabase tidak dapat dibaca. Menampilkan salinan lokal bila tersedia; periksa koneksi dan konfigurasi database.")
     else:
         _set_data_source_status("local", "Menggunakan data lokal. Supabase belum dikonfigurasi untuk sesi ini.")
     if not seeded.empty:
         seeded["data_source"] = "Dataset Excel"
-        # Keep the local seed as a fallback/union so an interrupted import cannot
-        # make workbook rows disappear from search before the next successful run.
         excel = pd.concat([excel, seeded], ignore_index=True, sort=False)
+    if not dataset_seed.empty:
+        dataset_seed["data_source"] = "Dataset OLX Indonesia"
+        excel = pd.concat([excel, dataset_seed], ignore_index=True, sort=False)
     if not snapshots.empty:
         snapshots["data_source"] = "Arsip snapshot OLX"
+        snapshots = _dki_scope(snapshots)
     parts = [part for part in (excel, snapshots) if not part.empty]
     if not parts:
         return pd.DataFrame()
@@ -172,7 +197,13 @@ def load_combined_archive() -> pd.DataFrame:
     combined["listing_id"] = combined["_identity"]
     combined = combined.drop(columns=["_identity", "_observation_identity", "_source_priority"])
     combined, flagged = split_financing_listings(combined)
-    combined.attrs["excluded_financing_count"] = int(excel.attrs.get("excluded_financing_count", 0)) + len(flagged)
+    if "financing_flag_reason" in flagged:
+        flagged_financing = flagged["financing_flag_reason"].ne(HIGH_PRICE_OUTLIER_REASON)
+        combined.attrs["excluded_financing_count"] = local_excluded_financing_count + int(flagged_financing.sum())
+    else:
+        combined.attrs["excluded_financing_count"] = local_excluded_financing_count
+    combined.attrs["excluded_outlier_price_count"] = int(excel.attrs.get("excluded_outlier_price_count", 0)) + len(flagged)
+    combined.attrs["preprocessing_audit"] = preprocessing_audit
     return combined.reset_index(drop=True)
 
 
@@ -184,14 +215,15 @@ def load_training_archive() -> pd.DataFrame:
         _set_data_source_status("local", "Menggunakan arsip lokal untuk evaluasi model. Supabase belum dikonfigurasi.")
         return excel
     try:
-        seeded, snapshots = load_excel_seed(), load_snapshot_archive()
+        seeded, dataset_seed, snapshots = load_excel_seed(), load_dataset_seed(), load_snapshot_archive()
     except Exception:
         _set_data_source_status("fallback", "Supabase tidak dapat dibaca. Pelatihan memakai arsip lokal yang tersedia.")
         return excel
     _set_data_source_status("cloud", "Arsip Supabase berhasil dibaca untuk evaluasi model.")
-    pieces = [frame for frame in (excel, seeded, snapshots) if not frame.empty]
+    pieces = [frame for frame in (excel, seeded, dataset_seed, snapshots) if not frame.empty]
     combined = pd.concat(pieces, ignore_index=True, sort=False) if pieces else excel
     combined.attrs["excluded_financing_count"] = excluded_financing_count
+    combined.attrs["preprocessing_audit"] = excel.attrs.get("preprocessing_audit", {})
     if not combined.empty:
         combined["listing_id"] = _listing_identity(combined)
     return combined
@@ -242,6 +274,7 @@ def load_history_data() -> pd.DataFrame:
         try:
             observations = load_snapshot_archive()
             if not observations.empty:
+                observations = _dki_scope(observations)
                 observations["data_source"] = "Arsip snapshot OLX"
                 _set_data_source_status("cloud", "Riwayat snapshot berhasil dibaca dari Supabase.")
                 return _analytical_financing_filter(observations).reset_index(drop=True)
@@ -256,7 +289,7 @@ def load_history_data() -> pd.DataFrame:
         df = pd.read_csv(HISTORY_PATH)
     except (pd.errors.EmptyDataError, pd.errors.ParserError, OSError):
         return pd.DataFrame()
-    return _analytical_financing_filter(df)
+    return _analytical_financing_filter(_dki_scope(df)).reset_index(drop=True)
 
 
 def get_last_updated_text() -> str:

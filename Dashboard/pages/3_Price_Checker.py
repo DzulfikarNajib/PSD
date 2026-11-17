@@ -18,6 +18,7 @@ from src.modeling import (
     training_eligibility,
 )
 from src.styles import apply_theme
+from src.preprocessing import MAX_ANALYSIS_PRICE, MIN_ANALYSIS_PRICE
 from src.ui import (
     format_rupiah,
     format_rupiah_compact,
@@ -94,6 +95,13 @@ apply_theme()
 st.title("Cek Harga Iklan")
 st.caption("Bandingkan harga iklan dengan listing serupa dan, bila tersedia, estimasi model.")
 st.caption("Harga iklan dan estimasi adalah konteks awal. Keduanya bukan harga transaksi pasti dan tidak menggantikan pemeriksaan kondisi mobil.")
+with st.expander("Ringkasan Fitur & Transformasi Model"):
+    st.write("Target model adalah harga penawaran (price). Prediktornya: merek, model, tahun, kilometer, kapasitas mesin, transmisi, bahan bakar, dan tipe bodi.")
+    st.caption("Kolom kategori diubah dengan one-hot encoding. Nilai numerik kosong, termasuk CC yang tidak dicantumkan pada sebagian EV, diisi median dari data latih.")
+    st.write(
+        f"Iklan di bawah {format_rupiah(MIN_ANALYSIS_PRICE)} atau di atas {format_rupiah(MAX_ANALYSIS_PRICE)}, serta teks indikasi pembiayaan, dikeluarkan sebelum pelatihan. Kandidat dibandingkan pada target harga asli dan log1p."
+    )
+    st.caption("Evaluasi memakai pembagian acak 80% latih dan 20% uji (random_state 42). Model dipilih berdasarkan MAE terendah pada data uji; MAE dan RMSE bukan jaminan untuk listing baru.")
 
 prefill = st.session_state.pop("price_checker_prefill", {})
 auto_check_prefill = bool(prefill.pop("_auto_calculate", False))
@@ -133,7 +141,7 @@ render_data_source_status()
 if source == "Listing Terbaru":
     st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()} · listing dapat berubah atau sudah tidak aktif saat dibuka.")
 else:
-    st.caption(f"Arsip Penuh · Excel + snapshot OLX tersimpan · {len(comparison_data):,} mobil unik. Arsip Excel tidak memiliki tanggal pengambilan dan tautannya mungkin sudah tidak aktif.".replace(",", "."))
+    st.caption(f"Arsip Penuh · dataset OLX + snapshot tersimpan · {len(comparison_data):,} mobil unik. Tautan arsip mungkin sudah tidak aktif.".replace(",", "."))
 if not comparison_data.empty:
     st.caption(listing_data_context(comparison_data))
 

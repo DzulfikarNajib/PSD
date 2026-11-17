@@ -51,9 +51,10 @@ if source_choice == "Listing Terbaru":
     st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()}. Status dan isi iklan dapat berubah sejak pengambilan data.")
 else:
     origins = cars.get("source_origins", pd.Series("", index=cars.index)).fillna("")
-    excel_count = int(origins.str.contains("Dataset Excel", regex=False).sum())
+    dataset_count = int(origins.str.contains("OLX Indonesia", regex=False).sum())
+    legacy_excel_count = int(origins.str.contains("Dataset Excel", regex=False).sum())
     olx_count = int(origins.str.contains("Arsip snapshot OLX", regex=False).sum())
-    st.caption(f"Arsip Penuh · {cars['listing_id'].nunique():,} mobil unik · ada di Excel: {excel_count:,} · ada di snapshot OLX: {olx_count:,}. Sumber dapat tumpang tindih dan iklan arsip mungkin sudah tidak aktif.".replace(",", "."))
+    st.caption(f"Arsip Penuh · {cars['listing_id'].nunique():,} mobil unik · dataset OLX aktif: {dataset_count:,} · arsip Excel lama: {legacy_excel_count:,} · snapshot OLX: {olx_count:,}. Sumber dapat tumpang tindih dan iklan arsip mungkin sudah tidak aktif.".replace(",", "."))
 render_data_source_status()
 st.caption(listing_data_context(cars))
 
@@ -273,7 +274,7 @@ with right:
                 if pd.notna(fetched):
                     source_time = fetched.tz_convert("Asia/Jakarta").strftime("%d %b %Y, %H:%M WIB")
                 elif "Dataset Excel" in origins:
-                    source_time = "tanggal pengambilan tidak tersedia"
+                    source_time = "tanggal pengambilan arsip lama tidak tersedia"
                 else:
                     source_time = "waktu pengambilan tidak tersedia"
                 st.caption(f"Sumber: {origins} · {source_time}")
@@ -282,6 +283,6 @@ with right:
                     st.link_button("Buka iklan sumber", str(url), icon=":material/open_in_new:", width="stretch")
 
 if source_choice == "Arsip Penuh":
-    st.warning("Arsip bukan stok aktif. Dataset Excel tidak memiliki tanggal pengambilan; snapshot OLX menampilkan waktu refresh yang tercatat.")
+    st.warning("Arsip bukan stok aktif. Dataset OLX dan snapshot mencatat waktu pengambilan, tetapi iklan dapat berubah atau tidak aktif. Hanya arsip Excel lama yang tidak memiliki tanggal pengambilan.")
 else:
     st.caption("Listing terlihat saat snapshot terakhir diambil, tetapi status iklan dapat berubah. AutoMatch tidak memeriksa kondisi fisik atau dokumen kendaraan.")

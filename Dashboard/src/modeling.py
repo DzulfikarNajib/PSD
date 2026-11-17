@@ -19,7 +19,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.tree import DecisionTreeRegressor
 
-from src.preprocessing import is_dki_jakarta, split_financing_listings
+from src.preprocessing import HIGH_PRICE_OUTLIER_REASON, MAX_ANALYSIS_PRICE, MIN_ANALYSIS_PRICE, is_dki_jakarta, split_financing_listings
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = ROOT_DIR / "models" / "best_model.joblib"
@@ -38,7 +38,15 @@ def prepare_model_data(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty or any(column not in df.columns for column in required):
         return pd.DataFrame(columns=required)
     prepared, flagged_financing = split_financing_listings(df)
-    excluded_financing_count = int(df.attrs.get("excluded_financing_count", 0)) + len(flagged_financing)
+    newly_excluded_financing = (
+        int(flagged_financing["financing_flag_reason"].ne(HIGH_PRICE_OUTLIER_REASON).sum())
+        if "financing_flag_reason" in flagged_financing else 0
+    )
+    newly_excluded_price_outliers = (
+        int(flagged_financing["financing_flag_reason"].eq(HIGH_PRICE_OUTLIER_REASON).sum())
+        if "financing_flag_reason" in flagged_financing else 0
+    )
+    excluded_financing_count = int(df.attrs.get("excluded_financing_count", 0)) + newly_excluded_financing
     prepared = prepared[required + (["fetched_at"] if "fetched_at" in prepared else [])].copy()
     prepared["price"] = pd.to_numeric(prepared["price"], errors="coerce")
     prepared = prepared.dropna(subset=["listing_id", "price"])
@@ -56,6 +64,7 @@ def prepare_model_data(df: pd.DataFrame) -> pd.DataFrame:
     prepared = prepared[prepared["mileage_km"].ge(0) | prepared["mileage_km"].isna()]
     prepared = prepared.drop(columns=["fetched_at"], errors="ignore").reset_index(drop=True)
     prepared.attrs["excluded_financing_count"] = excluded_financing_count
+    prepared.attrs["excluded_outlier_price_count"] = int(df.attrs.get("excluded_outlier_price_count", 0)) + newly_excluded_price_outliers
     return prepared
 
 
@@ -169,8 +178,10 @@ def evaluate_regression_models(df: pd.DataFrame, model_path: str | Path | None =
         "target_transform": target_transforms[winner],
         "models": results, "training_unique_listings": len(prepared),
         "excluded_financing_rows": int(prepared.attrs.get("excluded_financing_count", 0)),
+        "excluded_price_outlier_rows": int(prepared.attrs.get("excluded_outlier_price_count", 0)),
         "minimum_unique_listings": MINIMUM_UNIQUE_LISTINGS,
         "selection_metric": "lowest holdout MAE", "target": "asking price",
+        "accepted_price_range": [MIN_ANALYSIS_PRICE, MAX_ANALYSIS_PRICE],
         "holdout_predictions": holdout_records,
         "holdout_test_size": 0.2,
         "holdout_random_state": 42,

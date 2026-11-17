@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.data_loader import load_combined_archive, load_historical_data, load_history_data, load_training_archive
+from src.data_loader import load_combined_archive, load_historical_data_with_audit, load_history_data, load_training_archive
 from src.modeling import (
     load_model_metadata,
     model_is_validated,
@@ -16,6 +16,8 @@ from src.styles import apply_theme
 from src.ui import (
     format_rupiah,
     format_rupiah_compact,
+    build_preprocessing_funnel,
+    format_timestamp_wib,
     apply_rupiah_ticks,
     listing_data_context,
     render_data_source_status,
@@ -23,12 +25,12 @@ from src.ui import (
 
 
 apply_theme()
-excel = load_historical_data()
+active_data, preprocessing_audit = load_historical_data_with_audit()
 archive = load_combined_archive()
 history = load_history_data()
 training_data = load_training_archive()
 eligible, eligibility_message, model_data = training_eligibility(training_data)
-prices = pd.to_numeric(excel.get("price", pd.Series(dtype=float)), errors="coerce").dropna()
+prices = pd.to_numeric(active_data.get("price", pd.Series(dtype=float)), errors="coerce").dropna()
 snapshot_count = history["snapshot_id"].nunique() if "snapshot_id" in history else 0
 unique_archive_count = archive["listing_id"].nunique() if "listing_id" in archive else len(archive)
 
@@ -50,19 +52,50 @@ with st.container(key="project_editorial_hero"):
 st.markdown("### Ringkasan Data")
 render_data_source_status()
 metrics = st.columns(4)
-metrics[0].metric("Excel DKI", f"{len(excel):,}".replace(",", "."), border=True)
+metrics[0].metric("Dataset OLX bersih DKI", f"{len(active_data):,}".replace(",", "."), border=True)
 metrics[1].metric("Mobil unik di arsip penuh", f"{unique_archive_count:,}".replace(",", "."), border=True)
 metrics[2].metric("Snapshot OLX tersimpan", f"{snapshot_count:,}".replace(",", "."), border=True)
 metrics[3].metric("Data layak untuk model", f"{len(model_data):,}".replace(",", "."), border=True)
-st.caption("Arsip penuh menghitung listing unik. Snapshot menghitung sesi pengambilan OLX. Dataset Excel tidak memiliki tanggal pengambilan.")
+st.caption("Arsip penuh menghitung listing unik. Snapshot menghitung sesi pengambilan OLX. Dataset aktif mencatat waktu pengambilan pada setiap listing.")
 st.caption(listing_data_context(archive))
 if not prices.empty:
-    st.caption(f"Dataset Excel: rentang harga penawaran {format_rupiah_compact(prices.min())} s/d {format_rupiah_compact(prices.max())} (Median: {format_rupiah_compact(prices.median())}).")
+    st.caption(f"Dataset OLX bersih: rentang harga penawaran {format_rupiah_compact(prices.min())} s/d {format_rupiah_compact(prices.max())} (Median: {format_rupiah_compact(prices.median())}).")
+
+st.markdown("### Data Overview & Alur Data Preprocessing")
+if preprocessing_audit:
+    funnel = build_preprocessing_funnel(preprocessing_audit)
+    funnel["Listing tersisa"] = funnel["Listing tersisa"].map(lambda value: f"{int(value):,}".replace(",", "."))
+    funnel["Dibuang pada tahap ini"] = funnel["Dibuang pada tahap ini"].map(lambda value: f"{int(value):,}".replace(",", "."))
+    st.dataframe(funnel, hide_index=True, width="stretch")
+
+    prep_col, missing_col = st.columns([1.25, 1], gap="large", vertical_alignment="top")
+    with prep_col:
+        st.markdown("#### Aturan pembersihan")
+        st.write("Untuk setiap listing_id, pipeline mempertahankan snapshot dengan fetched_at terbaru. Listing di luar enam wilayah DKI dikeluarkan sebelum analisis.")
+        st.write("Rentang odometer diubah ke titik tengah mileage_km. Kapasitas mesin dikonversi menjadi engine_cc. Jika data CC mobil listrik (EV) kosong, nilainya tetap kosong, bukan nol; model mengisi nilai numerik kosong memakai median fitur pada data latih.")
+        st.write("Lokasi dipetakan ke nama wilayah kanonis. Seller type diseragamkan menjadi Diler atau Individu, sedangkan fuel_type dan transmission memakai label konsisten.")
+        st.write(
+            f"Harga di bawah {format_rupiah(preprocessing_audit.get('price_min'))} dianggap berpotensi DP/harga parsial dan mengeluarkan {preprocessing_audit.get('low_price_rows_removed', 0):,} listing; aturan batas bawah ini juga dapat mengecualikan mobil murah yang valid. Harga di atas {format_rupiah(preprocessing_audit.get('price_max'))} mengeluarkan {preprocessing_audit.get('high_price_rows_removed', 0):,} kemungkinan salah input. Listing valid tertinggi pada sumber ini bernilai {format_rupiah_compact(preprocessing_audit.get('highest_kept_price'))}."
+        )
+        st.caption(
+            f"Teks pembiayaan eksplisit ditemukan pada {preprocessing_audit.get('financing_text_rows_removed', 0):,} baris di luar batas harga rendah."
+        )
+    with missing_col:
+        st.markdown("#### Kelengkapan dan timestamp")
+        st.metric("Sel kosong pada data bersih", f"{preprocessing_audit.get('missing_value_pct', 0):.2f}%", border=True)
+        year_min, year_max = preprocessing_audit.get("year_min"), preprocessing_audit.get("year_max")
+        st.caption(f"Rentang tahun kendaraan: {year_min if year_min is not None else '-'}-{year_max if year_max is not None else '-'}.")
+        latest = preprocessing_audit.get("latest_fetched_at")
+        st.caption(f"fetched_at terbaru: {format_timestamp_wib(latest) if latest else 'tidak tercatat'}.")
+        missing = preprocessing_audit.get("missing_by_column_pct", {})
+        missing_table = pd.DataFrame([{"Kolom": column, "Kosong (%)": percent} for column, percent in missing.items() if percent > 0])
+        if not missing_table.empty:
+            st.dataframe(missing_table.sort_values("Kosong (%)", ascending=False).head(8), hide_index=True, width="stretch")
 
 st.markdown("### Alur data hingga keputusan")
 methodology = [
     ("1. Tujuan Proyek", "Menyaring pilihan, membandingkan iklan, dan memberi konteks harga penawaran. Hasil aplikasi menjadi bahan pertimbangan awal, bukan pengganti pemeriksaan kendaraan."),
-    ("2. Sumber Data", f"Dataset Excel dan snapshot OLX tersimpan menyediakan listing dari wilayah cakupan proyek. Excel tidak mencatat waktu pengambilan; snapshot OLX mencatat waktu refresh."),
+    ("2. Sumber Data", "Dataset OLX aktif dan snapshot OLX tersimpan menyediakan listing DKI Jakarta. Arsip Excel lama tetap tersedia sebagai sumber cadangan dan tidak memiliki waktu pengambilan."),
     ("3. Analisis Eksploratif", "Pahami Pasar membandingkan komposisi dan sebaran harga. Cari Mobil memakai K-Means untuk mengelompokkan listing menurut harga, tahun, kilometer, dan CC. Profil kelompok relatif pada sumber aktif, bukan label kualitas mobil."),
     ("4. Persiapan Data", f"Kolom dibersihkan dan listing dideduplikasi. {int(model_data.attrs.get('excluded_financing_count', 0)):,} indikasi DP/kredit dikeluarkan dari analisis dan model, sementara arsip mentah dipertahankan.".replace(",", ".")),
     ("5. Pemodelan Regresi", "Linear Regression, Decision Tree, dan Random Forest dibandingkan dengan target harga asli dan log1p pada holdout 20%. MAE/RMSE dilaporkan dalam rupiah; model mengestimasi harga penawaran, bukan kenaikan harga masa depan."),

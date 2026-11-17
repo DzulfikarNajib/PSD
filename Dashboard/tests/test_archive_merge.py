@@ -24,6 +24,7 @@ def test_combined_archive_prefers_latest_url_match_and_counts_observations(monke
     monkeypatch.setattr(data_loader, "load_historical_data", lambda: excel.copy())
     monkeypatch.setattr(data_loader, "supabase_is_configured", lambda: True)
     monkeypatch.setattr(data_loader, "load_excel_seed", lambda: excel.copy())
+    monkeypatch.setattr(data_loader, "load_dataset_seed", lambda: pd.DataFrame())
     monkeypatch.setattr(data_loader, "load_snapshot_archive", lambda: snapshots.copy())
 
     combined = data_loader.load_combined_archive()
@@ -58,6 +59,22 @@ def test_excel_seed_import_is_repeatable_and_has_no_capture_date(monkeypatch):
         assert call.kwargs["params"]["on_conflict"] == "snapshot_id,listing_id"
         for field in ("price", "year", "mileage_km", "engine_cc"):
             assert isinstance(record[field], int)
+
+
+def test_training_archive_includes_active_dataset_seed(monkeypatch):
+    local = pd.DataFrame([_listing("local", 150_000_000, None, "https://olx.test/car/local")])
+    cloud = pd.DataFrame([_listing("cloud", 160_000_000, None, "https://olx.test/car/cloud")])
+    monkeypatch.setattr(data_loader, "load_historical_data", lambda: local.copy())
+    monkeypatch.setattr(data_loader, "supabase_is_configured", lambda: True)
+    monkeypatch.setattr(data_loader, "load_excel_seed", lambda: pd.DataFrame())
+    monkeypatch.setattr(data_loader, "load_dataset_seed", lambda: cloud.copy())
+    monkeypatch.setattr(data_loader, "load_snapshot_archive", lambda: pd.DataFrame())
+
+    training = data_loader.load_training_archive()
+
+    assert set(training["listing_id"]) == {
+        "https://olx.test/car/local", "https://olx.test/car/cloud",
+    }
 
 
 def test_supabase_rest_url_is_normalized_when_rest_suffix_is_in_env(monkeypatch):

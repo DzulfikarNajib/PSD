@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.data_loader import load_history_data, load_live_data, load_combined_archive
+from src.data_loader import load_history_data, load_live_data, load_combined_archive, load_historical_data_with_audit
 from src.styles import apply_theme
 from src.ui import (
     format_rupiah,
@@ -39,7 +39,7 @@ with col_src:
     )
 if source_choice == "Arsip Penuh":
     source = archive.copy()
-    source_label = "Arsip penuh (Excel + snapshot OLX tersimpan)"
+    source_label = "Arsip penuh (dataset OLX, arsip lama, dan snapshot tersimpan)"
     snapshot_count = history["snapshot_id"].nunique() if "snapshot_id" in history else 0
 else:
     source = live.copy()
@@ -51,6 +51,42 @@ if source.empty:
     st.stop()
 render_data_source_status()
 st.caption(listing_data_context(source))
+active_data, preprocessing_audit = load_historical_data_with_audit()
+st.caption(
+    f"Dataset aktif untuk cakupan DKI Jakarta: {len(active_data):,} listing bersih dari OLX Indonesia."
+    .replace(",", ".")
+)
+with st.expander("Lihat Sampel Data & Statistik Deskriptif"):
+    if active_data.empty:
+        st.caption("Dataset bersih belum tersedia.")
+    else:
+        sample_columns = [
+            column for column in ("listing_id", "make", "model", "year", "price", "mileage_km", "engine_cc", "location_normalized")
+            if column in active_data
+        ]
+        sample = active_data[sample_columns].head(8).copy()
+        sample = sample.rename(columns={
+            "listing_id": "ID Listing", "make": "Merek", "model": "Model", "year": "Tahun",
+            "price": "Harga (Rp)", "mileage_km": "Kilometer", "engine_cc": "CC", "location_normalized": "Wilayah",
+        })
+        st.dataframe(sample, hide_index=True, width="stretch")
+
+        numeric_columns = [column for column in ("price", "year", "mileage_km", "engine_cc") if column in active_data]
+        stats = active_data[numeric_columns].apply(pd.to_numeric, errors="coerce").agg(["count", "mean", "median", "min", "max"]).T
+        stats = stats.rename(index={"price": "Harga (Rp)", "year": "Tahun", "mileage_km": "Kilometer", "engine_cc": "CC"})
+        for column in stats.index:
+            is_price = column == "Harga (Rp)"
+            stats.loc[column] = [
+                f"{value:,.0f}".replace(",", ".") if row == "count" else (
+                    format_rupiah(value) if is_price and pd.notna(value) else (f"{value:,.0f}".replace(",", ".") if pd.notna(value) else "-")
+                )
+                for row, value in stats.loc[column].items()
+            ]
+        st.markdown("**Statistik fitur numerik**")
+        st.dataframe(stats, width="stretch")
+        st.caption(
+            f"Missing value keseluruhan setelah pembersihan: {preprocessing_audit.get('missing_value_pct', 0):.2f}% dari sel dataset."
+        )
 
 for field in ["price", "year", "mileage_km", "engine_cc"]:
     if field in source:
@@ -313,4 +349,4 @@ with spec_cols[1]:
 
 with st.expander("Tentang sumber dan batasan data"):
     st.write(f"Sumber data aktif: **{source_label}**. Angka merangkum {unique_count:,} mobil unik dari {len(source):,} baris data tersimpan.".replace(",", "."))
-    st.write("Arsip Excel tidak memiliki tanggal pengambilan. Snapshot OLX menyimpan waktu saat refresh dijalankan. Seluruh grafik menunjukkan harga penawaran pengiklan, bukan kesepakatan transaksi riil di pasar.")
+    st.write("Dataset OLX aktif dan snapshot mencatat waktu pengambilan. Hanya arsip Excel lama yang tidak memiliki tanggal. Seluruh grafik menunjukkan harga penawaran pengiklan, bukan kesepakatan transaksi riil di pasar.")

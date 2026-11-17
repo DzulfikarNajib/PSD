@@ -8,6 +8,8 @@ from sklearn.cluster import KMeans
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import RobustScaler
 
+from src.preprocessing import MAX_ANALYSIS_PRICE, MIN_ANALYSIS_PRICE, split_financing_listings
+
 
 def cluster_market_segments(
     listings: pd.DataFrame,
@@ -27,13 +29,13 @@ def cluster_market_segments(
     if listings.empty or "price" not in listings or n_clusters < 2:
         return segmented, empty_summary
 
-    price = pd.to_numeric(listings["price"], errors="coerce").replace([np.inf, -np.inf], np.nan)
-    valid_mask = price.gt(0)
-    rows = listings.loc[valid_mask].copy()
+    eligible, _ = split_financing_listings(listings)
+    price = pd.to_numeric(eligible["price"], errors="coerce").replace([np.inf, -np.inf], np.nan)
+    rows = eligible.loc[price.between(MIN_ANALYSIS_PRICE, MAX_ANALYSIS_PRICE)].copy()
     if len(rows) < minimum_listings:
         return segmented, empty_summary
 
-    price = price.loc[valid_mask]
+    price = pd.to_numeric(rows["price"], errors="coerce").replace([np.inf, -np.inf], np.nan)
     features = pd.DataFrame(index=rows.index)
     features["log_price"] = np.log1p(price)
 
