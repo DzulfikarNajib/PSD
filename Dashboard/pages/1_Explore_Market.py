@@ -151,7 +151,7 @@ with comp_col1:
                 legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
                 annotations=[dict(text=f"<b>{total_items:,}</b><br><span style='font-size:11px;color:#64748B;'>Total</span>".replace(",", "."), x=0.5, y=0.5, font_size=16, showarrow=False)],
             )
-            st.plotly_chart(donut_fig, use_container_width=True, config={"displayModeBar": False}, key="market_donut_chart")
+            st.plotly_chart(donut_fig, width="stretch", config={"displayModeBar": False}, key="market_donut_chart")
             dominant_item = counts.index[0]
             st.caption(f"Kategori terbanyak: **{dominant_item}** mencakup {(counts.iloc[0]/total_items)*100:.1f}% dari listing.")
         else:
@@ -185,7 +185,7 @@ with comp_col2:
                 xaxis=dict(title=None, showgrid=False),
             )
             apply_rupiah_ticks(bar_trans, axis="y", min_val=0, max_val=float(trans_summary["median"].max()) * 1.25, n_ticks=5)
-            st.plotly_chart(bar_trans, use_container_width=True, config={"displayModeBar": False}, key="market_trans_comparison")
+            st.plotly_chart(bar_trans, width="stretch", config={"displayModeBar": False}, key="market_trans_comparison")
             
             t_auto = trans_summary.loc[trans_summary["transmission"].str.contains("Otomatis|Automatic", case=False), "median"]
             t_man = trans_summary.loc[trans_summary["transmission"].str.contains("Manual", case=False), "median"]
@@ -234,7 +234,7 @@ with price_hist_col:
                 yaxis=dict(title="Jumlah Mobil"),
             )
             apply_rupiah_ticks(fig_hist, axis="x", min_val=hist_min, max_val=hist_max, n_ticks=6)
-            st.plotly_chart(finish_chart(fig_hist, 320), use_container_width=True, config={"displayModeBar": False}, key="market_hist_clean")
+            st.plotly_chart(finish_chart(fig_hist, 320), width="stretch", config={"displayModeBar": False}, key="market_hist_clean")
             
             q1, q3 = filtered_priced["price"].quantile([0.25, 0.75])
             st.caption(f"50% mobil pada rentang ini berada di kisaran **{format_rupiah_compact(q1)}** sampai **{format_rupiah_compact(q3)}**.")
@@ -263,7 +263,7 @@ with year_scatter_col:
                 xaxis=dict(title="Tahun Model", type="linear"),
                 yaxis=dict(title="Harga Iklan", type="log"),
             )
-            st.plotly_chart(finish_chart(fig_scat, 380), use_container_width=True, config={"displayModeBar": False}, key="market_price_year_box")
+            st.plotly_chart(finish_chart(fig_scat, 380), width="stretch", config={"displayModeBar": False}, key="market_price_year_box")
             st.caption(f"Kotak menunjukkan rentang kuartil harga iklan per tahun; sumbu harga memakai skala log agar rentang nilai lebih terbaca. Sampel berisi {len(scatter_df):,} listing.".replace(",", "."))
         else:
             st.caption("Data tahun dan harga belum cukup untuk membentuk box plot.")
@@ -285,7 +285,7 @@ with spec_cols[0]:
             fig_km.update_traces(textposition="outside", cliponaxis=False, marker_cornerradius=6)
             fig_km.update_xaxes(title=None, showgrid=False)
             fig_km.update_yaxes(title="Jumlah Mobil")
-            st.plotly_chart(finish_chart(fig_km, 300), use_container_width=True, config={"displayModeBar": False}, key="market_km_chart")
+            st.plotly_chart(finish_chart(fig_km, 300), width="stretch", config={"displayModeBar": False}, key="market_km_chart")
             st.caption(f"Tercatat pada {len(mileage):,} mobil. Odometer perlu diverifikasi langsung saat inspeksi unit.".replace(",", "."))
         else:
             st.caption("Data kilometer belum mencukupi.")
@@ -305,7 +305,7 @@ with spec_cols[1]:
             fig_cc.update_traces(textposition="outside", cliponaxis=False, marker_cornerradius=6)
             fig_cc.update_xaxes(title=None, showgrid=False)
             fig_cc.update_yaxes(title="Jumlah Mobil")
-            st.plotly_chart(finish_chart(fig_cc, 300), use_container_width=True, config={"displayModeBar": False}, key="market_cc_chart")
+            st.plotly_chart(finish_chart(fig_cc, 300), width="stretch", config={"displayModeBar": False}, key="market_cc_chart")
             top_engine = engine_counts.sort_values("Jumlah", ascending=False).iloc[0]
             st.caption(f"Kapasitas tercatat pada {len(engines):,} listing. Rentang terbanyak: **{top_engine['Rentang']}**, {int(top_engine['Jumlah']):,} listing. Data ini tidak menunjukkan kecocokan untuk penggunaan tertentu.".replace(",", "."))
         else:

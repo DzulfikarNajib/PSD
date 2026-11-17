@@ -9,6 +9,7 @@ Cakupan: implementasi temuan audit data, model, kartu listing, dan pengalaman ha
 - Tiga algoritma diuji dengan target harga asli dan `log1p` pada holdout yang sama. Metrik tetap pada skala rupiah. Random Forest target asli terpilih dengan MAE sekitar Rp205,2 juta; transformasi log memperbaiki Linear Regression, tetapi tidak mengalahkan Random Forest.
 - Prediksi plot Actual vs Predicted disimpan dari holdout sebelum model final dilatih ulang. Artefak baru memiliki 833 pasangan uji dan metadata validasi versi 3.
 - Kartu mobil menghapus panel emoji besar dan menampilkan tipe bodi, tahun, dan segmen. Foto hanya memakai URL listing yang tersimpan; scraping gambar baru ditunda.
+- Parameter lebar deprecated `use_container_width` diganti ke `width="stretch"` pada semua halaman.
 - Filter pencarian dibuka saat halaman dimuat. Grafik harga per tahun memakai box plot dengan skala log. Beranda menampilkan grafik merek dan bahan bakar; Cek Harga memuat contoh arsip berlabel tanpa menghitung estimasi otomatis.
 - Ringkasan proyek mencatat pembuangan indikasi DP/kredit, dan plot evaluasi memuat seluruh rentang holdout.
 

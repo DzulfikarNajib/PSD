@@ -275,7 +275,7 @@ else:
                 else:
                     st.session_state["calculator_asking_price"] = min(max(int(st.session_state["calculator_asking_price"]), 1), price_max)
                 asking_price = st.number_input("Harga iklan yang ingin dicek (Rp)", 1, price_max, step=5_000_000, key="calculator_asking_price")
-                submitted = st.form_submit_button("Cek harga", type="primary", icon=":material/price_check:", use_container_width=True)
+                submitted = st.form_submit_button("Cek harga", type="primary", icon=":material/price_check:", width="stretch")
 
             features = {
                 "make": make, "model": model, "year": int(year), "mileage_km": int(mileage), "engine_cc": int(engine_cc),
@@ -468,7 +468,7 @@ with st.container(border=True):
                 xaxis=dict(title="Skor kepentingan fitur (relatif)", showgrid=True, gridcolor="#F1F5F9"),
                 yaxis=dict(title=None, showgrid=False),
             )
-            st.plotly_chart(fig_imp, use_container_width=True, config={"displayModeBar": False}, key="price_feature_importance_plot")
+            st.plotly_chart(fig_imp, width="stretch", config={"displayModeBar": False}, key="price_feature_importance_plot")
             st.caption(f"Model aktif: **{metadata.get('best_model', '-')}** ({metadata.get('training_unique_listings', 0):,} listing training). Kepentingan fitur bersifat relatif pada model, bukan bukti sebab-akibat.")
     else:
         st.info("Model belum dilatih atau belum lolos kriteria minimum validasi.")

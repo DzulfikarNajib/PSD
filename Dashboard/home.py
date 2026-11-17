@@ -95,7 +95,7 @@ else:
                     color_discrete_sequence=["#008B8B"],
                 )
                 brand_fig.update_layout(height=250, margin=dict(l=8, r=8, t=8, b=8), showlegend=False, xaxis_title=None, yaxis_title=None)
-                st.plotly_chart(brand_fig, use_container_width=True, config={"displayModeBar": False}, key="home_top_brands")
+                st.plotly_chart(brand_fig, width="stretch", config={"displayModeBar": False}, key="home_top_brands")
                 lead_make = str(brand_counts.index[0])
                 lead_count = int(brand_counts.iloc[0])
                 st.metric("Merek dengan listing terbanyak", lead_make, border=True)
@@ -106,7 +106,7 @@ else:
                     shortcut_cols = st.columns(min(len(popular), 3), gap="small")
                     for idx, make in enumerate(popular):
                         with shortcut_cols[idx % len(shortcut_cols)]:
-                            if st.button(make, key=f"home_brand_{idx}", use_container_width=True):
+                            if st.button(make, key=f"home_brand_{idx}", width="stretch"):
                                 st.session_state["prefill_make"] = make
                                 st.session_state["car_source_choice"] = "Arsip Penuh"
                                 st.switch_page("pages/2_Find_Your_Car.py")
@@ -131,7 +131,7 @@ else:
                 )
                 fuel_fig.update_traces(textinfo="percent", hovertemplate="%{label}: %{value} listing (%{percent})<extra></extra>")
                 fuel_fig.update_layout(height=250, margin=dict(l=8, r=8, t=8, b=8), legend=dict(orientation="h", y=-.08))
-                st.plotly_chart(fuel_fig, use_container_width=True, config={"displayModeBar": False}, key="home_fuel_mix")
+                st.plotly_chart(fuel_fig, width="stretch", config={"displayModeBar": False}, key="home_fuel_mix")
                 dominant_fuel = str(fuels.index[0])
                 dominant_count = int(fuels.iloc[0])
                 st.metric("Bahan bakar paling sering dicatat", dominant_fuel, border=True)

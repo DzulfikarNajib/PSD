@@ -144,7 +144,7 @@ if metadata.get("models"):
                 )
                 apply_rupiah_ticks(fig_scatter, axis="x", min_val=0, max_val=float(max_bound), n_ticks=5)
                 apply_rupiah_ticks(fig_scatter, axis="y", min_val=0, max_val=float(max_bound), n_ticks=5)
-                st.plotly_chart(fig_scatter, use_container_width=True, config={"displayModeBar": False}, key="project_actual_vs_predicted")
+                st.plotly_chart(fig_scatter, width="stretch", config={"displayModeBar": False}, key="project_actual_vs_predicted")
                 st.caption(f"Setiap titik membandingkan harga aktual dan prediksi pada {len(test_preds):,} sampel uji. Titik yang lebih dekat ke garis diagonal memiliki selisih lebih kecil pada sampel tersebut.")
             else:
                 st.caption("Grafik data uji belum tersedia.")

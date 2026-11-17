@@ -157,7 +157,7 @@ with left:
             fuel = st.selectbox("Bahan bakar", ["Semua", *fuel_values], key="filter_fuel")
             transmission = st.selectbox("Transmisi", ["Semua", *transmission_values], key="filter_transmission")
             body = st.selectbox("Tipe bodi", ["Semua", *body_values], key="filter_body")
-            apply_filters = st.form_submit_button("Terapkan Filter", type="primary", icon=":material/tune:", use_container_width=True)
+            apply_filters = st.form_submit_button("Terapkan Filter", type="primary", icon=":material/tune:", width="stretch")
 
         if apply_filters:
             st.session_state["applied_car_filters"] = {
@@ -169,7 +169,7 @@ with left:
                 "engine_range": engine_range,
                 "categories": {"fuel_type": fuel, "transmission": transmission, "body_type": body},
             }
-        st.button("Reset filter", key="reset_car_filters", on_click=_reset_filters, use_container_width=True)
+        st.button("Reset filter", key="reset_car_filters", on_click=_reset_filters, width="stretch")
 
 default_filters = {
     "budget": (0, budget_ceiling), "make": None, "model": None,
@@ -208,9 +208,9 @@ with right:
     selected = st.multiselect("Pilih 2 - 3 mobil untuk dibandingkan", ids, max_selections=3, format_func=lambda value: label_map.get(value, value), key="car_compare_selection")
     button_cols = st.columns([1, 1, 2])
     with button_cols[0]:
-        compare_clicked = st.button("Bandingkan Mobil", disabled=len(selected) < 2, icon=":material/compare:", key="car_compare_button", use_container_width=True)
+        compare_clicked = st.button("Bandingkan Mobil", disabled=len(selected) < 2, icon=":material/compare:", key="car_compare_button", width="stretch")
     with button_cols[1]:
-        check_clicked = st.button("Cek Harga Iklan", disabled=not selected, icon=":material/price_check:", key="car_check_price_button", use_container_width=True)
+        check_clicked = st.button("Cek Harga Iklan", disabled=not selected, icon=":material/price_check:", key="car_check_price_button", width="stretch")
     if compare_clicked:
         st.session_state["show_car_comparison"] = True
     if len(selected) < 2:
@@ -279,7 +279,7 @@ with right:
                 st.caption(f"Sumber: {origins} · {source_time}")
                 url = row.get("url")
                 if pd.notna(url) and str(url).startswith("http"):
-                    st.link_button("Buka iklan sumber", str(url), icon=":material/open_in_new:", use_container_width=True)
+                    st.link_button("Buka iklan sumber", str(url), icon=":material/open_in_new:", width="stretch")
 
 if source_choice == "Arsip Penuh":
     st.warning("Arsip bukan stok aktif. Dataset Excel tidak memiliki tanggal pengambilan; snapshot OLX menampilkan waktu refresh yang tercatat.")
