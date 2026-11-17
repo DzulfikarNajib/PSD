@@ -56,6 +56,39 @@ CSS = """
 
 [data-testid="stAppViewContainer"] { background: var(--dashboard-bg); }
 [data-testid="stMainBlockContainer"] { max-width: 1480px; padding-top: 2.35rem; padding-bottom: 3rem; }
+
+/* AutoMatch's original horizontal navigation, with one direct link per page. */
+div[class*="st-key-automatch_topnav"] {
+    position: relative;
+    z-index: 5;
+    margin: .15rem 0 1rem;
+    padding: .3rem 1.1rem;
+    border: 1px solid var(--dashboard-border);
+    border-radius: 14px;
+    background: rgba(255,255,255,.98);
+    box-shadow: 0 2px 8px rgba(15,23,42,.03);
+}
+div[class*="st-key-automatch_topnav"] [data-testid="stHorizontalBlock"] { gap: .35rem; align-items:center !important; }
+div[class*="st-key-automatch_topnav"] [data-testid="stColumn"] { display:flex; align-items:center; }
+div[class*="st-key-automatch_topnav"] [data-testid="stMarkdownContainer"] { margin:0; padding:0; }
+div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] { min-width:max-content; }
+div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a {
+    min-height:2.5rem;
+    display:flex;
+    align-items:center;
+    padding:.35rem .48rem;
+    border-radius:0;
+    color:var(--dashboard-muted);
+    text-decoration:none;
+    white-space:nowrap;
+}
+div[class*="st-key-automatch_topnav"] [data-testid="stPageLink"] a:hover { color:var(--dashboard-accent); background:transparent; }
+div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a { color:var(--dashboard-accent) !important; border-bottom:2px solid var(--dashboard-accent); }
+.automatch-brand { display:flex; align-items:center; justify-content:flex-start; gap:.65rem; height:2.65rem; min-width:0; white-space:nowrap; }
+.automatch-brand img { display:block; flex:0 0 auto; width:6.8rem; height:1.8rem; object-fit:contain; object-position:left center; }
+.automatch-brand span { display:block; color:var(--dashboard-text); font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:.82rem; font-weight:650; line-height:1; letter-spacing:-.015em; }
+div[class*="st-key-automatch_topnav"] .stButton > button { min-height:2.5rem; border-radius:999px; padding:.2rem .65rem; font-size:.8rem; white-space:nowrap; }
+
 /* Hero Banner */
 div[class*="st-key-home_hero"] {
     position: relative;
@@ -266,6 +299,10 @@ div.stAlert { border-radius: 12px; }
 
 @media (max-width: 768px) {
     [data-testid="stMainBlockContainer"] { padding-top: 1.5rem; padding-bottom: 2rem; }
+    div[class*="st-key-automatch_topnav"] { overflow-x:auto; margin:0 -1rem 1rem; padding:.4rem .75rem; }
+    div[class*="st-key-automatch_topnav"] [data-testid="stHorizontalBlock"] { flex-wrap:nowrap !important; min-width:920px; }
+    .automatch-brand { gap:0; }
+    .automatch-brand span { display:none; }
     div[class*="st-key-home_hero"] {
         min-height: 440px;
         align-items: flex-end;

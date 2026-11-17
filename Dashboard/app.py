@@ -1,5 +1,6 @@
 """AutoMatch application shell with a compact, persistent top navigation."""
 
+import base64
 from pathlib import Path
 
 import streamlit as st
@@ -24,13 +25,34 @@ market_page = st.Page("pages/1_Explore_Market.py", title="Pahami Pasar", url_pat
 project_page = st.Page("pages/4_Tentang_Proyek.py", title="Tentang Proyek", url_path="tentang-proyek", icon=":material/menu_book:")
 
 active_page = st.navigation(
-    {
-        "Pembelian": [home_page, search_page, price_page],
-        "Analisis": [market_page, project_page],
-    },
-    position="top",
+    [home_page, search_page, price_page, market_page, project_page],
+    position="hidden",
 )
 
-st.logo(str(ASSETS_DIR / "automatch-logo.png"), size="medium")
+logo_data = base64.b64encode((ASSETS_DIR / "automatch-logo.png").read_bytes()).decode("ascii")
+with st.container(key="automatch_topnav"):
+    nav = st.columns([2.1, .78, 1.1, 1.15, 1.15, 1.25, .85], gap="small", vertical_alignment="center")
+    with nav[0]:
+        st.markdown(
+            f'<div class="automatch-brand"><img src="data:image/png;base64,{logo_data}" alt="AutoMatch" /><span>Find the car that fits you.</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    page_links = [
+        (nav[1], home_page, "Beranda", ":material/home:", "beranda"),
+        (nav[2], search_page, "Cari Mobil", ":material/directions_car:", "cari"),
+        (nav[3], price_page, "Cek Harga Iklan", ":material/price_check:", "harga"),
+        (nav[4], market_page, "Pahami Pasar", ":material/insights:", "pasar"),
+        (nav[5], project_page, "Tentang Proyek", ":material/menu_book:", "proyek"),
+    ]
+    for column, page, label, icon, slug in page_links:
+        is_active = active_page.title == label
+        with column:
+            with st.container(key=f"nav_active_{slug}" if is_active else f"nav_{slug}"):
+                st.page_link(page, label=label, icon=icon, help=label)
+    with nav[6]:
+        if st.button("Refresh", icon=":material/refresh:", help="Buka panel refresh manual. Tombol ini tidak mengambil data.", key="nav_open_refresh", width="stretch"):
+            st.session_state["open_refresh_panel"] = True
+            st.switch_page("home.py")
 
 active_page.run()
