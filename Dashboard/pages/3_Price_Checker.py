@@ -137,7 +137,7 @@ with st.container(border=True, key="price_source_picker"):
         help="Sumber ini mengubah data pembanding listing serupa. Model machine learning tetap menggunakan arsip historis tervalidasi.",
     )
 comparison_data = live.copy() if source == "Listing Terbaru" else archive.copy()
-render_data_source_status(comparison_data)
+render_data_source_status()
 input_data = comparison_data if not comparison_data.empty else training_data.copy()
 for column in ("price", "year", "mileage_km", "engine_cc"):
     if column in input_data:

@@ -49,7 +49,7 @@ else:
 if source.empty:
     st.info("Belum ada data di pilihan ini. Pilih Arsip Penuh atau lakukan refresh manual untuk memperoleh listing terbaru.")
     st.stop()
-render_data_source_status(source)
+render_data_source_status()
 active_data, preprocessing_audit = load_historical_data_with_audit()
 with st.expander("Lihat Sampel Data & Statistik Deskriptif"):
     if active_data.empty:

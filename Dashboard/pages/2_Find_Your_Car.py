@@ -49,7 +49,7 @@ for column in ("price", "year", "mileage_km", "engine_cc"):
         cars[column] = pd.to_numeric(cars[column], errors="coerce")
 cars, segment_summary = _cluster_cached(cars)
 
-render_data_source_status(cars)
+render_data_source_status()
 
 segment_expanded = st.session_state.get("car_market_segment_filter", "Semua segmen") != "Semua segmen"
 with st.expander("Segmen pasar · K-Means", expanded=segment_expanded):
