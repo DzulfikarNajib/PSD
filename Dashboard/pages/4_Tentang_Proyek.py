@@ -19,7 +19,6 @@ from src.ui import (
     build_preprocessing_funnel,
     format_timestamp_wib,
     apply_rupiah_ticks,
-    listing_data_context,
     render_data_source_status,
 )
 
@@ -57,7 +56,6 @@ metrics[1].metric("Mobil unik di arsip penuh", f"{unique_archive_count:,}".repla
 metrics[2].metric("Snapshot OLX tersimpan", f"{snapshot_count:,}".replace(",", "."), border=True)
 metrics[3].metric("Data layak untuk model", f"{len(model_data):,}".replace(",", "."), border=True)
 st.caption("Arsip penuh menghitung listing unik. Snapshot menghitung sesi pengambilan OLX. Dataset aktif mencatat waktu pengambilan pada setiap listing.")
-st.caption(listing_data_context(archive))
 if not prices.empty:
     st.caption(f"Dataset OLX bersih: rentang harga penawaran {format_rupiah_compact(prices.min())} s/d {format_rupiah_compact(prices.max())} (Median: {format_rupiah_compact(prices.median())}).")
 

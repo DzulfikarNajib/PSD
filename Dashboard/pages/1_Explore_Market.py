@@ -12,7 +12,6 @@ from src.ui import (
     format_rupiah,
     format_rupiah_compact,
     apply_rupiah_ticks,
-    listing_data_context,
     render_data_source_status,
     render_empty_state,
 )
@@ -30,13 +29,14 @@ if archive.empty and history.empty and live.empty:
 
 col_src, col_scope = st.columns([1, 1], gap="medium")
 with col_src:
-    source_choice = st.radio(
-        "Pilih sumber data",
-        ["Arsip Penuh", "Listing Terbaru"],
-        horizontal=True,
-        key="market_source_choice",
-        help="Arsip Penuh memakai dataset OLX aktif yang sudah dibersihkan. Snapshot terbaru tersedia terpisah di Listing Terbaru.",
-    )
+    with st.container(border=True, key="market_source_picker"):
+        source_choice = st.radio(
+            "Pilih sumber data",
+            ["Arsip Penuh", "Listing Terbaru"],
+            horizontal=True,
+            key="market_source_choice",
+            help="Arsip Penuh memakai dataset OLX aktif yang sudah dibersihkan. Snapshot terbaru tersedia terpisah di Listing Terbaru.",
+        )
 if source_choice == "Arsip Penuh":
     source = archive.copy()
     source_label = "Dataset OLX aktif yang sudah dibersihkan"
@@ -49,13 +49,8 @@ else:
 if source.empty:
     st.info("Belum ada data di pilihan ini. Pilih Arsip Penuh atau lakukan refresh manual untuk memperoleh listing terbaru.")
     st.stop()
-render_data_source_status()
-st.caption(listing_data_context(source))
+render_data_source_status(source)
 active_data, preprocessing_audit = load_historical_data_with_audit()
-st.caption(
-    f"Dataset aktif untuk cakupan DKI Jakarta: {len(active_data):,} listing bersih dari OLX Indonesia."
-    .replace(",", ".")
-)
 with st.expander("Lihat Sampel Data & Statistik Deskriptif"):
     if active_data.empty:
         st.caption("Dataset bersih belum tersedia.")
@@ -97,13 +92,14 @@ unique_count = source["listing_id"].nunique() if "listing_id" in source else len
 make_count = source["make"].nunique() if "make" in source else 0
 
 with col_scope:
-    scope_choice = st.radio(
-        "Rentang harga analisis",
-        ["Pasar Umum (≤ Persentil 95)", "Semua Data"],
-        horizontal=True,
-        key="market_scope_choice",
-        help="Pasar Umum mengecualikan harga di atas persentil ke-95. Pilihan ini membantu membaca sebaran utama tanpa menghapus data dari arsip.",
-    )
+    with st.container(border=True, key="market_scope_picker"):
+        scope_choice = st.radio(
+            "Rentang harga analisis",
+            ["Pasar Umum (≤ Persentil 95)", "Semua Data"],
+            horizontal=True,
+            key="market_scope_choice",
+            help="Pasar Umum mengecualikan harga di atas persentil ke-95. Pilihan ini membantu membaca sebaran utama tanpa menghapus data dari arsip.",
+        )
 
 if not priced.empty and scope_choice == "Pasar Umum (≤ Persentil 95)":
     p95 = priced["price"].quantile(0.95)
@@ -119,7 +115,8 @@ kpis[0].metric("Mobil unik", f"{unique_count:,}".replace(",", "."), border=True)
 kpis[1].metric("Snapshot OLX", f"{snapshot_count:,}".replace(",", "."), border=True)
 kpis[2].metric("Merek tersedia", f"{make_count:,}".replace(",", "."), border=True)
 kpis[3].metric("Median harga iklan", format_rupiah_compact(priced["price"].median()) if len(priced) else "-", border=True)
-st.caption(f"Sumber: **{source_label}** · {len(source):,} baris · {unique_count:,} mobil unik. {scope_note}".replace(",", "."))
+with st.container(border=True, key="market_scope_summary"):
+    st.caption(f"Rentang analisis: {scope_note}".replace(",", "."))
 
 if not priced.empty:
     price_median = float(priced["price"].median())

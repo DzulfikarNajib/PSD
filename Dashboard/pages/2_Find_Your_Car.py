@@ -1,17 +1,18 @@
 """Search saved listings in a marketplace-style layout without paid API calls."""
 
+from html import escape
+
 import pandas as pd
 import streamlit as st
 
 from src.car_search import compare_listings, filter_listings
-from src.data_loader import get_last_updated_text, load_combined_archive, load_live_data
+from src.data_loader import load_combined_archive, load_live_data
 from src.market_segments import cluster_market_segments
 from src.styles import apply_theme
 from src.ui import (
     format_km,
     format_rupiah,
     format_rupiah_compact,
-    listing_data_context,
     render_data_source_status,
     render_empty_state,
 )
@@ -31,13 +32,14 @@ if latest.empty and archive.empty:
     render_empty_state("Belum ada data mobil", "Dataset bersih atau snapshot OLX terbaru belum tersedia. Tidak ada data contoh yang ditampilkan.")
     st.stop()
 
-source_choice = st.radio(
-    "Sumber listing",
-    ["Arsip Penuh", "Listing Terbaru"],
-    horizontal=True,
-    key="car_source_choice",
-    help="Arsip Penuh memakai dataset OLX aktif yang sudah dibersihkan. Snapshot terbaru tersedia terpisah di Listing Terbaru.",
-)
+with st.container(border=True, key="car_source_picker"):
+    source_choice = st.radio(
+        "Sumber listing",
+        ["Arsip Penuh", "Listing Terbaru"],
+        horizontal=True,
+        key="car_source_choice",
+        help="Arsip Penuh memakai dataset OLX aktif yang sudah dibersihkan. Snapshot terbaru tersedia terpisah di Listing Terbaru.",
+    )
 cars = archive.copy() if source_choice == "Arsip Penuh" else latest.copy()
 if cars.empty:
     st.info("Belum ada data pada sumber ini. Pilih Arsip Penuh atau lakukan refresh manual untuk memperoleh listing terbaru.")
@@ -47,17 +49,7 @@ for column in ("price", "year", "mileage_km", "engine_cc"):
         cars[column] = pd.to_numeric(cars[column], errors="coerce")
 cars, segment_summary = _cluster_cached(cars)
 
-if source_choice == "Listing Terbaru":
-    st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()}. Status dan isi iklan dapat berubah sejak pengambilan data.")
-else:
-    st.caption(
-        (
-            f"Arsip Penuh · {cars['listing_id'].nunique():,} listing bersih dari dataset OLX aktif. "
-            "Arsip Excel lama dan snapshot tidak dicampur ke sumber ini."
-        ).replace(",", ".")
-    )
-render_data_source_status()
-st.caption(listing_data_context(cars))
+render_data_source_status(cars)
 
 segment_expanded = st.session_state.get("car_market_segment_filter", "Semua segmen") != "Semua segmen"
 with st.expander("Segmen pasar · K-Means", expanded=segment_expanded):
@@ -82,14 +74,8 @@ with st.expander("Segmen pasar · K-Means", expanded=segment_expanded):
         st.dataframe(segment_display, hide_index=True, width="stretch", alt="Ringkasan kelompok listing berdasarkan harga, tahun, kilometer, dan CC")
         segment_options = ["Semua segmen", *segment_summary["market_segment"].tolist()]
 
-    if st.session_state.get("car_market_segment_filter", "Semua segmen") not in segment_options:
-        st.session_state["car_market_segment_filter"] = "Semua segmen"
-    selected_market_segment = st.selectbox(
-        "Saring menurut segmen",
-        segment_options,
-        key="car_market_segment_filter",
-        help="Segmen dibentuk dari harga, tahun, kilometer, dan CC dalam sumber aktif. Labelnya relatif terhadap data, bukan kelas kualitas.",
-    )
+if st.session_state.get("car_market_segment_filter", "Semua segmen") not in segment_options:
+    st.session_state["car_market_segment_filter"] = "Semua segmen"
 
 brand_values = sorted(cars["make"].dropna().astype(str).unique()) if "make" in cars else []
 pending_make = st.session_state.pop("prefill_make", None)
@@ -126,12 +112,17 @@ def _reset_filters():
     st.session_state["applied_car_filters"] = None
 
 
-left = st.expander("Filter pencarian", expanded=True)
-right = st.container()
-with left:
-    with st.container(border=True):
+filter_column, results_column = st.columns([.3, .7], gap="large", vertical_alignment="top")
+with filter_column:
+    with st.container(border=True, key="car_filter_panel"):
         st.markdown("#### Filter Pencarian")
         st.caption("Filter bekerja pada data yang sudah tersimpan dan tidak mengambil data baru dari OLX.")
+        selected_market_segment = st.selectbox(
+            "Segmen pasar",
+            segment_options,
+            key="car_market_segment_filter",
+            help="Segmen dibentuk dari harga, tahun, kilometer, dan CC. Labelnya relatif terhadap data, bukan kelas kualitas.",
+        )
         make_options = ["Semua", *brand_values]
         model_options = ["Semua", *model_values]
         if st.session_state.get("filter_model", "Semua") not in model_options:
@@ -183,8 +174,9 @@ filtered = filter_listings(cars, **active_filters)
 if selected_market_segment != "Semua segmen":
     filtered = filtered[filtered["market_segment"].eq(selected_market_segment)]
 
-with right:
-    query = st.text_input("Cari kata kunci", placeholder="Contoh: Avanza, SUV, Jakarta Selatan", key="car_search_query")
+with results_column:
+    query_column, sort_column_ui = st.columns([1.6, 1], gap="small", vertical_alignment="bottom")
+    query = query_column.text_input("Cari mobil", placeholder="Contoh: Avanza, SUV, Jakarta Selatan", key="car_search_query")
     if query.strip():
         searchable = [column for column in ["make", "model", "variant", "location", "location_normalized"] if column in filtered]
         mask = pd.Series(False, index=filtered.index)
@@ -192,12 +184,12 @@ with right:
             mask |= filtered[column].fillna("").astype(str).str.contains(query.strip(), case=False, regex=False)
         filtered = filtered[mask]
 
-    sort = st.selectbox("Urutkan", ["Harga terendah", "Harga tertinggi", "Tahun terbaru", "Kilometer terendah"], key="car_sort")
+    sort = sort_column_ui.selectbox("Urutkan", ["Harga terendah", "Harga tertinggi", "Tahun terbaru", "Kilometer terendah"], key="car_sort")
     sort_column, ascending = {"Harga terendah": ("price", True), "Harga tertinggi": ("price", False), "Tahun terbaru": ("year", False), "Kilometer terendah": ("mileage_km", True)}[sort]
     filtered = filtered.sort_values(sort_column, ascending=ascending, na_position="last")
     unique_matches = filtered["listing_id"].nunique() if "listing_id" in filtered else len(filtered)
     st.markdown(f"### {unique_matches:,} mobil cocok".replace(",", "."))
-    st.caption(f"Sumber: {source_choice} · {len(cars):,} mobil unik tersedia sebelum filter.".replace(",", "."))
+    st.caption(f"Menampilkan hasil dari {len(cars):,} listing pada sumber {source_choice.lower()}.".replace(",", "."))
     if filtered.empty:
         st.info("Belum ada hasil yang cocok. Coba perlebar rentang anggaran, tahun, kilometer, atau filter spesifikasi.")
         st.stop()
@@ -207,12 +199,14 @@ with right:
         str(row["listing_id"]): f"{row.get('make', '')} {row.get('model', '')} · {int(row['year']) if pd.notna(row.get('year')) else '-'} · {format_rupiah(row.get('price'))}"
         for _, row in filtered.iterrows()
     }
-    selected = st.multiselect("Pilih 2 - 3 mobil untuk dibandingkan", ids, max_selections=3, format_func=lambda value: label_map.get(value, value), key="car_compare_selection")
-    button_cols = st.columns([1, 1, 2])
-    with button_cols[0]:
-        compare_clicked = st.button("Bandingkan Mobil", disabled=len(selected) < 2, icon=":material/compare:", key="car_compare_button", width="stretch")
-    with button_cols[1]:
-        check_clicked = st.button("Cek Harga Iklan", disabled=not selected, icon=":material/price_check:", key="car_check_price_button", width="stretch")
+    with st.container(border=True, key="car_compare_panel"):
+        st.markdown("#### Bandingkan pilihan")
+        selected = st.multiselect("Pilih 2 - 3 mobil", ids, max_selections=3, format_func=lambda value: label_map.get(value, value), key="car_compare_selection")
+        button_cols = st.columns([1, 1], gap="small")
+        with button_cols[0]:
+            compare_clicked = st.button("Bandingkan", disabled=len(selected) < 2, icon=":material/compare:", key="car_compare_button", width="stretch")
+        with button_cols[1]:
+            check_clicked = st.button("Cek harga", disabled=not selected, icon=":material/price_check:", key="car_check_price_button", width="stretch")
     if compare_clicked:
         st.session_state["show_car_comparison"] = True
     if len(selected) < 2:
@@ -254,34 +248,41 @@ with right:
                 segment_value = row.get("market_segment")
                 segment_label = str(segment_value) if pd.notna(segment_value) and str(segment_value).strip() else "Segmen belum tersedia"
                 st.markdown(
-                    f"<div class='listing-meta'><span>{body_type}</span><span>{year_label}</span><span>{segment_label}</span></div>",
+                    f"<div class='listing-meta'><span>{escape(body_type)}</span><span>{escape(year_label)}</span><span>{escape(segment_label)}</span></div>",
                     unsafe_allow_html=True,
                 )
                 st.markdown(f"#### {row.get('make') or 'Merek tidak dicantumkan'} {row.get('model') or ''}")
                 st.markdown(f"<div class='car-price'>{format_rupiah(row.get('price'))}</div>", unsafe_allow_html=True)
-                st.caption(str(row.get("variant") or "Varian tidak dicantumkan"))
-                spec_rows = [
-                    ("Tahun", f"{row.get('year'):.0f}" if pd.notna(row.get("year")) else "-"),
-                    ("Kilometer", format_km(row.get("mileage_km"))),
-                    ("CC", f"{row.get('engine_cc'):.0f}" if pd.notna(row.get("engine_cc")) else "-"),
-                    ("Bahan bakar", str(row.get("fuel_type") or "-")),
-                    ("Transmisi", str(row.get("transmission") or "-")),
-                    ("Lokasi", str(row.get("location_normalized") or row.get("location") or "-")),
-                ]
-                for label, value in spec_rows:
-                    st.markdown(f"<div class='listing-spec'><span>{label}</span><b>{value}</b></div>", unsafe_allow_html=True)
-                origins = str(row.get("source_origins") or row.get("data_source") or source_choice)
-                fetched = pd.to_datetime(row.get("fetched_at"), errors="coerce", utc=True)
-                if pd.notna(fetched):
-                    source_time = fetched.tz_convert("Asia/Jakarta").strftime("%d %b %Y, %H:%M WIB")
-                elif "Dataset Excel" in origins:
-                    source_time = "tanggal pengambilan arsip lama tidak tersedia"
-                else:
-                    source_time = "waktu pengambilan tidak tersedia"
-                st.caption(f"Sumber: {origins} · {source_time}")
-                url = row.get("url")
-                if pd.notna(url) and str(url).startswith("http"):
-                    st.link_button("Buka iklan sumber", str(url), icon=":material/open_in_new:", width="stretch")
+                location_value = row.get("location_normalized")
+                if pd.isna(location_value) or not str(location_value).strip():
+                    location_value = row.get("location")
+                if pd.isna(location_value) or not str(location_value).strip():
+                    location_value = "-"
+                st.markdown(
+                    f"<div class='listing-spec'><span>Kilometer</span><b>{format_km(row.get('mileage_km'))}</b></div>"
+                    f"<div class='listing-spec'><span>Lokasi</span><b>{escape(str(location_value))}</b></div>",
+                    unsafe_allow_html=True,
+                )
+                with st.expander("Spesifikasi dan sumber iklan"):
+                    variant_value = row.get("variant")
+                    st.caption(str(variant_value) if pd.notna(variant_value) and str(variant_value).strip() else "Varian tidak dicantumkan")
+                    spec_rows = [
+                        ("CC", f"{row.get('engine_cc'):.0f}" if pd.notna(row.get("engine_cc")) else "-"),
+                        ("Bahan bakar", str(row.get("fuel_type")) if pd.notna(row.get("fuel_type")) and str(row.get("fuel_type")).strip() else "-"),
+                        ("Transmisi", str(row.get("transmission")) if pd.notna(row.get("transmission")) and str(row.get("transmission")).strip() else "-"),
+                    ]
+                    for label, value in spec_rows:
+                        st.markdown(f"<div class='listing-spec'><span>{label}</span><b>{escape(value)}</b></div>", unsafe_allow_html=True)
+                    origins = str(row.get("source_origins") or row.get("data_source") or source_choice)
+                    fetched = pd.to_datetime(row.get("fetched_at"), errors="coerce", utc=True)
+                    if pd.notna(fetched):
+                        source_time = fetched.tz_convert("Asia/Jakarta").strftime("%d %b %Y, %H:%M WIB")
+                    else:
+                        source_time = "waktu pengambilan tidak tersedia"
+                    st.caption(f"Sumber: {origins} · {source_time}")
+                    url = row.get("url")
+                    if pd.notna(url) and str(url).startswith("http"):
+                        st.link_button("Buka iklan sumber", str(url), icon=":material/open_in_new:", width="stretch")
 
 if source_choice == "Arsip Penuh":
     st.warning("Dataset ini sudah dibersihkan untuk analisis, tetapi bukan stok aktif. Iklan dapat berubah atau tidak aktif; snapshot terbaru tersedia pada pilihan Listing Terbaru.")

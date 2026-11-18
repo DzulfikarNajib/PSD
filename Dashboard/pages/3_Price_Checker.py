@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.data_loader import get_last_updated_text, load_combined_archive, load_live_data, load_training_archive
+from src.data_loader import load_combined_archive, load_live_data, load_training_archive
 from src.car_search import assess_price_position
 from src.modeling import (
     MODEL_PATH,
@@ -22,7 +22,6 @@ from src.preprocessing import MAX_ANALYSIS_PRICE, MIN_ANALYSIS_PRICE
 from src.ui import (
     format_rupiah,
     format_rupiah_compact,
-    listing_data_context,
     render_data_source_status,
 )
 
@@ -129,22 +128,16 @@ if prefill:
 live = load_live_data()
 archive = load_combined_archive()
 training_data = load_training_archive()
-source = st.radio(
-    "Sumber pembanding",
-    ["Arsip Penuh", "Listing Terbaru"],
-    horizontal=True,
-    key="price_comparison_source",
-    help="Sumber ini mengubah data pembanding listing serupa. Model machine learning tetap menggunakan arsip historis tervalidasi.",
-)
+with st.container(border=True, key="price_source_picker"):
+    source = st.radio(
+        "Sumber pembanding",
+        ["Arsip Penuh", "Listing Terbaru"],
+        horizontal=True,
+        key="price_comparison_source",
+        help="Sumber ini mengubah data pembanding listing serupa. Model machine learning tetap menggunakan arsip historis tervalidasi.",
+    )
 comparison_data = live.copy() if source == "Listing Terbaru" else archive.copy()
-render_data_source_status()
-if source == "Listing Terbaru":
-    st.caption(f"Snapshot OLX terakhir: {get_last_updated_text()} · listing dapat berubah atau sudah tidak aktif saat dibuka.")
-else:
-    st.caption(f"Arsip Penuh · {len(comparison_data):,} listing bersih dari dataset OLX aktif. Snapshot terbaru tersedia pada pilihan Listing Terbaru.".replace(",", "."))
-if not comparison_data.empty:
-    st.caption(listing_data_context(comparison_data))
-
+render_data_source_status(comparison_data)
 input_data = comparison_data if not comparison_data.empty else training_data.copy()
 for column in ("price", "year", "mileage_km", "engine_cc"):
     if column in input_data:

@@ -48,8 +48,8 @@ with st.container(key="home_hero"):
         st.switch_page("pages/2_Find_Your_Car.py")
     st.caption("Data berasal dari arsip tersimpan. Listing OLX hanya diperbarui saat kamu menjalankan refresh manual.")
 
-render_data_source_status()
 st.markdown("## Ringkasan arsip mobil")
+render_data_source_status()
 if archive.empty:
     empty_metrics = st.columns(4)
     empty_metrics[0].metric("Sumber data", "OLX · DKI Jakarta", border=True)
@@ -80,7 +80,7 @@ else:
     metric_cols[1].metric("Total listing bersih", f"{clean_count:,}".replace(",", "."), border=True)
     metric_cols[2].metric("Rentang tahun produksi", year_range, border=True)
     metric_cols[3].metric("Pembaruan terakhir", last_update, border=True)
-    st.caption("Sumber: OLX Indonesia — DKI Jakarta. Jumlah listing berasal dari data yang sudah diproses; harga adalah harga penawaran dan iklan arsip belum tentu masih aktif.")
+    st.caption("Sumber: OLX Indonesia, DKI Jakarta. Jumlah listing berasal dari data yang sudah diproses; harga adalah harga penawaran dan iklan arsip belum tentu masih aktif.")
 
     st.markdown("### Mulai dari pilihan yang tersedia")
     st.caption("Beranda merangkum arsip. Buka Pahami Pasar untuk melihat distribusi dan perbandingan grafik secara lebih rinci.")

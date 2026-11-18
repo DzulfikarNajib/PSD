@@ -57,6 +57,21 @@ CSS = """
 [data-testid="stAppViewContainer"] { background: var(--dashboard-bg); }
 [data-testid="stMainBlockContainer"] { max-width: 1480px; padding-top: 2.35rem; padding-bottom: 3rem; }
 
+/* Keep data provenance visible while grouping it with the page it describes. */
+div[class*="st-key-data_source_summary"] {
+    margin: .35rem 0 1.15rem;
+    border-color: var(--dashboard-border);
+    background: #FFFFFF;
+}
+div[class*="st-key-data_source_summary"] [data-testid="stHorizontalBlock"] { align-items:center !important; }
+div[class*="st-key-data_source_summary"] [data-testid="stCaptionContainer"] p { margin:0; }
+div[class*="st-key-car_filter_panel"] { background:#FFFFFF; border-color:var(--dashboard-border); }
+div[class*="st-key-car_source_picker"] { margin:.8rem 0; background:#FFFFFF; border-color:var(--dashboard-border); }
+div[class*="st-key-car_compare_panel"] { margin:.5rem 0 1rem; background:#FFFFFF; border-color:var(--dashboard-border); }
+div[class*="st-key-market_source_picker"],
+div[class*="st-key-market_scope_picker"],
+div[class*="st-key-price_source_picker"] { min-height:5.6rem; background:#FFFFFF; border-color:var(--dashboard-border); }
+
 /* AutoMatch's original horizontal navigation, with one direct link per page. */
 div[class*="st-key-automatch_topnav"] {
     position: relative;

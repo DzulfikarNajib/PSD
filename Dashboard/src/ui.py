@@ -157,14 +157,37 @@ def listing_data_context(data: pd.DataFrame) -> str:
     return " · ".join(parts)
 
 
-def render_data_source_status() -> None:
-    """Show whether this session is reading Supabase or using a local fallback."""
+def render_data_source_status(data: pd.DataFrame | None = None) -> None:
+    """Render one compact, consistent source summary card for a page."""
     import streamlit as st
 
     from src.data_loader import get_data_source_status
 
     status = get_data_source_status()
-    if status.get("mode") == "fallback":
-        st.warning(status.get("message", "Sumber data cadangan sedang digunakan."), icon=":material/cloud_off:")
-    elif status.get("mode") == "local":
-        st.caption(status.get("message", "Menggunakan data lokal yang tersimpan."))
+    mode = status.get("mode")
+    labels = {"local": "Dataset tersimpan", "cloud": "Arsip cloud", "fallback": "Sumber cadangan"}
+    count = 0 if data is None else (data["listing_id"].nunique() if "listing_id" in data else len(data))
+    source_label = labels.get(mode, "Data AutoMatch")
+    if data is not None and "data_source" in data:
+        sources = data["data_source"].dropna().astype(str).unique()
+        if len(sources) == 1:
+            source_label = {
+                "OLX Indonesia": "Dataset OLX bersih",
+                "Arsip snapshot OLX": "Snapshot OLX",
+            }.get(sources[0], sources[0])
+    with st.container(border=True, key="data_source_summary"):
+        left, right = st.columns([1, 2.3], vertical_alignment="center")
+        with left:
+            st.caption("SUMBER DATA")
+            st.markdown(f"**{source_label}**")
+            if data is not None:
+                st.markdown(f"**{count:,} listing unik**".replace(",", "."))
+        with right:
+            message = status.get("message")
+            if mode == "fallback":
+                st.warning(message or "Sumber data cadangan sedang digunakan.", icon=":material/cloud_off:")
+            elif message:
+                st.caption(message)
+            if data is not None:
+                detail = listing_data_context(data)
+                st.caption(detail)
