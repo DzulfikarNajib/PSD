@@ -428,6 +428,7 @@ else:
 st.markdown("### Metode & Evaluasi Model Regresi")
 with st.container(border=True):
     st.write("Model prediksi menggunakan pendekatan **Supervised Learning (Regresi)** yang dilatih berdasarkan spesifikasi kendaraan untuk memprediksi harga penawaran.")
+    st.caption("Bedanya dengan Bandingkan Mobil: Bandingkan Mobil menaruh spesifikasi 2–3 iklan berdampingan. Cek Harga memakai 1 iklan, lalu membandingkan harganya dengan iklan serupa dan—jika model lolos validasi—estimasi regresi.")
     eligible, eligibility_message, model_data = training_eligibility(training_data)
     st.caption(f"Dataset pelatihan: {len(model_data):,} listing unik tervalidasi. {eligibility_message}".replace(",", "."))
     
@@ -458,7 +459,7 @@ with st.container(border=True):
         if "R2" in model_table:
             model_table["R2"] = model_table["R2"].map(lambda value: f"{value:.4f}" if pd.notna(value) else "-")
         st.dataframe(model_table, hide_index=True, width="stretch", alt="Perbandingan metrik evaluasi model regresi")
-        st.caption("Keterangan: MAE mengukur rata-rata kesalahan absolut, RMSE memberi penalti lebih besar pada kesalahan ekstrem, dan R² menunjukkan proporsi variasi harga yang mampu dijelaskan model.")
+        st.caption("Cara membaca: MAE = rata-rata besar selisih harga prediksi; RMSE memberi bobot lebih besar pada kesalahan yang besar; R² menunjukkan seberapa banyak variasi harga pada data uji yang dijelaskan model. Umumnya MAE/RMSE lebih kecil dan R² lebih besar lebih baik. Metrik ini menilai model pada data uji, bukan jaminan harga satu mobil.")
     elif metadata.get("models"):
         st.warning("Metrik yang tersimpan berasal dari model lama dan disembunyikan sampai pelatihan ulang tervalidasi.")
 

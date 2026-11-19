@@ -133,6 +133,8 @@ if not model_stats.empty:
         if st.button("Cari listing model ini", icon=":material/directions_car:", type="primary", key="market_go_search"):
             st.session_state["prefill_make"] = selected_make
             st.session_state["prefill_model"] = selected_model
+            st.session_state["prefill_compare_make"] = selected_make
+            st.session_state["prefill_compare_model"] = selected_model
             st.session_state["prefill_fuel"] = chosen_fuel if chosen_fuel != "Semua bahan bakar" else None
             st.session_state["car_source_choice"] = "Arsip Penuh" if source_choice == "Arsip Penuh" else "Listing Terbaru"
             st.switch_page("pages/2_Find_Your_Car.py")
@@ -199,10 +201,11 @@ else:
 
 st.markdown("### Ringkasan Pilihan")
 kpis = st.columns(4, gap="small")
-kpis[0].metric("Mobil unik", f"{unique_count:,}".replace(",", "."), border=True)
-kpis[1].metric("Snapshot OLX", f"{snapshot_count:,}".replace(",", "."), border=True)
-kpis[2].metric("Merek tersedia", f"{make_count:,}".replace(",", "."), border=True)
-kpis[3].metric("Median harga iklan", format_rupiah_compact(priced["price"].median()) if len(priced) else "-", border=True)
+kpis[0].metric("Listing unik", f"{unique_count:,}".replace(",", "."), help="Jumlah iklan berbeda setelah listing duplikat dibersihkan.", border=True)
+kpis[1].metric("Snapshot OLX", f"{snapshot_count:,}".replace(",", "."), help="Jumlah sesi pengambilan data yang tersimpan, bukan jumlah mobil.", border=True)
+kpis[2].metric("Merek tersedia", f"{make_count:,}".replace(",", "."), help="Jumlah nama merek berbeda pada sumber data terpilih.", border=True)
+kpis[3].metric("Median harga iklan", format_rupiah_compact(priced["price"].median()) if len(priced) else "-", help="Nilai tengah harga penawaran pada iklan dengan harga valid; bukan harga transaksi.", border=True)
+st.caption("Cara membaca: jumlah menunjukkan cakupan iklan tersimpan; median adalah titik tengah harga sehingga tidak mudah ditarik naik oleh beberapa mobil yang sangat mahal.")
 with st.container(border=True, key="market_scope_summary"):
     st.caption(f"Rentang analisis: {scope_note}".replace(",", "."))
 

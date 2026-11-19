@@ -27,7 +27,7 @@ CHART_PALETTE = (COLORS["accent"], "#0F766E", "#0369A1", COLORS["warning"], "#10
 
 CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap');
 :root {
     --dashboard-bg: #F8FAFC;
     --dashboard-soft: #FFFFFF;
@@ -130,18 +130,18 @@ div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] {
 }
 div[class*="st-key-home_hero"] [data-testid="stHorizontalBlock"] { align-items:center !important; gap:2rem; }
 div[class*="st-key-home_hero"] [data-testid="stColumn"]:first-child { max-width: 650px; }
-div[class*="st-key-home_hero"] [data-testid="stColumn"]:last-child { max-width: 230px; margin-left:auto; }
-.home-count-card { display:flex; flex-direction:column; gap:.45rem; padding:1.1rem 1.2rem; border:1px solid #DCE6EB; border-radius:16px; background:rgba(255,255,255,.97); box-shadow:0 8px 24px rgba(15,23,42,.08); }
-.home-count-card span { color:#64748B; font-size:.76rem; font-weight:600; letter-spacing:.02em; }
-.home-count-card strong { color:#19364F; font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:2rem; font-weight:800; line-height:1.1; }
-.home-count-card small { color:#64748B; font-size:.75rem; line-height:1.4; }
+div[class*="st-key-home_hero"] [data-testid="stColumn"]:last-child { max-width: 240px; min-width:210px; margin-left:auto; }
+div[class*="st-key-home_count_card"] { width:100%; min-width:0; padding:.6rem .9rem; background:rgba(255,255,255,.97); border-color:#DCE6EB; box-shadow:0 8px 24px rgba(15,23,42,.08); }
+div[class*="st-key-home_count_card"] [data-testid="stMarkdownContainer"] h2 { margin:.1rem 0; font-size:2rem; line-height:1.05; white-space:nowrap; }
+div[class*="st-key-home_count_card"] [data-testid="stCaptionContainer"] p { line-height:1.25; white-space:normal; }
 div[class*="st-key-home_fuel_card_"] [data-testid="stVerticalBlockBorderWrapper"] { height:100%; min-height:9rem; background:linear-gradient(145deg,#FFFFFF 12%,#F0F8F7 100%); border-color:#D4E7E4; }
-div[class*="st-key-home_fuel_card_"] [data-testid="stHorizontalBlock"] { align-items:center !important; min-height:3.2rem; }
-div[class*="st-key-home_fuel_card_"] [data-testid="stColumn"]:first-child [data-testid="stMarkdownContainer"] p { color:var(--dashboard-accent); font-size:1.65rem; line-height:1; }
-div[class*="st-key-home_fuel_card_"] h4 { margin:.2rem 0; }
+div[class*="st-key-home_fuel_card_"] [data-testid="stVerticalBlockBorderWrapper"] { padding:1rem; }
+.home-fuel-heading { display:flex; align-items:center; gap:.7rem; min-height:2.7rem; margin:0 0 .55rem; color:#19364F; font-size:1.08rem; }
+.home-fuel-heading .material-symbols-rounded { display:grid; place-items:center; width:2.65rem; height:2.65rem; flex:0 0 2.65rem; border-radius:50%; background:#E5F4F1; color:#008B8B; font-size:1.45rem; }
+div[class*="st-key-home_fuel_card_"] [data-testid="stMarkdownContainer"] p { margin:.3rem 0 .7rem; }
 div[class*="st-key-home_fuel_card_"] [data-testid="stButton"] > button { background:#FFFFFF; }
 div[class*="st-key-home_brand_card_"] [data-testid="stVerticalBlockBorderWrapper"] { height:100%; min-height:11rem; background:linear-gradient(145deg,#FFFFFF 15%,#F5F9FB 100%); }
-div[class*="st-key-home_brand_card_"] [data-testid="stImage"] img { width:100%; height:7.2rem; object-fit:cover; border-radius:10px; }
+div[class*="st-key-home_brand_card_"] [data-testid="stImage"] img { width:100%; height:7.2rem; object-fit:contain; object-position:center; background:#F1F5F9; border-radius:10px; }
 .home-brand-mark { display:grid; place-items:center; width:2.8rem; height:2.8rem; margin:0 0 .55rem; border-radius:50%; background:linear-gradient(145deg,#E5F4F1,#DCEAF3); border:1px solid #D6E9E6; color:#087F80; font-size:.95rem; font-weight:800; letter-spacing:.02em; }
 div[class*="st-key-home_brand_card_"] h4 { margin:.15rem 0; }
 div[class*="st-key-home_brand_card_"] [data-testid="stCaptionContainer"] { min-height:1.2rem; }

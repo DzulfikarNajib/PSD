@@ -34,14 +34,14 @@ BRAND_CARD_IMAGES = {
         "credit": "Kallerna · CC BY-SA 3.0",
     },
     "bmw": {
-        "file": "BMW_U10_1X7A2452.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:BMW_U10_1X7A2452.jpg",
-        "credit": "Alexander Migl · CC BY-SA 4.0",
+        "file": "BMW_X3_Facelift_front-1.jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:BMW_X3_Facelift_front-1.jpg",
+        "credit": "M 93 · CC BY-SA 3.0",
     },
     "honda": {
-        "file": "Honda_Civic_Type_R_(2017)_1X7A0093.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Honda_Civic_Type_R_(2017)_1X7A0093.jpg",
-        "credit": "Alexander Migl · CC BY-SA 4.0",
+        "file": "Honda_Civic_2.2_i-DTEC_(front_quarter).jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:Honda_Civic_2.2_i-DTEC_(front_quarter).jpg",
+        "credit": "Overlaet · CC BY-SA 3.0",
     },
     "hyundai": {
         "file": "Hyundai_Tucson_(NX4)_1X7A0424.jpg",
@@ -49,9 +49,9 @@ BRAND_CARD_IMAGES = {
         "credit": "Alexander Migl · CC BY-SA 4.0",
     },
     "lexus": {
-        "file": "Lexus_RX_350_L_FL_1X7A0345.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Lexus_RX_350_L_FL_1X7A0345.jpg",
-        "credit": "Alexander Migl · CC BY-SA 4.0",
+        "file": "2018_Lexus_RX_350_F_Sport_in_Sonic_Titanium,_front_left.jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:2018_Lexus_RX_350_F_Sport_in_Sonic_Titanium,_front_left.jpg",
+        "credit": "Ethan Llamas · CC BY-SA 4.0",
     },
     "mitsubishi": {
         "file": "Mitsubishi_Colt_(2023)_1X7A1809.jpg",
@@ -92,14 +92,10 @@ with st.container(key="home_hero"):
             st.switch_page("pages/2_Find_Your_Car.py")
     with hero_metric:
         hero_count = int(preprocessing_audit.get("clean_rows", archive["listing_id"].nunique() if not archive.empty and "listing_id" in archive else len(archive)))
-        st.markdown(
-            "<div class='home-count-card'>"
-            "<span>DATA AUTOMATCH</span>"
-            f"<strong>{hero_count:,}</strong>"
-            "<small>iklan mobil tersimpan</small>"
-            "</div>".replace(",", "."),
-            unsafe_allow_html=True,
-        )
+        with st.container(border=True, key="home_count_card"):
+            st.caption("DATA AUTOMATCH")
+            st.markdown(f"## {hero_count:,}".replace(",", "."))
+            st.caption("iklan bersih tersimpan")
 
 if archive.empty:
     render_empty_state(
@@ -152,14 +148,14 @@ else:
                 hover_data={"Kode": False, "Iklan tersimpan": ":,.0f"},
                 color_continuous_scale=["#D9EFEB", "#72BDB3", "#008B8B", "#075985"],
                 range_color=(0, max(1, int(regions["Iklan tersimpan"].max()))),
-                center={"lat": -6.18, "lon": 106.82},
-                zoom=10.5,
                 opacity=0.9,
                 height=560,
                 **{map_style_argument: "white-bg"},
             )
+            map_view_key = "map" if map_style_argument == "map_style" else "mapbox"
             map_fig.update_layout(
                 margin=dict(l=0, r=0, t=0, b=0),
+                **{map_view_key: {"fitbounds": "locations"}},
                 coloraxis_colorbar=dict(
                     title="Jumlah iklan",
                     orientation="h",
@@ -217,7 +213,7 @@ else:
 
     st.markdown("### Mulai dari bahan bakar")
     st.caption("Pilih bahan bakar untuk melihat merek dan model yang tersedia.")
-    fuel_icons = {"Bensin": "local_gas_station", "Diesel": "oil_barrel", "Listrik": "electric_bolt", "Hybrid": "ev_station"}
+    fuel_icons = {"Bensin": "local_gas_station", "Diesel": "oil_barrel", "Listrik": "electric_bolt", "Hybrid": "electric_car"}
     preferred_fuels = [label for label in ("Bensin", "Diesel", "Listrik") if label in fuels.index]
     remaining_fuels = [str(label) for label in fuels.index if label and label != "Tidak dicantumkan" and label not in preferred_fuels]
     fuel_items = [(label, int(fuels.get(label, 0))) for label in [*preferred_fuels, *remaining_fuels]]
@@ -226,12 +222,11 @@ else:
         for idx, (fuel_label, fuel_count) in enumerate(fuel_items[:4]):
             with fuel_cols[idx]:
                 with st.container(border=True, key=f"home_fuel_card_{idx}"):
-                    icon_col, detail_col = st.columns([.4, 1.6], vertical_alignment="center")
-                    with icon_col:
-                        st.markdown(f":material/{fuel_icons.get(fuel_label, 'local_gas_station')}: ")
-                    with detail_col:
-                        st.markdown(f"#### {fuel_label}")
-                        st.markdown(f"**{fuel_count:,}** iklan tersimpan".replace(",", "."))
+                    st.markdown(
+                        f"<div class='home-fuel-heading'><span class='material-symbols-rounded'>{fuel_icons.get(fuel_label, 'local_gas_station')}</span><strong>{fuel_label}</strong></div>",
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(f"**{fuel_count:,}** iklan tersimpan".replace(",", "."))
                     if st.button("Lihat merek dan model", key=f"home_fuel_market_{idx}", width="stretch"):
                         st.session_state["market_focus_fuel"] = fuel_label
                         st.session_state["market_source_choice"] = "Arsip Penuh"
