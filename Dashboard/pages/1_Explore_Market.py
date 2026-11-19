@@ -133,8 +133,6 @@ if not model_stats.empty:
         if st.button("Cari listing model ini", icon=":material/directions_car:", type="primary", key="market_go_search"):
             st.session_state["prefill_make"] = selected_make
             st.session_state["prefill_model"] = selected_model
-            st.session_state["prefill_compare_make"] = selected_make
-            st.session_state["prefill_compare_model"] = selected_model
             st.session_state["prefill_fuel"] = chosen_fuel if chosen_fuel != "Semua bahan bakar" else None
             st.session_state["car_source_choice"] = "Arsip Penuh" if source_choice == "Arsip Penuh" else "Listing Terbaru"
             st.switch_page("pages/2_Find_Your_Car.py")

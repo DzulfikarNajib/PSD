@@ -81,8 +81,6 @@ brand_values = sorted(cars["make"].dropna().astype(str).unique()) if "make" in c
 pending_make = st.session_state.pop("prefill_make", None)
 pending_model = st.session_state.pop("prefill_model", None)
 pending_location = st.session_state.pop("prefill_location", None)
-pending_compare_make = st.session_state.pop("prefill_compare_make", None)
-pending_compare_model = st.session_state.pop("prefill_compare_model", None)
 if pending_make in brand_values:
     st.session_state["filter_make"] = pending_make
     st.session_state["applied_car_filters"] = None
@@ -237,18 +235,10 @@ with results_column:
         str(row["listing_id"]): f"{row.get('make', '')} {row.get('model', '')} · {int(row['year']) if pd.notna(row.get('year')) else '-'} · {format_rupiah(row.get('price'))}"
         for _, row in filtered.iterrows()
     }
-    if pending_compare_make and pending_compare_model and ids:
-        selected_match = filtered[
-            filtered.get("make", pd.Series("", index=filtered.index)).astype(str).eq(str(pending_compare_make))
-            & filtered.get("model", pd.Series("", index=filtered.index)).astype(str).eq(str(pending_compare_model))
-        ]
-        if not selected_match.empty:
-            st.session_state["car_compare_selection"] = [str(selected_match.iloc[0]["listing_id"])]
-            st.session_state["show_car_comparison"] = False
     with st.container(border=True, key="car_compare_panel"):
         st.markdown("#### Bandingkan pilihan atau cek harga")
         st.caption("Bandingkan = lihat spesifikasi beberapa listing berdampingan. Cek harga = nilai satu iklan terhadap listing serupa dan estimasi model.")
-        selected = st.multiselect("Pilih 2 - 3 mobil", ids, max_selections=3, format_func=lambda value: label_map.get(value, value), key="car_compare_selection")
+        selected = st.multiselect("Pilih iklan tertentu (1 untuk cek harga, 2–3 untuk bandingkan)", ids, max_selections=3, format_func=lambda value: label_map.get(value, value), key="car_compare_selection")
         button_cols = st.columns([1, 1], gap="small")
         with button_cols[0]:
             compare_clicked = st.button("Bandingkan", disabled=len(selected) < 2, icon=":material/compare:", key="car_compare_button", width="stretch")
@@ -257,7 +247,7 @@ with results_column:
     if compare_clicked:
         st.session_state["show_car_comparison"] = True
     if len(selected) < 2:
-        st.caption("Satu listing dari model yang kamu buka sudah dipilih. Tambahkan mobil lain untuk membandingkan; Cek harga cukup memakai satu listing.")
+        st.caption("Model dari Pahami Pasar sudah menjadi filter hasil. Pilih iklan tertentu di sini: satu untuk Cek harga, atau dua sampai tiga untuk Bandingkan.")
     if st.session_state.get("show_car_comparison") and len(selected) >= 2:
         comparison = compare_listings(filtered, selected)
         if not comparison.empty:
