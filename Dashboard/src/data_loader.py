@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from src.preprocessing import HIGH_PRICE_OUTLIER_REASON, is_dki_jakarta, normalize_timestamp_utc, parse_engine_cc, parse_mileage_km, preprocess_listing_dataset, split_financing_listings
+from src.preprocessing import HIGH_PRICE_OUTLIER_REASON, enrich_engine_cc, is_dki_jakarta, normalize_timestamp_utc, parse_engine_cc, parse_mileage_km, preprocess_listing_dataset, split_financing_listings
 from src.supabase_store import is_configured as supabase_is_configured
 from src.supabase_store import latest_timestamp as supabase_latest_timestamp
 from src.supabase_store import load_latest_snapshot
@@ -270,7 +270,7 @@ def load_live_data() -> pd.DataFrame:
                     cloud_data = cloud_data[cloud_data["location"].map(is_dki_jakarta)].copy()
                 cloud_data["data_source"] = "Listing terbaru"
                 _set_data_source_status("cloud", "Snapshot terbaru berhasil dibaca dari Supabase.")
-                return _analytical_financing_filter(cloud_data).reset_index(drop=True)
+                return _analytical_financing_filter(enrich_engine_cc(cloud_data)).reset_index(drop=True)
         except Exception:
             # Keep the saved local snapshot usable if the cloud database is temporarily unavailable.
             _set_data_source_status("fallback", "Supabase tidak dapat dibaca. Menampilkan snapshot lokal bila tersedia.")
@@ -285,7 +285,7 @@ def load_live_data() -> pd.DataFrame:
         return pd.DataFrame()
     if "location" in df:
         df = df[df["location"].map(is_dki_jakarta)].copy()
-    return _analytical_financing_filter(df)
+    return _analytical_financing_filter(enrich_engine_cc(df))
 
 
 def load_history_data() -> pd.DataFrame:
@@ -297,7 +297,7 @@ def load_history_data() -> pd.DataFrame:
                 observations = _dki_scope(observations)
                 observations["data_source"] = "Arsip snapshot OLX"
                 _set_data_source_status("cloud", "Riwayat snapshot berhasil dibaca dari Supabase.")
-                return _analytical_financing_filter(observations).reset_index(drop=True)
+                return _analytical_financing_filter(enrich_engine_cc(observations)).reset_index(drop=True)
         except Exception:
             _set_data_source_status("fallback", "Riwayat Supabase tidak dapat dibaca. Menampilkan riwayat lokal bila tersedia.")
         else:
@@ -309,7 +309,7 @@ def load_history_data() -> pd.DataFrame:
         df = pd.read_csv(HISTORY_PATH)
     except (pd.errors.EmptyDataError, pd.errors.ParserError, OSError):
         return pd.DataFrame()
-    return _analytical_financing_filter(_dki_scope(df)).reset_index(drop=True)
+    return _analytical_financing_filter(enrich_engine_cc(_dki_scope(df))).reset_index(drop=True)
 
 
 def get_last_updated_text() -> str:

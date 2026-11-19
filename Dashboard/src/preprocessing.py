@@ -69,14 +69,63 @@ def parse_engine_cc(value) -> float:
     if pd.isna(value):
         return float("nan")
     text = str(value).lower()
+    range_match = re.search(r"(\d+(?:[.,]\d+)*)\s*(?:-|s/d|sampai)\s*(\d+(?:[.,]\d+)*)", text)
+
+    def to_cc(token: str) -> float:
+        decimal_match = re.fullmatch(r"\d+[.,](\d{1,2})", token)
+        number = float(token.replace(",", ".")) if decimal_match else parse_numeric(token)
+        explicit_cc = re.search(r"\b(?:cc|cm3|cm³)\b", text)
+        if re.search(r"\b(?:l|liter|litre)\b", text) or (decimal_match and number <= 8 and not explicit_cc):
+            return number * 1000
+        return number
+
+    if range_match:
+        lower, upper = (to_cc(token) for token in range_match.groups())
+        return (lower + upper) / 2
     token_match = re.search(r"\d+(?:[.,]\d+)*", text)
     if not token_match:
         return float("nan")
-    token = token_match.group(0)
-    if re.search(r"(?:\d\s*l\b|liter|litre)", text):
-        number = float(token.replace(",", "."))
-        return number * 1000
-    return parse_numeric(token)
+    return to_cc(token_match.group(0))
+
+
+def parse_engine_cc_from_variant(value) -> float:
+    """Infer liters from a leading displacement token such as ``2.0 Bensin-MT``.
+
+    OLX sometimes leaves ``engine_capacity`` empty but prefixes the variant with
+    the engine size. Only accept a leading decimal displacement in a plausible
+    liter range; arbitrary numbers later in a title are too ambiguous.
+    """
+    if pd.isna(value):
+        return float("nan")
+    match = re.match(r"^\s*(\d+[.,]\d{1,2})(?=\s|$)", str(value))
+    if not match:
+        return float("nan")
+    liters = float(match.group(1).replace(",", "."))
+    if not 0.5 <= liters <= 8:
+        return float("nan")
+    return liters * 1000
+
+
+def enrich_engine_cc(data: pd.DataFrame) -> pd.DataFrame:
+    """Fill missing engine sizes from capacity bands or explicit variant prefixes.
+
+    A leading value such as ``2.0 Bensin-MT`` is treated as an approximate
+    2.0-liter displacement. EVs remain missing because they have no combustion
+    engine displacement.
+    """
+    if data.empty:
+        return data.copy()
+    result = data.copy()
+    current = pd.to_numeric(result.get("engine_cc", pd.Series(float("nan"), index=result.index)), errors="coerce")
+    capacity = result.get("engine_capacity", pd.Series("", index=result.index)).map(parse_engine_cc)
+    current = current.where(current.notna(), capacity)
+    is_electric = result.get("fuel_type", pd.Series("", index=result.index)).fillna("").astype(str).str.casefold().isin({"listrik", "electric", "ev", "bev"})
+    variant = result.get("variant", pd.Series("", index=result.index)).map(parse_engine_cc_from_variant)
+    inferred = current.isna() & ~is_electric & variant.notna()
+    result["engine_cc"] = current.where(~inferred, variant)
+    previous = result.get("engine_cc_inferred", pd.Series(False, index=result.index)).fillna(False).astype(bool)
+    result["engine_cc_inferred"] = previous | inferred
+    return result
 
 
 def normalize_location(value) -> str:
@@ -169,9 +218,7 @@ def preprocess_listing_dataset(raw: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     dki["mileage_km"] = dki["mileage_km"].where(
         dki["mileage_km"].notna(), dki["mileage_range"].map(parse_mileage_km)
     )
-    dki["engine_cc"] = dki["engine_cc"].where(
-        dki["engine_cc"].notna(), dki["engine_capacity"].map(parse_engine_cc)
-    )
+    dki = enrich_engine_cc(dki)
 
     seller_aliases = {"dealer": "Diler", "diler": "Diler", "individu": "Individu", "perorangan": "Individu", "private": "Individu"}
     fuel_aliases = {"petrol": "Bensin", "gasoline": "Bensin", "bensin": "Bensin", "diesel": "Diesel", "hybrid": "Hybrid", "electric": "Listrik", "listrik": "Listrik"}
@@ -223,6 +270,8 @@ def preprocess_listing_dataset(raw: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         "financing_rows_removed": financing_excluded_count,
         "outlier_price_rows_removed": outlier_price_count,
         "clean_rows": int(len(clean)),
+        "engine_cc_from_variant_rows": int(clean.get("engine_cc_inferred", pd.Series(False, index=clean.index)).sum()),
+        "engine_cc_available_rows": int(pd.to_numeric(clean["engine_cc"], errors="coerce").notna().sum()),
         "year_min": int(years.min()) if not years.empty else None,
         "year_max": int(years.max()) if not years.empty else None,
         "latest_fetched_at": latest_fetched.isoformat() if latest_fetched is not None else None,

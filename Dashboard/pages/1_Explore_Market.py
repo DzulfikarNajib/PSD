@@ -19,7 +19,7 @@ from src.ui import (
 
 apply_theme()
 st.title("Pahami Pasar")
-st.caption("Bandingkan komposisi kendaraan dan pola harga dari listing yang tersimpan.")
+st.caption("Cari tahu merek dan model yang tersedia, lalu bandingkan harga iklan serta spesifikasinya sebelum membuat shortlist.")
 st.info("Semua angka harga adalah harga penawaran. Hasil menggambarkan arsip AutoMatch, bukan seluruh pasar atau harga transaksi.", icon=":material/info:")
 
 history, live, archive = load_history_data(), load_live_data(), load_combined_archive()
@@ -50,24 +50,112 @@ if source.empty:
     st.info("Belum ada data di pilihan ini. Pilih Arsip Penuh atau lakukan refresh manual untuk memperoleh listing terbaru.")
     st.stop()
 render_data_source_status()
+
+# Accept focused paths from Beranda while keeping all filters editable here.
+market_makes = sorted(source.get("make", pd.Series(dtype=str)).dropna().astype(str).unique(), key=str.casefold)
+market_fuels = sorted(source.get("fuel_type", pd.Series(dtype=str)).dropna().astype(str).unique(), key=str.casefold)
+incoming_make = st.session_state.pop("market_focus_make", None)
+incoming_fuel = st.session_state.pop("market_focus_fuel", None)
+if incoming_make in market_makes:
+    st.session_state["market_make_choice"] = incoming_make
+if incoming_fuel in market_fuels:
+    st.session_state["market_fuel_choice"] = incoming_fuel
+if st.session_state.get("market_make_choice", "Semua merek") not in ["Semua merek", *market_makes]:
+    st.session_state["market_make_choice"] = "Semua merek"
+if st.session_state.get("market_fuel_choice", "Semua bahan bakar") not in ["Semua bahan bakar", *market_fuels]:
+    st.session_state["market_fuel_choice"] = "Semua bahan bakar"
+with st.container(border=True, key="market_explorer_filters"):
+    st.markdown("#### Telusuri merek, model, atau bahan bakar")
+    st.caption("Pilih kategori untuk melihat model yang tersedia, lalu periksa harga penawaran dan spesifikasi pada sampel tersebut.")
+    focus_a, focus_b = st.columns(2)
+    chosen_make = focus_a.selectbox("Merek", ["Semua merek", *market_makes], key="market_make_choice")
+    chosen_fuel = focus_b.selectbox("Bahan bakar", ["Semua bahan bakar", *market_fuels], key="market_fuel_choice")
+explore = source.copy()
+if chosen_make != "Semua merek":
+    explore = explore[explore["make"].fillna("").astype(str).eq(chosen_make)]
+if chosen_fuel != "Semua bahan bakar":
+    explore = explore[explore["fuel_type"].fillna("").astype(str).eq(chosen_fuel)]
+explore["price"] = pd.to_numeric(explore.get("price"), errors="coerce")
+explore["year"] = pd.to_numeric(explore.get("year"), errors="coerce")
+explore["mileage_km"] = pd.to_numeric(explore.get("mileage_km"), errors="coerce")
+explore["engine_cc"] = pd.to_numeric(explore.get("engine_cc"), errors="coerce")
+explore["_cc_available"] = explore["engine_cc"].notna()
+explore["_cc_inferred"] = explore.get("engine_cc_inferred", pd.Series(False, index=explore.index)).fillna(False).astype(bool) & explore["_cc_available"]
+explore["_make_group"] = explore.get("make", pd.Series("Tidak dicantumkan", index=explore.index)).fillna("Tidak dicantumkan").astype(str)
+model_stats = explore.groupby(["_make_group", "model"], dropna=True).agg(
+    listings=("listing_id", "nunique") if "listing_id" in explore else ("model", "size"),
+    median_price=("price", "median"), median_year=("year", "median"),
+    median_km=("mileage_km", "median"), median_cc=("engine_cc", "median"),
+    cc_reported=("_cc_available", "sum"), cc_inferred=("_cc_inferred", "sum"),
+).reset_index().sort_values("listings", ascending=False)
+model_stats["model"] = model_stats["model"].astype(str)
+model_stats["model_key"] = model_stats["_make_group"].astype(str) + " · " + model_stats["model"]
+if not model_stats.empty:
+    with st.container(border=True, key="market_model_explorer"):
+        label_bits = [chosen_make if chosen_make != "Semua merek" else "semua merek"]
+        if chosen_fuel != "Semua bahan bakar":
+            label_bits.append(chosen_fuel.lower())
+        st.markdown(f"#### Model tersedia untuk {' · '.join(label_bits)}")
+        model_plot = model_stats.head(12).sort_values("listings")
+        model_fig = px.bar(model_plot, x="listings", y="model_key", orientation="h", color_discrete_sequence=["#008B8B"],
+                           hover_data={"median_price": ":,.0f", "median_year": ":.0f", "median_km": ":,.0f", "listings": True})
+        model_fig.update_layout(height=max(300, min(520, 30 * len(model_plot) + 90)), margin=dict(l=8, r=12, t=12, b=8), showlegend=False, xaxis_title="Listing unik", yaxis_title=None)
+        model_fig.update_traces(marker_cornerradius=6, hovertemplate="%{y}<br>%{x:,} listing<extra></extra>")
+        st.plotly_chart(model_fig, width="stretch", config={"displayModeBar": False}, key="market_models_by_make")
+        st.caption("Grafik menunjukkan model dengan listing terbanyak pada filter ini. Ini mengukur ketersediaan iklan dalam arsip, bukan popularitas seluruh Jakarta.")
+        available_model_names = model_stats["model_key"].tolist()
+        if st.session_state.get("market_model_choice") not in available_model_names:
+            st.session_state["market_model_choice"] = available_model_names[0]
+        selected_model_key = st.selectbox("Pilih model untuk melihat spesifikasi", available_model_names, key="market_model_choice")
+        selected_stat = model_stats[model_stats["model_key"].eq(selected_model_key)].iloc[0]
+        selected_model = str(selected_stat["model"])
+        selected_make = str(selected_stat["_make_group"])
+        selected_rows = explore[explore["model"].astype(str).eq(selected_model) & explore["_make_group"].eq(selected_make)]
+        spec_kpis = st.columns(4)
+        spec_kpis[0].metric("Listing model", f"{int(selected_stat['listings']):,}".replace(",", "."), border=True)
+        spec_kpis[1].metric("Median harga iklan", format_rupiah_compact(selected_stat["median_price"]) if pd.notna(selected_stat["median_price"]) else "-", border=True)
+        spec_kpis[2].metric("Median kilometer", f"{selected_stat['median_km']:,.0f} km".replace(",", ".") if pd.notna(selected_stat["median_km"]) else "-", border=True)
+        spec_kpis[3].metric("Median kapasitas mesin", f"{selected_stat['median_cc']:,.0f} cc".replace(",", ".") if pd.notna(selected_stat["median_cc"]) else "Belum dicantumkan", border=True)
+        cc_coverage = int(selected_stat["cc_reported"])
+        inferred_cc_count = int(selected_stat["cc_inferred"])
+        explicit_cc_count = max(0, cc_coverage - inferred_cc_count)
+        st.caption(f"CC ada pada {cc_coverage:,} dari {int(selected_stat['listings']):,} listing: {explicit_cc_count:,} tercatat pada kapasitas mesin, {inferred_cc_count:,} diperkirakan dari varian (ditandai ≈). CC kosong tidak dianggap nol.".replace(",", "."))
+        if len(selected_rows) >= 10 and selected_rows["price"].notna().sum() >= 10 and selected_rows["mileage_km"].notna().sum() >= 10:
+            pair = selected_rows.dropna(subset=["price", "mileage_km"])
+            rho = pair["price"].corr(pair["mileage_km"], method="spearman")
+            if pd.notna(rho):
+                direction = "cenderung lebih rendah" if rho < -0.15 else "cenderung lebih tinggi" if rho > 0.15 else "belum menunjukkan hubungan yang kuat"
+                st.info(f"Pada {len(pair):,} listing {selected_model} dengan harga dan kilometer tercatat, harga penawaran {direction} saat kilometer berubah (korelasi peringkat {rho:.2f}). Gunakan ini sebagai petunjuk membandingkan iklan, lalu cek kondisi unit secara langsung.".replace(",", "."), icon=":material/lightbulb:")
+            else:
+                st.caption("Sampel belum cukup untuk merangkum hubungan harga dan kilometer.")
+        else:
+            st.caption("Perlu sedikitnya 10 listing dengan harga dan kilometer tercatat untuk menampilkan petunjuk hubungan yang lebih masuk akal.")
+        if st.button("Cari listing model ini", icon=":material/directions_car:", type="primary", key="market_go_search"):
+            st.session_state["prefill_make"] = selected_make
+            st.session_state["prefill_model"] = selected_model
+            st.session_state["prefill_fuel"] = chosen_fuel if chosen_fuel != "Semua bahan bakar" else None
+            st.session_state["car_source_choice"] = "Arsip Penuh" if source_choice == "Arsip Penuh" else "Listing Terbaru"
+            st.switch_page("pages/2_Find_Your_Car.py")
+else:
+    st.info("Belum ada kombinasi merek dan bahan bakar dengan model tercatat pada pilihan sumber ini.")
 active_data, preprocessing_audit = load_historical_data_with_audit()
 with st.expander("Lihat Sampel Data & Statistik Deskriptif"):
     if active_data.empty:
         st.caption("Dataset bersih belum tersedia.")
     else:
         sample_columns = [
-            column for column in ("listing_id", "make", "model", "year", "price", "mileage_km", "engine_cc", "location_normalized")
+            column for column in ("listing_id", "make", "model", "year", "price", "mileage_km", "engine_cc", "engine_cc_inferred", "location_normalized")
             if column in active_data
         ]
         sample = active_data[sample_columns].head(8).copy()
         sample = sample.rename(columns={
             "listing_id": "ID Listing", "make": "Merek", "model": "Model", "year": "Tahun",
-            "price": "Harga (Rp)", "mileage_km": "Kilometer", "engine_cc": "CC", "location_normalized": "Wilayah",
+            "price": "Harga (Rp)", "mileage_km": "Kilometer", "engine_cc": "CC", "engine_cc_inferred": "CC perkiraan", "location_normalized": "Wilayah",
         })
         st.dataframe(sample, hide_index=True, width="stretch")
 
         numeric_columns = [column for column in ("price", "year", "mileage_km", "engine_cc") if column in active_data]
-        stats = active_data[numeric_columns].apply(pd.to_numeric, errors="coerce").agg(["count", "mean", "median", "min", "max"]).T
+        stats = active_data[numeric_columns].apply(pd.to_numeric, errors="coerce").agg(["count", "mean", "median", "min", "max"]).T.astype(object)
         stats = stats.rename(index={"price": "Harga (Rp)", "year": "Tahun", "mileage_km": "Kilometer", "engine_cc": "CC"})
         for column in stats.index:
             is_price = column == "Harga (Rp)"
@@ -80,7 +168,7 @@ with st.expander("Lihat Sampel Data & Statistik Deskriptif"):
         st.markdown("**Statistik fitur numerik**")
         st.dataframe(stats, width="stretch")
         st.caption(
-            f"Missing value keseluruhan setelah pembersihan: {preprocessing_audit.get('missing_value_pct', 0):.2f}% dari sel dataset."
+            f"Sel kosong keseluruhan setelah pembersihan: {preprocessing_audit.get('missing_value_pct', 0):.2f}%. Sebagian nilai CC diperoleh dari varian iklan dan ditandai pada kolom CC perkiraan."
         )
 
 for field in ["price", "year", "mileage_km", "engine_cc"]:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -14,20 +15,61 @@ from src.data_loader import (
     load_combined_archive,
 )
 from src.styles import apply_theme
-from src.ui import format_rupiah, format_timestamp_wib, render_data_source_status, render_empty_state
+from src.ui import format_timestamp_wib, render_empty_state
 
 
 DEFAULT_SEARCH_URL = "https://www.olx.co.id/mobil-bekas_c198/q-mobil"
 HERO_IMAGE_DATA = base64.b64encode((Path(__file__).parent / "assets" / "hero-bmw.jpg").read_bytes()).decode("ascii")
+# Static GeoJSON exported from Jakarta's official ``batas_kota_kab`` FeatureServer.
+DKI_BOUNDARY_PATH = Path(__file__).parent / "assets" / "dki_kota.geojson"
+BRAND_CARD_IMAGES = {
+    "toyota": {
+        "file": "Toyota_Corolla_(E180)_sedan_facelift_1X7A0306.jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:Toyota_Corolla_(E180)_sedan_facelift_1X7A0306.jpg",
+        "credit": "Alexander Migl · CC BY-SA 4.0",
+    },
+    "mercedes-benz": {
+        "file": "Mercedes-Benz_W211.jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:Mercedes-Benz_W211.jpg",
+        "credit": "Kallerna · CC BY-SA 3.0",
+    },
+    "bmw": {
+        "file": "BMW_U10_1X7A2452.jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:BMW_U10_1X7A2452.jpg",
+        "credit": "Alexander Migl · CC BY-SA 4.0",
+    },
+    "honda": {
+        "file": "Honda_Civic_Type_R_(2017)_1X7A0093.jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:Honda_Civic_Type_R_(2017)_1X7A0093.jpg",
+        "credit": "Alexander Migl · CC BY-SA 4.0",
+    },
+    "hyundai": {
+        "file": "Hyundai_Tucson_(NX4)_1X7A0424.jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:Hyundai_Tucson_(NX4)_1X7A0424.jpg",
+        "credit": "Alexander Migl · CC BY-SA 4.0",
+    },
+    "lexus": {
+        "file": "Lexus_RX_350_L_FL_1X7A0345.jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:Lexus_RX_350_L_FL_1X7A0345.jpg",
+        "credit": "Alexander Migl · CC BY-SA 4.0",
+    },
+    "mitsubishi": {
+        "file": "Mitsubishi_Colt_(2023)_1X7A1809.jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:Mitsubishi_Colt_(2023)_1X7A1809.jpg",
+        "credit": "Alexander Migl · CC BY-SA 4.0",
+    },
+    "mazda": {
+        "file": "Mazda_3_(2019).jpg",
+        "page": "https://commons.wikimedia.org/wiki/File:Mazda_3_(2019).jpg",
+        "credit": "Dennis Elzinga · CC BY 2.0",
+    },
+}
 
 
-def _compact_rupiah(value: float) -> str:
-    value = float(value)
-    if value >= 1_000_000_000:
-        return f"Rp {value / 1_000_000_000:.1f} M".replace(".0 M", " M").replace(".", ",")
-    if value >= 1_000_000:
-        return f"Rp {value / 1_000_000:.0f} Jt" if value % 1_000_000 == 0 else f"Rp {value / 1_000_000:.1f} Jt".replace(".", ",")
-    return format_rupiah(value)
+@st.cache_data(show_spinner=False)
+def load_dki_boundaries() -> dict:
+    """Load official DKI city boundaries used by the home choropleth."""
+    return json.loads(DKI_BOUNDARY_PATH.read_text(encoding="utf-8"))
 
 
 apply_theme()
@@ -40,22 +82,26 @@ st.markdown(
 )
 
 with st.container(key="home_hero"):
-    st.caption("PANDUAN MEMILIH MOBIL BEKAS")
-    st.markdown("# AutoMatch")
-    st.markdown("### Temukan mobil yang sesuai kebutuhanmu.")
-    st.write("Saring pilihan menurut anggaran dan spesifikasi, bandingkan harga penawaran, lalu periksa kondisi mobil sebelum memutuskan.")
-    if st.button("Mulai cari mobil", icon=":material/search:", type="primary", key="home_start_search"):
-        st.switch_page("pages/2_Find_Your_Car.py")
-    st.caption("Data berasal dari arsip tersimpan. Listing OLX hanya diperbarui saat kamu menjalankan refresh manual.")
+    hero_copy, hero_metric = st.columns([3.2, 1], vertical_alignment="center")
+    with hero_copy:
+        st.caption("OVERVIEW MOBIL BEKAS DKI JAKARTA")
+        st.markdown("# Ayo cari mobil kamu")
+        st.markdown("### Temukan pilihan dari iklan mobil yang tersimpan di AutoMatch.")
+        st.write("Data AutoMatch mencakup iklan mobil bekas dari DKI Jakarta. Iklan yang sama dihitung satu kali, dan peta di bawah menampilkan lima kota administrasi.")
+        if st.button("Mulai cari mobil", icon=":material/search:", type="primary", key="home_start_search"):
+            st.switch_page("pages/2_Find_Your_Car.py")
+    with hero_metric:
+        hero_count = int(preprocessing_audit.get("clean_rows", archive["listing_id"].nunique() if not archive.empty and "listing_id" in archive else len(archive)))
+        st.markdown(
+            "<div class='home-count-card'>"
+            "<span>DATA AUTOMATCH</span>"
+            f"<strong>{hero_count:,}</strong>"
+            "<small>iklan mobil tersimpan</small>"
+            "</div>".replace(",", "."),
+            unsafe_allow_html=True,
+        )
 
-st.markdown("## Ringkasan arsip mobil")
-render_data_source_status()
 if archive.empty:
-    empty_metrics = st.columns(4)
-    empty_metrics[0].metric("Sumber data", "OLX · DKI Jakarta", border=True)
-    empty_metrics[1].metric("Listing bersih", "-", border=True)
-    empty_metrics[2].metric("Rentang tahun", "-", border=True)
-    empty_metrics[3].metric("Pembaruan terakhir", "-", border=True)
     render_empty_state(
         "Arsip mobil belum tersedia",
         "Dataset OLX atau snapshot yang tersimpan akan tampil di sini. AutoMatch tidak membuat data contoh.",
@@ -67,89 +113,170 @@ else:
             archive[column] = pd.to_numeric(archive[column], errors="coerce")
     unique_count = archive["listing_id"].nunique() if "listing_id" in archive else len(archive)
     brands = archive["make"].dropna().astype(str).str.strip() if "make" in archive else pd.Series(dtype=str)
-    prices = archive.loc[archive["price"].gt(0), "price"] if "price" in archive else pd.Series(dtype=float)
     fuels = archive["fuel_type"].fillna("Tidak dicantumkan").astype(str).str.strip() if "fuel_type" in archive else pd.Series(dtype=str)
     fuels = fuels.replace("", "Tidak dicantumkan").value_counts()
-    metric_cols = st.columns(4)
     clean_count = int(preprocessing_audit.get("clean_rows", unique_count))
     year_min, year_max = preprocessing_audit.get("year_min"), preprocessing_audit.get("year_max")
     year_range = f"{year_min}-{year_max}" if year_min is not None and year_max is not None else "-"
     latest_value = preprocessing_audit.get("latest_fetched_at")
     last_update = format_timestamp_wib(latest_value)
-    metric_cols[0].metric("Sumber data", "OLX · DKI Jakarta", border=True)
-    metric_cols[1].metric("Total listing bersih", f"{clean_count:,}".replace(",", "."), border=True)
-    metric_cols[2].metric("Rentang tahun produksi", year_range, border=True)
-    metric_cols[3].metric("Pembaruan terakhir", last_update, border=True)
-    st.caption("Sumber: OLX Indonesia, DKI Jakarta. Jumlah listing berasal dari data yang sudah diproses; harga adalah harga penawaran dan iklan arsip belum tentu masih aktif.")
+    st.caption(f"Dataset OLX aktif yang sudah dibersihkan · Tahun kendaraan {year_range} · Diperbarui {last_update}. Harga merupakan harga penawaran, bukan harga transaksi.")
 
-    st.markdown("### Mulai dari pilihan yang tersedia")
-    st.caption("Beranda merangkum arsip. Buka Pahami Pasar untuk melihat distribusi dan perbandingan grafik secara lebih rinci.")
-    brand_col, fuel_col = st.columns(2, gap="large")
-    with brand_col:
+    district_labels = {"jakarta selatan": "Jakarta Selatan", "jakarta timur": "Jakarta Timur", "jakarta barat": "Jakarta Barat", "jakarta pusat": "Jakarta Pusat", "jakarta utara": "Jakarta Utara"}
+    if "location_normalized" in archive:
+        district_counts = archive["location_normalized"].fillna("").astype(str).str.casefold().value_counts()
+        region_code = {
+            "jakarta pusat": "3171", "jakarta utara": "3172", "jakarta barat": "3173",
+            "jakarta selatan": "3174", "jakarta timur": "3175",
+        }
+        regions = pd.DataFrame([
+            {"Kode": region_code[key], "Wilayah": label, "Iklan tersimpan": int(district_counts.get(key, 0))}
+            for key, label in district_labels.items()
+        ])
         with st.container(border=True):
-            st.markdown("#### Jelajahi berdasarkan merek")
-            brand_counts = brands[brands.ne("")].value_counts()
-            if not brand_counts.empty:
-                top_brands = brand_counts.head(6).sort_values()
-                brand_fig = px.bar(
-                    x=top_brands.values,
-                    y=top_brands.index,
+            st.markdown("#### Temukan mobil di wilayah Jakarta")
+            st.caption("Klik salah satu wilayah untuk melihat jumlah iklan tersimpan dan membuka hasil pencariannya.")
+            boundaries = load_dki_boundaries()
+            map_builder = getattr(px, "choropleth_map", None)
+            map_style_argument = "map_style"
+            if map_builder is None:
+                map_builder = px.choropleth_mapbox
+                map_style_argument = "mapbox_style"
+            map_fig = map_builder(
+                regions,
+                geojson=boundaries,
+                locations="Kode",
+                featureidkey="properties.kdpkab",
+                color="Iklan tersimpan",
+                hover_name="Wilayah",
+                hover_data={"Kode": False, "Iklan tersimpan": ":,.0f"},
+                color_continuous_scale=["#D9EFEB", "#72BDB3", "#008B8B", "#075985"],
+                range_color=(0, max(1, int(regions["Iklan tersimpan"].max()))),
+                center={"lat": -6.18, "lon": 106.82},
+                zoom=10.5,
+                opacity=0.9,
+                height=560,
+                **{map_style_argument: "white-bg"},
+            )
+            map_fig.update_layout(
+                margin=dict(l=0, r=0, t=0, b=0),
+                coloraxis_colorbar=dict(
+                    title="Jumlah iklan",
                     orientation="h",
-                    labels={"x": "Listing unik", "y": "Merek"},
-                    color_discrete_sequence=["#008B8B"],
-                )
-                brand_fig.update_layout(height=250, margin=dict(l=8, r=8, t=8, b=8), showlegend=False, xaxis_title=None, yaxis_title=None)
-                st.plotly_chart(brand_fig, width="stretch", config={"displayModeBar": False}, key="home_top_brands")
-                lead_make = str(brand_counts.index[0])
-                lead_count = int(brand_counts.iloc[0])
-                st.metric("Merek dengan listing terbanyak", lead_make, border=True)
-                st.caption(f"{lead_count:,} listing unik dalam arsip. Jumlah listing menunjukkan ketersediaan data, bukan kualitas atau rekomendasi mobil.".replace(",", "."))
-                popular = [make for make in ["BMW", "Toyota", "Honda", "Daihatsu", "Suzuki", "Mercedes-Benz"] if make.casefold() in {v.casefold() for v in brands.unique()}]
-                if popular:
-                    st.markdown("**Merek populer**")
-                    shortcut_cols = st.columns(min(len(popular), 3), gap="small")
-                    for idx, make in enumerate(popular):
-                        with shortcut_cols[idx % len(shortcut_cols)]:
-                            if st.button(make, key=f"home_brand_{idx}", width="stretch"):
-                                st.session_state["prefill_make"] = make
+                    thickness=10,
+                    len=0.5,
+                    x=0.5,
+                    xanchor="center",
+                    y=-0.08,
+                    yanchor="top",
+                    tickformat="~s",
+                ),
+                clickmode="event+select",
+            )
+            map_fig.update_traces(marker_line_color="#FFFFFF", marker_line_width=1.5)
+            map_selection = st.plotly_chart(
+                map_fig,
+                width="stretch",
+                config={
+                    "displayModeBar": True,
+                    "displaylogo": False,
+                    "scrollZoom": True,
+                    "modeBarButtonsToAdd": ["zoomInMap", "zoomOutMap", "resetViewMap"],
+                },
+                key="home_jakarta_choropleth",
+                on_select="rerun",
+                selection_mode="points",
+                alt="Peta choropleth lima kota administrasi Jakarta menurut jumlah iklan mobil tersimpan di AutoMatch",
+            )
+            st.caption("Warna lebih gelap berarti iklan tersimpan lebih banyak. Arahkan kursor untuk melihat angka. Peta mencakup lima kota administrasi Jakarta.")
+
+            selected_code = None
+            selected_points = map_selection.selection.points if map_selection else []
+            if selected_points:
+                selected_point = selected_points[-1]
+                selected_code = selected_point.get("location")
+                if selected_code is None:
+                    point_index = selected_point.get("point_index", selected_point.get("point_number"))
+                    if point_index is not None and 0 <= int(point_index) < len(regions):
+                        selected_code = regions.iloc[int(point_index)]["Kode"]
+            if selected_code is not None:
+                selected_region = regions[regions["Kode"].astype(str).eq(str(selected_code))]
+                if not selected_region.empty:
+                    row = selected_region.iloc[0]
+                    selected_label = str(row["Wilayah"])
+                    selected_count = int(row["Iklan tersimpan"])
+                    with st.container(border=True, key="home_selected_region_result"):
+                        result_copy, result_action = st.columns([1.5, 1], vertical_alignment="center")
+                        with result_copy:
+                            st.markdown(f"**{selected_label}** · **{selected_count:,}** iklan tersimpan di AutoMatch".replace(",", "."))
+                        with result_action:
+                            if st.button(f"Lihat mobil di {selected_label}", icon=":material/directions_car:", type="primary", key="home_selected_region_search", width="stretch"):
+                                st.session_state["prefill_location"] = selected_label.casefold()
                                 st.session_state["car_source_choice"] = "Arsip Penuh"
                                 st.switch_page("pages/2_Find_Your_Car.py")
-                choices = sorted(brands[brands.ne("")].unique(), key=str.casefold)
-                if choices:
-                    other_brand = st.selectbox("Pilih merek lain", choices, key="home_brand_choice")
-                    if st.button(f"Lihat {other_brand}", icon=":material/search:", key="home_find_brand"):
-                        st.session_state["prefill_make"] = other_brand
-                        st.session_state["car_source_choice"] = "Arsip Penuh"
-                        st.switch_page("pages/2_Find_Your_Car.py")
-            else:
-                st.caption("Informasi merek belum tersedia di arsip ini.")
-    with fuel_col:
-        with st.container(border=True):
-            st.markdown("#### Jelajahi berdasarkan bahan bakar")
-            if not fuels.empty:
-                fuel_fig = px.pie(
-                    names=fuels.head(6).index,
-                    values=fuels.head(6).values,
-                    hole=.56,
-                    color_discrete_sequence=["#008B8B", "#0F766E", "#0369A1", "#F59E0B", "#10B981", "#64748B"],
-                )
-                fuel_fig.update_traces(textinfo="percent", hovertemplate="%{label}: %{value} listing (%{percent})<extra></extra>")
-                fuel_fig.update_layout(height=250, margin=dict(l=8, r=8, t=8, b=8), legend=dict(orientation="h", y=-.08))
-                st.plotly_chart(fuel_fig, width="stretch", config={"displayModeBar": False}, key="home_fuel_mix")
-                dominant_fuel = str(fuels.index[0])
-                dominant_count = int(fuels.iloc[0])
-                st.metric("Bahan bakar paling sering dicatat", dominant_fuel, border=True)
-                st.caption(f"{dominant_count:,} listing unik memiliki kategori bahan bakar ini. Ketersediaan hanya menggambarkan arsip tersimpan.".replace(",", "."))
-                fuel_choices = sorted(fuels.items(), key=lambda item: str(item[0]).casefold())
-                fuel_choice = st.selectbox("Pilih bahan bakar", [str(fuel) for fuel, _ in fuel_choices], key="home_fuel_choice")
-                fuel_count = int(fuels.get(fuel_choice, 0))
-                st.caption(f"{fuel_count:,} mobil unik tercatat dalam kategori ini.".replace(",", "."))
-                if st.button("Lihat listing", icon=":material/search:", key="home_find_fuel"):
-                    st.session_state["prefill_fuel"] = fuel_choice
-                    st.session_state["car_source_choice"] = "Arsip Penuh"
-                    st.switch_page("pages/2_Find_Your_Car.py")
-            else:
-                st.caption("Data bahan bakar belum tersedia di arsip ini.")
+
+    st.markdown("### Mulai dari bahan bakar")
+    st.caption("Pilih bahan bakar untuk melihat merek dan model yang tersedia.")
+    fuel_icons = {"Bensin": "local_gas_station", "Diesel": "oil_barrel", "Listrik": "electric_bolt", "Hybrid": "ev_station"}
+    preferred_fuels = [label for label in ("Bensin", "Diesel", "Listrik") if label in fuels.index]
+    remaining_fuels = [str(label) for label in fuels.index if label and label != "Tidak dicantumkan" and label not in preferred_fuels]
+    fuel_items = [(label, int(fuels.get(label, 0))) for label in [*preferred_fuels, *remaining_fuels]]
+    if fuel_items:
+        fuel_cols = st.columns(min(4, len(fuel_items)), gap="medium")
+        for idx, (fuel_label, fuel_count) in enumerate(fuel_items[:4]):
+            with fuel_cols[idx]:
+                with st.container(border=True, key=f"home_fuel_card_{idx}"):
+                    icon_col, detail_col = st.columns([.4, 1.6], vertical_alignment="center")
+                    with icon_col:
+                        st.markdown(f":material/{fuel_icons.get(fuel_label, 'local_gas_station')}: ")
+                    with detail_col:
+                        st.markdown(f"#### {fuel_label}")
+                        st.markdown(f"**{fuel_count:,}** iklan tersimpan".replace(",", "."))
+                    if st.button("Lihat merek dan model", key=f"home_fuel_market_{idx}", width="stretch"):
+                        st.session_state["market_focus_fuel"] = fuel_label
+                        st.session_state["market_source_choice"] = "Arsip Penuh"
+                        st.switch_page("pages/1_Explore_Market.py")
+    else:
+        st.caption("Kategori bahan bakar belum tersedia pada dataset ini.")
+
+    st.markdown("### Pilih merek untuk menjelajahi modelnya")
+    st.caption("Jumlah iklan menunjukkan ketersediaan di arsip AutoMatch, bukan penilaian kualitas atau rekomendasi mobil.")
+    brand_counts = brands[brands.ne("")].value_counts()
+    brand_cards = brand_counts.head(8)
+    if not brand_cards.empty:
+        brand_cols = st.columns(4, gap="medium")
+        for idx, (make, count) in enumerate(brand_cards.items()):
+            with brand_cols[idx % 4]:
+                with st.container(border=True, key=f"home_brand_card_{idx}"):
+                    brand_initials = "".join(part[0] for part in str(make).replace("-", " ").split()[:2]).upper()
+                    photo_info = BRAND_CARD_IMAGES.get(str(make).casefold())
+                    if photo_info:
+                        photo_url = f"https://commons.wikimedia.org/wiki/Special:FilePath/{photo_info['file']}?width=900"
+                        st.image(photo_url, width="stretch", caption=None)
+                    else:
+                        st.markdown(
+                            f"<div class='home-brand-mark' aria-hidden='true'>{brand_initials}</div>",
+                            unsafe_allow_html=True,
+                        )
+                    st.markdown(f"#### {make}")
+                    st.caption(f"{int(count):,} iklan tersimpan".replace(",", "."))
+                    if st.button("Lihat model", key=f"home_brand_market_{idx}", width="stretch"):
+                        st.session_state["market_focus_make"] = str(make)
+                        st.session_state["market_source_choice"] = "Arsip Penuh"
+                        st.switch_page("pages/1_Explore_Market.py")
+        with st.expander("Sumber dan kredit foto merek", expanded=False):
+            for make, photo_info in BRAND_CARD_IMAGES.items():
+                st.markdown(f"- **{make.title()}** — {photo_info['credit']} · [Sumber foto]({photo_info['page']})")
+    if not brand_counts.empty:
+        all_brands = sorted(brand_counts.index.astype(str), key=str.casefold)
+        other_col, open_col = st.columns([3, 1], vertical_alignment="bottom")
+        with other_col:
+            other_brand = st.selectbox("Merek lain", all_brands, key="home_brand_choice")
+        with open_col:
+            if st.button("Buka grafik", icon=":material/insights:", key="home_find_brand", width="stretch"):
+                st.session_state["market_focus_make"] = other_brand
+                st.session_state["market_source_choice"] = "Arsip Penuh"
+                st.switch_page("pages/1_Explore_Market.py")
 
 with st.expander("Perbarui listing OLX (manual)", expanded=st.session_state.pop("open_refresh_panel", False)):
     st.caption("Refresh mengirim permintaan ke OLX melalui API dan memakai kredit bersama. Arsip yang tersimpan tetap bisa dicari tanpa refresh.")

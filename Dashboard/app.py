@@ -35,6 +35,9 @@ st.set_page_config(
 )
 apply_theme()
 
+# Design read: ENERGY 1, RHYTHM 2, MOTION 1. Keep the existing AutoMatch
+# teal/navy identity; navigation follows the audience's discovery sequence.
+
 home_page = st.Page("home.py", title="Beranda", url_path="beranda", icon=":material/home:", default=True)
 search_page = st.Page("pages/2_Find_Your_Car.py", title="Cari Mobil", url_path="cari-mobil", icon=":material/directions_car:")
 price_page = st.Page("pages/3_Price_Checker.py", title="Cek Harga Iklan", url_path="cek-harga-iklan", icon=":material/price_check:")
@@ -42,7 +45,7 @@ market_page = st.Page("pages/1_Explore_Market.py", title="Pahami Pasar", url_pat
 project_page = st.Page("pages/4_Tentang_Proyek.py", title="Tentang Proyek", url_path="tentang-proyek", icon=":material/menu_book:")
 
 active_page = st.navigation(
-    [home_page, search_page, price_page, market_page, project_page],
+    [home_page, market_page, search_page, price_page, project_page],
     position="hidden",
 )
 
@@ -58,9 +61,9 @@ with st.container(key="automatch_topnav"):
     link_columns = nav[1].columns([.85, 1.05, 1.25, 1.05, 1.35], gap="small", vertical_alignment="center")
     page_links = [
         (link_columns[0], home_page, "Beranda", ":material/home:", "beranda"),
-        (link_columns[1], search_page, "Cari Mobil", ":material/directions_car:", "cari"),
-        (link_columns[2], price_page, "Cek Harga Iklan", ":material/price_check:", "harga"),
-        (link_columns[3], market_page, "Pahami Pasar", ":material/insights:", "pasar"),
+        (link_columns[1], market_page, "Pahami Pasar", ":material/insights:", "pasar"),
+        (link_columns[2], search_page, "Cari Mobil", ":material/directions_car:", "cari"),
+        (link_columns[3], price_page, "Cek Harga Iklan", ":material/price_check:", "harga"),
         (link_columns[4], project_page, "Tentang Proyek", ":material/menu_book:", "proyek"),
     ]
     for column, page, label, icon, slug in page_links:

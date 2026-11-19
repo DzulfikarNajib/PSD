@@ -92,7 +92,7 @@ def _delta_text(value, reference):
 
 apply_theme()
 st.title("Cek Harga Iklan")
-st.caption("Bandingkan harga iklan dengan listing serupa dan, bila tersedia, estimasi model.")
+st.caption("Langkah evaluasi setelah memilih kandidat: bandingkan harga iklan dengan mobil serupa dan, bila tersedia, estimasi model.")
 st.caption("Harga iklan dan estimasi adalah konteks awal. Keduanya bukan harga transaksi pasti dan tidak menggantikan pemeriksaan kondisi mobil.")
 with st.expander("Ringkasan Fitur & Transformasi Model"):
     st.write("Target model adalah harga penawaran (price). Prediktornya: merek, model, tahun, kilometer, kapasitas mesin, transmisi, bahan bakar, dan tipe bodi.")
@@ -415,6 +415,15 @@ else:
             if not peers.empty:
                 with st.expander(f"Lihat {len(peers):,} listing yang menjadi pembanding".replace(",", ".")):
                     st.dataframe(_comparable_table(peers.head(30)), hide_index=True, width="stretch", alt="Detail listing yang dipakai sebagai pembanding harga")
+            action_cols = st.columns(2, gap="small")
+            with action_cols[0]:
+                if st.button("Kembali ke Cari Mobil", icon=":material/directions_car:", key="price_back_to_search", width="stretch"):
+                    st.switch_page("pages/2_Find_Your_Car.py")
+            with action_cols[1]:
+                source_urls = peers.get("url", pd.Series(dtype=str)).dropna().astype(str)
+                source_urls = source_urls[source_urls.str.startswith("http")]
+                if len(source_urls):
+                    st.link_button("Buka iklan pembanding", source_urls.iloc[0], icon=":material/open_in_new:", width="stretch")
 
 st.markdown("### Metode & Evaluasi Model Regresi")
 with st.container(border=True):
@@ -425,8 +434,14 @@ with st.container(border=True):
     col_train, col_status = st.columns([1, 2])
     with col_train:
         if st.button("Latih & Evaluasi Ulang Model", disabled=not eligible, help="Menggunakan arsip tersimpan tanpa panggilan API luar."):
-            with st.spinner("Melatih dan membandingkan model regresi..."):
-                training_result = evaluate_regression_models(training_data)
+            try:
+                with st.spinner("Melatih dan membandingkan model regresi..."):
+                    training_result = evaluate_regression_models(training_data)
+            except OSError as exc:
+                if getattr(exc, "errno", None) == 28:
+                    st.error("Model tidak dapat disimpan karena ruang disk perangkat penuh. Kosongkan ruang, lalu jalankan evaluasi ulang.")
+                    st.stop()
+                raise
             if training_result.get("status") == "ready":
                 st.success(f"Pelatihan selesai! Model terbaik: {training_result['best_model']}.")
                 st.rerun()
@@ -434,7 +449,7 @@ with st.container(border=True):
                 st.warning(training_result.get("message", "Model belum dapat dilatih."))
 
     metadata = load_model_metadata()
-    if metadata.get("models"):
+    if metadata.get("models") and model_is_validated(metadata):
         st.markdown("#### Perbandingan Model Baseline vs Model Utama")
         model_table = pd.DataFrame([{"Model": name, **metrics} for name, metrics in metadata["models"].items()])
         for column in ("MAE", "RMSE"):
@@ -444,6 +459,8 @@ with st.container(border=True):
             model_table["R2"] = model_table["R2"].map(lambda value: f"{value:.4f}" if pd.notna(value) else "-")
         st.dataframe(model_table, hide_index=True, width="stretch", alt="Perbandingan metrik evaluasi model regresi")
         st.caption("Keterangan: MAE mengukur rata-rata kesalahan absolut, RMSE memberi penalti lebih besar pada kesalahan ekstrem, dan R² menunjukkan proporsi variasi harga yang mampu dijelaskan model.")
+    elif metadata.get("models"):
+        st.warning("Metrik yang tersimpan berasal dari model lama dan disembunyikan sampai pelatihan ulang tervalidasi.")
 
     if Path(MODEL_PATH).exists() and model_is_validated(metadata):
         st.markdown("#### Feature Importance Model Terbaik")
@@ -470,6 +487,6 @@ with st.container(border=True):
                 yaxis=dict(title=None, showgrid=False),
             )
             st.plotly_chart(fig_imp, width="stretch", config={"displayModeBar": False}, key="price_feature_importance_plot")
-            st.caption(f"Model aktif: **{metadata.get('best_model', '-')}** ({metadata.get('training_unique_listings', 0):,} listing training). Kepentingan fitur bersifat relatif pada model, bukan bukti sebab-akibat.")
+            st.caption(f"Model aktif: **{metadata.get('best_model', '-')}** ({metadata.get('training_unique_listings', 0):,} listing training). Pada model pohon, skor berasal dari kontribusi fitur pada pemisahan cabang dan dapat memberi bobot lebih besar pada fitur numerik yang punya banyak kemungkinan ambang. Skor ini relatif, bukan persentase harga atau bukti sebab-akibat.")
     else:
         st.info("Model belum dilatih atau belum lolos kriteria minimum validasi.")

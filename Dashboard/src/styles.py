@@ -124,11 +124,27 @@ div[class*="st-key-home_hero"] {
     box-shadow: 0 1px 5px rgba(15, 23, 42, .025);
 }
 div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] {
-    max-width: 560px;
+    max-width: none;
     width: 100%;
-    align-items: flex-start;
     text-align: left;
 }
+div[class*="st-key-home_hero"] [data-testid="stHorizontalBlock"] { align-items:center !important; gap:2rem; }
+div[class*="st-key-home_hero"] [data-testid="stColumn"]:first-child { max-width: 650px; }
+div[class*="st-key-home_hero"] [data-testid="stColumn"]:last-child { max-width: 230px; margin-left:auto; }
+.home-count-card { display:flex; flex-direction:column; gap:.45rem; padding:1.1rem 1.2rem; border:1px solid #DCE6EB; border-radius:16px; background:rgba(255,255,255,.97); box-shadow:0 8px 24px rgba(15,23,42,.08); }
+.home-count-card span { color:#64748B; font-size:.76rem; font-weight:600; letter-spacing:.02em; }
+.home-count-card strong { color:#19364F; font-family:"Plus Jakarta Sans",Inter,sans-serif; font-size:2rem; font-weight:800; line-height:1.1; }
+.home-count-card small { color:#64748B; font-size:.75rem; line-height:1.4; }
+div[class*="st-key-home_fuel_card_"] [data-testid="stVerticalBlockBorderWrapper"] { height:100%; min-height:9rem; background:linear-gradient(145deg,#FFFFFF 12%,#F0F8F7 100%); border-color:#D4E7E4; }
+div[class*="st-key-home_fuel_card_"] [data-testid="stHorizontalBlock"] { align-items:center !important; min-height:3.2rem; }
+div[class*="st-key-home_fuel_card_"] [data-testid="stColumn"]:first-child [data-testid="stMarkdownContainer"] p { color:var(--dashboard-accent); font-size:1.65rem; line-height:1; }
+div[class*="st-key-home_fuel_card_"] h4 { margin:.2rem 0; }
+div[class*="st-key-home_fuel_card_"] [data-testid="stButton"] > button { background:#FFFFFF; }
+div[class*="st-key-home_brand_card_"] [data-testid="stVerticalBlockBorderWrapper"] { height:100%; min-height:11rem; background:linear-gradient(145deg,#FFFFFF 15%,#F5F9FB 100%); }
+div[class*="st-key-home_brand_card_"] [data-testid="stImage"] img { width:100%; height:7.2rem; object-fit:cover; border-radius:10px; }
+.home-brand-mark { display:grid; place-items:center; width:2.8rem; height:2.8rem; margin:0 0 .55rem; border-radius:50%; background:linear-gradient(145deg,#E5F4F1,#DCEAF3); border:1px solid #D6E9E6; color:#087F80; font-size:.95rem; font-weight:800; letter-spacing:.02em; }
+div[class*="st-key-home_brand_card_"] h4 { margin:.15rem 0; }
+div[class*="st-key-home_brand_card_"] [data-testid="stCaptionContainer"] { min-height:1.2rem; }
 div[class*="st-key-home_hero"] [data-testid="stButton"] {
     width: auto;
     align-self: flex-start;
@@ -331,6 +347,9 @@ div.stAlert { border-radius: 12px; }
         background-size: cover, cover;
     }
     div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] { max-width: 100%; }
+    div[class*="st-key-home_hero"] [data-testid="stHorizontalBlock"] { flex-wrap:wrap !important; gap:.5rem; }
+    div[class*="st-key-home_hero"] [data-testid="stColumn"] { min-width:100% !important; }
+    div[class*="st-key-home_hero"] [data-testid="stColumn"]:last-child { max-width:220px; margin:0; }
     .listing-meta { gap:.25rem; }
     .listing-meta span { font-size:.68rem; }
     .car-price { font-size: 1.2rem; }

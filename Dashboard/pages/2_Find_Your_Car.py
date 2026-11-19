@@ -79,6 +79,8 @@ if st.session_state.get("car_market_segment_filter", "Semua segmen") not in segm
 
 brand_values = sorted(cars["make"].dropna().astype(str).unique()) if "make" in cars else []
 pending_make = st.session_state.pop("prefill_make", None)
+pending_model = st.session_state.pop("prefill_model", None)
+pending_location = st.session_state.pop("prefill_location", None)
 if pending_make in brand_values:
     st.session_state["filter_make"] = pending_make
     st.session_state["applied_car_filters"] = None
@@ -86,6 +88,9 @@ if st.session_state.get("filter_make", "Semua") not in ["Semua", *brand_values]:
     st.session_state["filter_make"] = "Semua"
 
 model_values = sorted(cars["model"].dropna().astype(str).unique()) if "model" in cars else []
+if pending_model in model_values:
+    st.session_state["filter_model"] = pending_model
+    st.session_state["applied_car_filters"] = None
 fuel_values = sorted(cars["fuel_type"].dropna().astype(str).unique()) if "fuel_type" in cars else []
 pending_fuel = st.session_state.pop("prefill_fuel", None)
 if pending_fuel in fuel_values:
@@ -93,9 +98,30 @@ if pending_fuel in fuel_values:
     st.session_state["applied_car_filters"] = None
 transmission_values = sorted(cars["transmission"].dropna().astype(str).unique()) if "transmission" in cars else []
 body_values = sorted(cars["body_type"].dropna().astype(str).unique()) if "body_type" in cars else []
+location_values = sorted(cars.get("location_normalized", pd.Series(dtype=str)).dropna().astype(str).unique(), key=str.casefold)
+if pending_location in location_values:
+    st.session_state["filter_location"] = pending_location
+    st.session_state["applied_car_filters"] = None
 
 budget_ceiling = max(50_000_000_000, int(cars["price"].max()) if "price" in cars and cars["price"].notna().any() else 50_000_000_000)
 budget_ceiling_jt = max(50_000, budget_ceiling // 1_000_000)
+
+# A click-through from the market explorer should arrive with results already
+# narrowed, while leaving the corresponding controls visible and editable.
+prefill_filters = {
+    "make": pending_make if pending_make in brand_values else None,
+    "model": pending_model if pending_model in model_values else None,
+    "fuel_type": pending_fuel if pending_fuel in fuel_values else None,
+    "location": pending_location if pending_location in location_values else None,
+}
+if any(prefill_filters.values()):
+    st.session_state["applied_car_filters"] = {
+        "budget": (0, budget_ceiling), "make": prefill_filters["make"], "model": prefill_filters["model"],
+        "years": (1950, pd.Timestamp.now().year + 1), "max_mileage": 2_000_000,
+        "engine_range": (0, 10_000),
+        "categories": {"fuel_type": prefill_filters["fuel_type"] or "Semua"},
+        "location": prefill_filters["location"] or "Semua wilayah",
+    }
 
 
 def _reset_filters():
@@ -109,6 +135,7 @@ def _reset_filters():
     st.session_state["filter_fuel"] = "Semua"
     st.session_state["filter_transmission"] = "Semua"
     st.session_state["filter_body"] = "Semua"
+    st.session_state["filter_location"] = "Semua wilayah"
     st.session_state["applied_car_filters"] = None
 
 
@@ -147,9 +174,14 @@ with filter_column:
             st.caption(f"Nominal odometer: **{format_km(mileage_rb * 1_000)}**")
 
             engine_range = st.slider("Kapasitas mesin (cc)", 0, 10_000, (0, 10_000), step=100, key="filter_engine")
+            st.caption("Listing tanpa CC tetap disertakan saat rentang penuh; setelah rentang CC dipersempit, listing tanpa nilai CC dikeluarkan dari hasil.")
             fuel = st.selectbox("Bahan bakar", ["Semua", *fuel_values], key="filter_fuel")
             transmission = st.selectbox("Transmisi", ["Semua", *transmission_values], key="filter_transmission")
             body = st.selectbox("Tipe bodi", ["Semua", *body_values], key="filter_body")
+            location_options = ["Semua wilayah", *location_values]
+            if st.session_state.get("filter_location") not in location_options:
+                st.session_state["filter_location"] = "Semua wilayah"
+            location = st.selectbox("Wilayah", location_options, key="filter_location")
             apply_filters = st.form_submit_button("Terapkan Filter", type="primary", icon=":material/tune:", width="stretch")
 
         if apply_filters:
@@ -161,6 +193,7 @@ with filter_column:
                 "max_mileage": int(mileage_rb * 1_000),
                 "engine_range": engine_range,
                 "categories": {"fuel_type": fuel, "transmission": transmission, "body_type": body},
+                "location": location,
             }
         st.button("Reset filter", key="reset_car_filters", on_click=_reset_filters, width="stretch")
 
@@ -170,7 +203,10 @@ default_filters = {
     "engine_range": (0, 10_000), "categories": {},
 }
 active_filters = st.session_state.get("applied_car_filters") or default_filters
-filtered = filter_listings(cars, **active_filters)
+filtered = filter_listings(cars, **{key: value for key, value in active_filters.items() if key != "location"})
+active_location = active_filters.get("location", "Semua wilayah")
+if active_location != "Semua wilayah" and "location_normalized" in filtered:
+    filtered = filtered[filtered["location_normalized"].fillna("").astype(str).str.casefold().eq(str(active_location).casefold())]
 if selected_market_segment != "Semua segmen":
     filtered = filtered[filtered["market_segment"].eq(selected_market_segment)]
 
@@ -267,12 +303,19 @@ with results_column:
                     variant_value = row.get("variant")
                     st.caption(str(variant_value) if pd.notna(variant_value) and str(variant_value).strip() else "Varian tidak dicantumkan")
                     spec_rows = [
-                        ("CC", f"{row.get('engine_cc'):.0f}" if pd.notna(row.get("engine_cc")) else "-"),
+                        (
+                            "CC",
+                            ("≈ " if bool(row.get("engine_cc_inferred", False)) else "")
+                            + f"{row.get('engine_cc'):.0f}"
+                            if pd.notna(row.get("engine_cc")) else "-",
+                        ),
                         ("Bahan bakar", str(row.get("fuel_type")) if pd.notna(row.get("fuel_type")) and str(row.get("fuel_type")).strip() else "-"),
                         ("Transmisi", str(row.get("transmission")) if pd.notna(row.get("transmission")) and str(row.get("transmission")).strip() else "-"),
                     ]
                     for label, value in spec_rows:
                         st.markdown(f"<div class='listing-spec'><span>{label}</span><b>{escape(value)}</b></div>", unsafe_allow_html=True)
+                    if bool(row.get("engine_cc_inferred", False)):
+                        st.caption("≈ berarti CC diperkirakan dari angka kapasitas di awal varian iklan.")
                     origins = str(row.get("source_origins") or row.get("data_source") or source_choice)
                     fetched = pd.to_datetime(row.get("fetched_at"), errors="coerce", utc=True)
                     if pd.notna(fetched):

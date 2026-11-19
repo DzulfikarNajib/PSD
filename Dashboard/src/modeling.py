@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 
 import joblib
@@ -171,7 +173,6 @@ def evaluate_regression_models(df: pd.DataFrame, model_path: str | Path | None =
     metrics_destination = Path(metadata_path) if metadata_path else MODEL_METADATA_PATH
     destination.parent.mkdir(parents=True, exist_ok=True)
     metrics_destination.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(final_pipeline, destination)
     metadata = {
         "status": "ready", "validation_version": 3,
         "best_model": winner, "best_model_path": str(destination),
@@ -186,7 +187,22 @@ def evaluate_regression_models(df: pd.DataFrame, model_path: str | Path | None =
         "holdout_test_size": 0.2,
         "holdout_random_state": 42,
     }
-    metrics_destination.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+    model_temp = None
+    metrics_temp = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=destination.parent, suffix=".joblib.tmp", delete=False) as handle:
+            model_temp = Path(handle.name)
+        with tempfile.NamedTemporaryFile(dir=metrics_destination.parent, suffix=".json.tmp", delete=False, mode="w", encoding="utf-8") as handle:
+            metrics_temp = Path(handle.name)
+            handle.write(json.dumps(metadata, indent=2, ensure_ascii=False))
+        joblib.dump(final_pipeline, model_temp, compress=3)
+        os.replace(model_temp, destination)
+        os.replace(metrics_temp, metrics_destination)
+    finally:
+        if model_temp is not None:
+            model_temp.unlink(missing_ok=True)
+        if metrics_temp is not None:
+            metrics_temp.unlink(missing_ok=True)
     return metadata
 
 

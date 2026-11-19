@@ -61,6 +61,12 @@ if not prices.empty:
 
 st.markdown("### Data Overview & Alur Data Preprocessing")
 if preprocessing_audit:
+    engine_coverage = (
+        f"Kapasitas mesin tersedia pada {preprocessing_audit.get('engine_cc_available_rows', 0):,} dari {preprocessing_audit.get('clean_rows', len(active_data)):,} listing; "
+        f"{preprocessing_audit.get('engine_cc_from_variant_rows', 0):,} nilai merupakan perkiraan dari awalan varian iklan. "
+        "CC EV yang tidak dicantumkan dibiarkan kosong."
+    ).replace(",", ".")
+    st.caption(engine_coverage)
     raw_count = int(preprocessing_audit.get("raw_rows", 0))
     clean_count = int(preprocessing_audit.get("clean_rows", len(active_data)))
     st.caption(
@@ -79,7 +85,7 @@ if preprocessing_audit:
     with prep_col:
         st.markdown("#### Aturan pembersihan")
         st.write("Untuk setiap listing_id, pipeline mempertahankan snapshot dengan fetched_at terbaru. Listing di luar enam wilayah DKI dikeluarkan sebelum analisis.")
-        st.write("Rentang odometer diubah ke titik tengah mileage_km. Kapasitas mesin dikonversi menjadi engine_cc. Jika data CC mobil listrik (EV) kosong, nilainya tetap kosong, bukan nol; model mengisi nilai numerik kosong memakai median fitur pada data latih.")
+        st.write("Rentang odometer diubah ke titik tengah mileage_km. Kapasitas mesin dikonversi menjadi engine_cc; bila kapasitas kosong, angka liter di awal varian iklan digunakan sebagai perkiraan dan ditandai ≈. Jika CC mobil listrik (EV) tidak dicantumkan, nilainya tetap kosong, bukan nol; model mengisi nilai numerik kosong memakai median fitur pada data latih.")
         st.write("Lokasi dipetakan ke nama wilayah kanonis. Seller type diseragamkan menjadi Diler atau Individu, sedangkan fuel_type dan transmission memakai label konsisten.")
         st.write(
             f"Harga di bawah {format_rupiah(preprocessing_audit.get('price_min'))} dianggap berpotensi DP/harga parsial dan mengeluarkan {preprocessing_audit.get('low_price_rows_removed', 0):,} listing; aturan batas bawah ini juga dapat mengecualikan mobil murah yang valid. Harga di atas {format_rupiah(preprocessing_audit.get('price_max'))} mengeluarkan {preprocessing_audit.get('high_price_rows_removed', 0):,} kemungkinan salah input. Listing valid tertinggi pada sumber ini bernilai {format_rupiah_compact(preprocessing_audit.get('highest_kept_price'))}."
@@ -197,4 +203,17 @@ else:
 st.caption("Gerbang validasi: minimal 100 listing unik, 3 merek, dan 5 model berbeda. Target model adalah harga penawaran dalam data historis proyek, bukan harga transaksi.")
 
 with st.expander("Alur Penggunaan Aplikasi AutoMatch"):
-    st.markdown("**Beranda → Cari Mobil → Bandingkan Listing → Cek Harga Iklan → Buka Iklan Sumber.** Halaman Pahami Pasar dapat diakses kapan saja untuk membaca tren agregat pasar.")
+    st.markdown("**Beranda → Pahami Pasar → Cari Mobil → Cek Harga Iklan → Periksa iklan sumber.** Beranda merangkum cakupan, Pahami Pasar membantu memilih merek dan model, Cari Mobil membentuk shortlist, lalu Cek Harga memberi konteks pembanding.")
+
+st.markdown("### Kesimpulan dan rekomendasi penggunaan")
+with st.container(border=True, key="project_recommendations"):
+    st.write("AutoMatch membantu menemukan kandidat dari iklan yang tersimpan. Angka jumlah listing menunjukkan cakupan arsip, sedangkan grafik harga merangkum harga penawaran yang tercatat.")
+    st.write("Mulai dari wilayah atau bahan bakar di Beranda, bandingkan merek dan model di Pahami Pasar, lalu saring tahun, kilometer, CC, dan anggaran di Cari Mobil. Cek Harga Iklan membandingkan kandidat dengan listing serupa; bila sampelnya sedikit atau model belum tervalidasi, gunakan hasil hanya sebagai konteks awal.")
+    st.caption("Sebelum membeli, buka iklan sumber, tanyakan riwayat servis dan dokumen, serta periksa kondisi kendaraan secara langsung. Dataset arsip tidak memastikan iklan masih aktif atau spesifikasi benar.")
+    action_cols = st.columns(2, gap="medium")
+    with action_cols[0]:
+        if st.button("Mulai dari Beranda", icon=":material/home:", type="primary", key="project_to_home", width="stretch"):
+            st.switch_page("home.py")
+    with action_cols[1]:
+        if st.button("Buka Pahami Pasar", icon=":material/insights:", key="project_to_market", width="stretch"):
+            st.switch_page("pages/1_Explore_Market.py")

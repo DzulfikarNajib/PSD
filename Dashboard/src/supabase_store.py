@@ -18,7 +18,7 @@ FIELDS = [
     "location_normalized", "image_url", "url", "posted_at", "seller_type", "data_source",
 ]
 EXCEL_SEED_SNAPSHOT = "00000000-0000-0000-0000-000000000001"
-ACTIVE_DATASET_SNAPSHOT = "00000000-0000-0000-0000-000000000002"
+ACTIVE_DATASET_SNAPSHOT = "00000000-0000-0000-0000-000000000003"
 INTEGER_FIELDS = ("price", "year", "mileage_km", "engine_cc")
 
 
@@ -158,13 +158,16 @@ def import_excel_seed(data: pd.DataFrame) -> int:
     return inserted
 
 
-def import_dataset_seed(data: pd.DataFrame) -> int:
-    """Idempotently seed the active cleaned OLX dataset into listing_snapshots."""
+def import_dataset_seed(
+    data: pd.DataFrame,
+    snapshot_id: str = ACTIVE_DATASET_SNAPSHOT,
+) -> int:
+    """Upsert the current cleaned OLX dataset under a seed snapshot ID."""
     rows = data.copy().drop_duplicates("listing_id", keep="first")
-    rows["snapshot_id"] = ACTIVE_DATASET_SNAPSHOT
+    rows["snapshot_id"] = snapshot_id
     rows["data_source"] = "olx_dataset"
     records = _records_for_insert(rows)
-    endpoint, headers = _headers("resolution=ignore-duplicates,return=representation")
+    endpoint, headers = _headers("resolution=merge-duplicates,return=representation")
     inserted = 0
     for start in range(0, len(records), 500):
         response = requests.post(
@@ -175,6 +178,93 @@ def import_dataset_seed(data: pd.DataFrame) -> int:
             raise RuntimeError(f"Gagal mengimpor dataset OLX ke Supabase (HTTP {response.status_code}): {response.text[:400]}")
         inserted += len(response.json()) if response.content else 0
     return inserted
+
+
+def replace_dataset_seed(data: pd.DataFrame) -> dict[str, int]:
+    """Publish the new clean dataset, then remove only superseded seed rows.
+
+    Refresh snapshots (``olx_refresh``) are retained. The new dataset is fully
+    upserted before deleting the old Excel seed and older dataset seed IDs.
+    """
+    if data.empty or "listing_id" not in data:
+        raise ValueError("Dataset bersih kosong atau tidak memiliki listing_id.")
+    listing_ids = data["listing_id"].fillna("").astype(str).str.strip()
+    if listing_ids.eq("").any():
+        raise ValueError("Dataset bersih masih memiliki listing_id kosong.")
+
+    # A fresh seed ID makes every run a full replacement, so records removed
+    # from the source CSV cannot linger in the active dataset after an upsert.
+    new_snapshot_id = str(uuid.uuid4())
+    expected_rows = int(listing_ids.nunique())
+    synced = import_dataset_seed(data, snapshot_id=new_snapshot_id)
+    if synced != expected_rows:
+        raise RuntimeError(
+            f"Sinkronisasi seed tidak lengkap ({synced}/{expected_rows} baris terkonfirmasi); "
+            "seed lama dipertahankan."
+        )
+
+    endpoint, headers = _headers("return=minimal")
+
+    def count_rows(params: dict[str, str]) -> int:
+        count_headers = dict(headers)
+        count_headers["Prefer"] = "count=exact"
+        count_headers["Range-Unit"] = "items"
+        count_headers["Range"] = "0-0"
+        response = requests.get(
+            endpoint, params={"select": "listing_id", **params},
+            headers=count_headers, timeout=60,
+        )
+        if not response.ok:
+            raise RuntimeError(
+                f"Gagal memeriksa seed lama di Supabase (HTTP {response.status_code}): "
+                f"{response.text[:400]}"
+            )
+        content_range = response.headers.get("Content-Range", "")
+        total = content_range.rsplit("/", 1)[-1]
+        if total.isdigit():
+            return int(total)
+        raise RuntimeError("Supabase tidak mengembalikan jumlah baris seed lama yang valid.")
+
+    old_dataset_filter = {
+        "data_source": "eq.olx_dataset",
+        "snapshot_id": f"neq.{new_snapshot_id}",
+    }
+    old_dataset_missing_id_filter = {
+        "data_source": "eq.olx_dataset",
+        "snapshot_id": "is.null",
+    }
+    old_excel_filter = {"data_source": "eq.excel_scrape"}
+    old_dataset_count = (
+        count_rows(old_dataset_filter) + count_rows(old_dataset_missing_id_filter)
+    )
+    old_excel_count = count_rows(old_excel_filter)
+
+    def delete_rows(params: dict[str, str]) -> int:
+        response = requests.delete(endpoint, params=params, headers=headers, timeout=60)
+        if not response.ok:
+            raise RuntimeError(f"Gagal membersihkan seed lama di Supabase (HTTP {response.status_code}): {response.text[:400]}")
+        return len(response.json()) if response.content else 0
+
+    delete_rows(old_dataset_filter)
+    delete_rows(old_dataset_missing_id_filter)
+    delete_rows(old_excel_filter)
+    remaining_old_dataset = count_rows(old_dataset_filter)
+    remaining_old_dataset += count_rows(old_dataset_missing_id_filter)
+    remaining_old_excel = count_rows(old_excel_filter)
+    active_seed_count = count_rows({
+        "data_source": "eq.olx_dataset",
+        "snapshot_id": f"eq.{new_snapshot_id}",
+    })
+    if remaining_old_dataset or remaining_old_excel or active_seed_count != expected_rows:
+        raise RuntimeError(
+            "Verifikasi penggantian seed Supabase gagal: seed lama masih tersisa atau "
+            f"jumlah seed baru tidak cocok ({active_seed_count}/{expected_rows})."
+        )
+    return {
+        "dataset_rows_synced": synced,
+        "old_dataset_rows_removed": old_dataset_count,
+        "old_excel_rows_removed": old_excel_count,
+    }
 
 
 def latest_timestamp():

@@ -21,7 +21,10 @@ def filter_listings(
     for column, bounds in numeric_filters:
         if bounds is not None and column in result:
             numeric = pd.to_numeric(result[column], errors="coerce")
-            result = result[numeric.between(bounds[0], bounds[1]) | numeric.isna()]
+            include_missing = not (
+                column == "engine_cc" and (bounds[0] > 0 or bounds[1] < 10_000)
+            )
+            result = result[numeric.between(bounds[0], bounds[1]) | (numeric.isna() & include_missing)]
     if max_mileage is not None and "mileage_km" in result:
         mileage = pd.to_numeric(result["mileage_km"], errors="coerce")
         result = result[mileage.le(max_mileage) | mileage.isna()]

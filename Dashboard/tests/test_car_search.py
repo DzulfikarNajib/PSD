@@ -16,6 +16,20 @@ def test_search_filters_integrate_and_allow_missing_optional_data():
     assert result["listing_id"].tolist() == ["a", "b"]
 
 
+def test_narrow_engine_filter_excludes_listings_without_cc():
+    df = pd.concat([
+        sample_listings(),
+        pd.DataFrame([{"listing_id": "unknown", "engine_cc": None}]),
+    ], ignore_index=True)
+
+    all_engines = filter_listings(df, engine_range=(0, 10_000))
+    large_engines = filter_listings(df, engine_range=(3_500, 6_800))
+
+    assert "unknown" in all_engines["listing_id"].tolist()
+    assert "unknown" not in large_engines["listing_id"].tolist()
+    assert large_engines["listing_id"].empty
+
+
 def test_compare_and_budget_summary():
     df = sample_listings()
     comparison = compare_listings(df, ["a", "b"])

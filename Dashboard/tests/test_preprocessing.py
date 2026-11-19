@@ -3,7 +3,8 @@ import pandas as pd
 from src.preprocessing import (append_history_snapshot, build_live_dataset_from_response,
                                filter_jabodetabek, parse_api_response_to_dataframe,
                                parse_engine_cc, parse_mileage_km, save_dataframe_atomic,
-                               split_financing_listings)
+                               split_financing_listings, parse_engine_cc_from_variant,
+                               preprocess_listing_dataset)
 
 
 def test_parse_api_response_to_dataframe():
@@ -67,6 +68,33 @@ def test_empty_dataframe_is_safe():
 def test_range_conversions_are_documented_midpoints():
     assert parse_mileage_km("20.000 - 30.000 km") == 25000
     assert parse_engine_cc("1.5 L") == 1500
+    assert parse_engine_cc("2.0") == 2000
+    assert parse_engine_cc(">1.500 - 2.000 cc") == 1750
+
+
+def test_engine_size_from_variant_fills_missing_cc_and_marks_estimate():
+    raw = pd.DataFrame({
+        "listing_id": ["gas", "electric"],
+        "make": ["BMW", "BYD"],
+        "model": ["320i", "Seal"],
+        "variant": ["2.0 Bensin-MT", "2.0 Premium Listrik-AT"],
+        "price": [100_000_000, 400_000_000],
+        "year": [2000, 2025],
+        "location": ["Jakarta Timur", "Jakarta Selatan"],
+        "fuel_type": ["Bensin", "Listrik"],
+        "engine_capacity": [None, None],
+    })
+    clean, audit = preprocess_listing_dataset(raw)
+    gas = clean.loc[clean["listing_id"].eq("gas")].iloc[0]
+    electric = clean.loc[clean["listing_id"].eq("electric")].iloc[0]
+
+    assert parse_engine_cc_from_variant("2.0 Bensin-MT") == 2000
+    assert pd.isna(parse_engine_cc_from_variant("Premium Listrik-AT"))
+    assert gas["engine_cc"] == 2000
+    assert bool(gas["engine_cc_inferred"])
+    assert pd.isna(electric["engine_cc"])
+    assert not bool(electric["engine_cc_inferred"])
+    assert audit["engine_cc_from_variant_rows"] == 1
 
 
 def test_location_filter_normalizes_jabodetabek_and_excludes_outside():
