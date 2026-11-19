@@ -138,6 +138,8 @@ else:
             if map_builder is None:
                 map_builder = px.choropleth_mapbox
                 map_style_argument = "mapbox_style"
+            jakarta_center = {"lat": -6.2233, "lon": 106.8296}
+            jakarta_zoom = 9.7
             map_fig = map_builder(
                 regions,
                 geojson=boundaries,
@@ -150,12 +152,14 @@ else:
                 range_color=(0, max(1, int(regions["Iklan tersimpan"].max()))),
                 opacity=0.9,
                 height=560,
+                center=jakarta_center,
+                zoom=jakarta_zoom,
                 **{map_style_argument: "white-bg"},
             )
             map_view_key = "map" if map_style_argument == "map_style" else "mapbox"
             map_fig.update_layout(
                 margin=dict(l=0, r=0, t=0, b=0),
-                **{map_view_key: {"fitbounds": "locations"}},
+                **{map_view_key: {"center": jakarta_center, "zoom": jakarta_zoom}},
                 coloraxis_colorbar=dict(
                     title="Jumlah iklan",
                     orientation="h",
