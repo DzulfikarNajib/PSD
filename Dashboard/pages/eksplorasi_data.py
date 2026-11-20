@@ -35,7 +35,7 @@ from src.ui_components import (
 apply_theme()
 
 page_header(
-    icon="📈",
+    icon="trending-up",
     title="Eksplorasi Data",
     subtitle="Menemukan pola dan hubungan antarvariabel pada data mobil bekas di DKI Jakarta.",
 )
@@ -135,7 +135,7 @@ with r1_c1:
             fig_hist.add_trace(go.Histogram(
                 x=plot_prices_jt,
                 nbinsx=30,
-                marker=dict(color="#008B8B", line=dict(color="#066B6B", width=1)),
+                marker=dict(color="#2563EB", line=dict(color="#1D4ED8", width=1)),
                 hovertemplate="Rentang: Rp %{x:.0f} Jt<br>Frekuensi: <b>%{y:,} listing</b><extra></extra>",
             ))
             fig_hist.add_vline(
@@ -171,7 +171,7 @@ with r1_c2:
             x=top_f_makes["count"],
             y=top_f_makes["make"],
             orientation="h",
-            marker=dict(color="#008B8B", cornerradius=4),
+            marker=dict(color="#2563EB", cornerradius=4),
             text=[f"{v:,}".replace(",", ".") for v in top_f_makes["count"]],
             textposition="auto",
             hovertemplate="Merek: <b>%{y}</b><br>Listing: <b>%{x:,}</b><extra></extra>",
@@ -240,7 +240,7 @@ with r2_c1:
                 pair_year,
                 x="year",
                 y="price_jt",
-                color_discrete_sequence=["#008B8B"],
+                color_discrete_sequence=["#2563EB"],
                 render_mode="webgl",
                 labels={"year": "Tahun", "price_jt": "Harga (Jt)"},
                 hover_data={"make": True, "model": True, "year": True, "price_jt": ":.1f"},
@@ -274,7 +274,7 @@ with r2_c2:
                 pair_km,
                 x="km_rb",
                 y="price_jt",
-                color_discrete_sequence=["#0284C7"],
+                color_discrete_sequence=["#3B82F6"],
                 render_mode="webgl",
                 labels={"km_rb": "Kilometer (Ribu)", "price_jt": "Harga (Jt)"},
                 hover_data={"make": True, "model": True, "km_rb": ":.0f", "price_jt": ":.1f"},
@@ -302,7 +302,7 @@ with r2_c3:
         fig_loc = go.Figure(go.Bar(
             x=loc_dist["Wilayah"],
             y=loc_dist["Listing"],
-            marker=dict(color="#0B2A5B", cornerradius=4),
+            marker=dict(color="#1E40AF", cornerradius=4),
             text=[f"{v:,}".replace(",", ".") for v in loc_dist["Listing"]],
             textposition="outside",
             cliponaxis=False,

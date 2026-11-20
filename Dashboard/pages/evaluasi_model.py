@@ -44,7 +44,7 @@ from src.ui_components import (
 apply_theme()
 
 page_header(
-    icon="📐",
+    icon="activity",
     title="Evaluasi Model",
     subtitle="Membandingkan akurasi estimasi harga mobil bekas antara model parametrik (Linear Regression) dan non-parametrik (Random Forest).",
 )
@@ -74,7 +74,7 @@ with ctrl_col:
 with badge_col:
     if selected_model_view == best_model_name:
         st.markdown(
-            '<div style="text-align:right;"><span style="display:inline-flex;align-items:center;gap:0.4rem;background:#008B8B;color:#FFFFFF;border-radius:999px;padding:0.38rem 1rem;font-size:0.82rem;font-weight:700;letter-spacing:0.01em;box-shadow:0 2px 6px rgba(0,139,139,0.3);">🏆 Model Terbaik Terpilih</span></div>',
+            '<div style="text-align:right;"><span style="display:inline-flex;align-items:center;gap:0.4rem;background:#2563EB;color:#FFFFFF;border-radius:999px;padding:0.38rem 1rem;font-size:0.82rem;font-weight:700;letter-spacing:0.01em;box-shadow:0 2px 6px rgba(37,99,235,0.3);">Model Terbaik Terpilih</span></div>',
             unsafe_allow_html=True,
         )
     else:
@@ -96,25 +96,22 @@ with st.container(border=True):
         kpi_card(
             label="MAE (Mean Absolute Error)",
             value=format_rupiah_compact(mae_val),
-            icon="📉",
+            icon="gauge",
             help_text=f"Rata-rata besar kesalahan absolut prediksi: {format_rupiah(mae_val)}.",
-            variant="blue",
         )
     with kpi_cols[1]:
         kpi_card(
             label="RMSE (Root Mean Squared Error)",
             value=format_rupiah_compact(rmse_val),
-            icon="📊",
+            icon="bar-chart-2",
             help_text=f"Akar rata-rata kuadrat kesalahan: {format_rupiah(rmse_val)} (memberi penalti lebih berat pada galat besar).",
-            variant="teal",
         )
     with kpi_cols[2]:
         kpi_card(
-            label="R² Score (Koefisien Determinasi)",
+            label="R\u00b2 Score (Koefisien Determinasi)",
             value=f"{r2_val:.4f}" if pd.notna(r2_val) else "-",
-            icon="⭐",
+            icon="target",
             help_text=f"Menjelaskan {r2_val*100:.1f}% variasi harga pasar pada data uji.",
-            variant="amber",
         )
 
 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
@@ -142,7 +139,7 @@ with col_scatter:
                 x=act_m,
                 y=pred_m,
                 mode="markers",
-                marker=dict(color="#008B8B", size=5, opacity=0.55),
+                marker=dict(color="#2563EB", size=5, opacity=0.55),
                 name="Data Uji",
                 hovertemplate="Aktual: Rp %{x:.2f} M<br>Prediksi: Rp %{y:.2f} M<extra></extra>",
             ))
@@ -151,7 +148,7 @@ with col_scatter:
                 x=[0, max_val],
                 y=[0, max_val],
                 mode="lines",
-                line=dict(color="#0B2A5B", dash="dash", width=2),
+                line=dict(color="#1E40AF", dash="dash", width=2),
                 name="Ideal (y = x)",
             ))
             apply_chart_theme(fig_avp)
@@ -180,7 +177,7 @@ with col_residual:
                 x=pred_jt,
                 y=res_jt,
                 mode="markers",
-                marker=dict(color="#0284C7", size=5, opacity=0.5),
+                marker=dict(color="#3B82F6", size=5, opacity=0.5),
                 name="Residual",
                 hovertemplate="Prediksi: Rp %{x:.0f} Jt<br>Galat: Rp %{y:.0f} Jt<extra></extra>",
             ))
@@ -215,7 +212,7 @@ with col_imp:
                 x=plot_imp["importance"],
                 y=plot_imp["feature"],
                 orientation="h",
-                marker=dict(color="#008B8B", cornerradius=4),
+                marker=dict(color="#2563EB", cornerradius=4),
                 text=[f"{v:.3f}" for v in plot_imp["importance"]],
                 textposition="outside",
                 cliponaxis=False,
@@ -272,7 +269,7 @@ with col_exp:
 # ---------------------------------------------------------------------------
 # Pelatihan Ulang (Expander Terisolasi)
 # ---------------------------------------------------------------------------
-with st.expander("⚙️ Opsi Pemeliharaan: Latih & Evaluasi Ulang Model", expanded=False):
+with st.expander("Opsi Pemeliharaan: Latih & Evaluasi Ulang Model", expanded=False):
     training_data = load_training_archive()
     eligible, eligibility_message, model_data = training_eligibility(training_data)
     

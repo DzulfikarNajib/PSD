@@ -42,7 +42,7 @@ from src.ui_components import (
 apply_theme()
 
 page_header(
-    icon="🔍",
+    icon="search",
     title="Cek Harga Iklan",
     subtitle="Analisis kewajaran harga penawaran mobil bekas di DKI Jakarta berdasarkan perbandingan pasar dan model Machine Learning.",
 )
@@ -344,7 +344,7 @@ with col_result:
             st.caption("KENDARAAN YANG DIANALISIS")
             st.markdown(f"#### {cur_feat.get('listing_title', 'Spesifikasi Kendaraan')}")
             st.markdown(
-                f"<div style='font-size:1.8rem; font-weight:800; color:#0B2A5B; line-height:1.1; margin-top:0.2rem;'>"
+                f"<div style='font-size:1.8rem; font-weight:800; color:#0F172A; line-height:1.1; margin-top:0.2rem;'>"
                 f"{format_rupiah(asking_price)}</div>",
                 unsafe_allow_html=True,
             )
@@ -373,7 +373,7 @@ with col_result:
                     f"""
                     <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:0.65rem 0.85rem; margin-bottom:0.55rem;">
                         <div style="font-size:0.72rem; color:#475569; font-weight:600; text-transform:uppercase;">Estimasi Model Machine Learning</div>
-                        <div style="font-size:1.15rem; font-weight:800; color:#008B8B; margin:0.1rem 0;">{format_rupiah(ml_estimate)}</div>
+                        <div style="font-size:1.15rem; font-weight:800; color:#2563EB; margin:0.1rem 0;">{format_rupiah(ml_estimate)}</div>
                         <div style="font-size:0.76rem; color:#475569;">
                             Selisih AI: <b>{diff_sign}{format_rupiah(est_diff_rp)} ({diff_sign}{est_diff_pct:.1f}%)</b>
                         </div>
@@ -432,7 +432,7 @@ with col_result:
         st.markdown(
             f"""
             <div style="display:flex; align-items:flex-start; gap:0.5rem; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:0.65rem 0.85rem;">
-                <span style="font-size:1.1rem; line-height:1;">ℹ️</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                 <div style="font-size:0.8rem; color:#334155; line-height:1.45;">{explanation_text}</div>
             </div>
             """,

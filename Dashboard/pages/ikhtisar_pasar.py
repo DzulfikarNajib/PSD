@@ -85,33 +85,29 @@ with st.container(border=True):
         kpi_card(
             label="Listing Unik",
             value=f"{total_listings:,}".replace(",", "."),
-            icon="🚗",
+            icon="car",
             help_text="Jumlah iklan mobil bekas unik terverifikasi di wilayah DKI Jakarta.",
-            variant="teal",
         )
     with kpi_cols[1]:
         kpi_card(
             label="Merek",
             value=f"{total_makes:,}".replace(",", "."),
-            icon="🏷️",
+            icon="tag",
             help_text="Variasi merek kendaraan yang tercatat di arsip pasar.",
-            variant="blue",
         )
     with kpi_cols[2]:
         kpi_card(
             label="Median Harga Iklan",
             value=format_rupiah_compact(median_price),
-            icon="💵",
+            icon="banknote",
             help_text="Nilai tengah harga penawaran iklan (robust terhadap outlier supercar).",
-            variant="amber",
         )
     with kpi_cols[3]:
         kpi_card(
             label="Rentang Tahun",
             value=year_span,
-            icon="📅",
+            icon="calendar",
             help_text="Rentang tahun pembuatan kendaraan yang tersedia di pasar.",
-            variant="navy",
         )
 
 st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
@@ -133,8 +129,7 @@ with col_brand:
             x=top_makes["count"],
             y=top_makes["make"],
             orientation="h",
-            marker=dict(color="#008B8B", cornerradius=4),
-            text=[f"{v:,}".replace(",", ".") for v in top_makes["count"]],
+            marker=dict(color="#2563EB", cornerradius=4),
             textposition="inside",
             insidetextanchor="end",
             textfont=dict(color="#FFFFFF", size=11, family="Inter, sans-serif"),
@@ -155,7 +150,7 @@ with col_region:
         region_counts = archive["location_display"].value_counts().reset_index()
         region_counts.columns = ["region", "count"]
         
-        region_colors = ["#0B2A5B", "#008B8B", "#0284C7", "#10B981", "#F59E0B"]
+        region_colors = ["#1E40AF", "#2563EB", "#3B82F6", "#60A5FA", "#93C5FD"]
         fig_region = go.Figure(go.Pie(
             labels=region_counts["region"],
             values=region_counts["count"],
@@ -189,7 +184,7 @@ with col_fuel:
         fuel_counts = archive["fuel_type"].value_counts().reset_index()
         fuel_counts.columns = ["fuel", "count"]
 
-        fuel_colors = ["#008B8B", "#0F766E", "#0284C7", "#10B981"]
+        fuel_colors = ["#2563EB", "#1E40AF", "#3B82F6", "#60A5FA"]
         fig_fuel = go.Figure(go.Pie(
             labels=fuel_counts["fuel"],
             values=fuel_counts["count"],
@@ -244,7 +239,7 @@ with st.container(border=True):
     insight_cols = st.columns(3, gap="medium")
     with insight_cols[0]:
         insight_card(
-            icon="🏆",
+            icon="trophy",
             headline=f"Dominasi {top_brand_name} & Segmen Premium",
             body=(
                 f"<b>{top_brand_name}</b> memimpin pasar dengan <b>{top_brand_count:,} listing ({top_brand_pct:.1f}%)</b>, "
@@ -256,7 +251,7 @@ with st.container(border=True):
 
     with insight_cols[1]:
         insight_card(
-            icon="📍",
+            icon="map-pin",
             headline=f"Sentra Pasar: {top_loc_name}",
             body=(
                 f"<b>{top_loc_name}</b> merupakan pusat listing mobil bekas terbesar di ibu kota dengan "
@@ -268,7 +263,7 @@ with st.container(border=True):
 
     with insight_cols[2]:
         insight_card(
-            icon="⚡",
+            icon="zap",
             headline=f"Tren Elektrifikasi & Rentang Harga",
             body=(
                 f"Meskipun <b>Bensin mendominasi ({fuel_bensin_pct:.1f}%)</b>, segmen <b>Hybrid dan Listrik</b> "

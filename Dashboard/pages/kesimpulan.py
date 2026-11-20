@@ -35,7 +35,7 @@ from src.ui_components import (
 apply_theme()
 
 page_header(
-    icon="✅",
+    icon="check-circle",
     title="Kesimpulan & Rekomendasi",
     subtitle="Ringkasan temuan dan saran berdasarkan hasil analisis sains data pasar mobil bekas DKI Jakarta.",
 )
@@ -86,7 +86,7 @@ with st.container(border=True):
 
     with k_col1:
         insight_card(
-            icon="🏆",
+            icon="trophy",
             headline=f"Dominasi {top_make}",
             body=f"Pasar didominasi mobil Jepang dengan pangsa pasar <b>{top_make_pct:.1f}% ({top_make_count:,} unit)</b>.".replace(",", "."),
             variant="info",
@@ -94,7 +94,7 @@ with st.container(border=True):
 
     with k_col2:
         insight_card(
-            icon="🚙",
+            icon="car",
             headline="SUV & MPV Terpopuler",
             body="Segmen MPV dan Compact SUV keluarga menjadi tipe kendaraan paling diminati di pasar ibu kota.",
             variant="default",
@@ -102,7 +102,7 @@ with st.container(border=True):
 
     with k_col3:
         insight_card(
-            icon="📉",
+            icon="trending-up",
             headline="Faktor Penentu Harga",
             body="Harga dipengaruhi paling kuat oleh kombinasi tahun pembuatan, jarak tempuh (KM), dan kapasitas mesin.",
             variant="success",
@@ -110,9 +110,9 @@ with st.container(border=True):
 
     with k_col4:
         insight_card(
-            icon="🎯",
+            icon="target",
             headline="Model Terbaik: RF",
-            body=f"Random Forest menghasilkan akurasi tertinggi dengan <b>R² = {best_r2:.4f}</b> dan MAE {format_rupiah_compact(best_mae)}.",
+            body=f"Random Forest menghasilkan akurasi tertinggi dengan <b>R\u00b2 = {best_r2:.4f}</b> dan MAE {format_rupiah_compact(best_mae)}.",
             variant="warning",
         )
 

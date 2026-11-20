@@ -44,7 +44,7 @@ from src.ui_components import (
 apply_theme()
 
 page_header(
-    icon="⚙️",
+    icon="settings",
     title="Preprocessing & Segmentasi",
     subtitle="Transparansi pipa rekayasa data dan pengelompokan segmen pasar mobil bekas dengan algoritma K-Means.",
 )
@@ -55,7 +55,7 @@ if archive.empty:
     st.warning("Data arsip tidak dapat dimuat.", icon=":material/warning:")
     st.stop()
 
-tab_prep, tab_seg = st.tabs(["🧹 Preprocessing & Kualitas Data", "🗂️ Segmentasi Pasar (K-Means)"])
+tab_prep, tab_seg = st.tabs(["Preprocessing & Kualitas Data", "Segmentasi Pasar (K-Means)"])
 
 # ===========================================================================
 # TAB 1: PREPROCESSING & KUALITAS DATA
@@ -92,7 +92,7 @@ with tab_prep:
                 y=funnel_df["Tahap"],
                 orientation="h",
                 marker=dict(
-                    color=["#0B2A5B", "#08376E", "#008B8B", "#066B6B", "#10B981"],
+                    color=["#1E40AF", "#2563EB", "#3B82F6", "#60A5FA", "#93C5FD"],
                     cornerradius=4,
                 ),
                 text=[f"{v:,}".replace(",", ".") for v in funnel_df["Listing tersisa"]],
@@ -153,7 +153,7 @@ with tab_prep:
                 x=miss_df["Kosong (%)"],
                 y=miss_df["Fitur"],
                 orientation="h",
-                marker=dict(color="#008B8B", cornerradius=4),
+                marker=dict(color="#2563EB", cornerradius=4),
                 text=[f"{v:.1f}%" for v in miss_df["Kosong (%)"]],
                 textposition="outside",
                 cliponaxis=False,
@@ -211,7 +211,7 @@ with tab_seg:
                 x="pca_1",
                 y="pca_2",
                 color="market_segment",
-                color_discrete_sequence=["#008B8B", "#0284C7", "#F59E0B", "#10B981"],
+                color_discrete_sequence=["#2563EB", "#3B82F6", "#60A5FA", "#1E40AF"],
                 render_mode="webgl",
                 labels={
                     "pca_1": f"Principal Component 1 ({exp_var[0]*100:.1f}% varians)",
@@ -281,7 +281,7 @@ with tab_seg:
                 st.markdown(
                     f"""
                     <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:0.6rem 0.85rem; margin-bottom:0.45rem;">
-                        <div style="font-size:0.84rem; font-weight:700; color:#0B2A5B;">{persona_title}</div>
+                        <div style="font-size:0.84rem; font-weight:700; color:#0F172A;">{persona_title}</div>
                         <div style="font-size:0.77rem; color:#475569;">{persona_desc}</div>
                     </div>
                     """,

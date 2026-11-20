@@ -30,7 +30,153 @@ BORDER = "#E2E8F0"
 BG = "#F8FAFC"
 WHITE = "#FFFFFF"
 
-CHART_COLORS = [TEAL, "#0F766E", "#0369A1", "#F59E0B", "#10B981", "#64748B", "#7C3AED", "#EA580C"]
+CHART_COLORS = ["#2563EB", "#3B82F6", "#60A5FA", "#1E40AF", "#93C5FD", "#94A3B8", "#475569", "#1D4ED8"]
+
+
+# ---------------------------------------------------------------------------
+# Lucide SVG Icon System (outline, stroke-width 1.75, fill none, 24x24)
+# ---------------------------------------------------------------------------
+
+_LUCIDE_PATHS: dict[str, str] = {
+    "car": (
+        '<path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1l3-4h8l3 4h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2"/>'
+        '<circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>'
+    ),
+    "tag": (
+        '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/>'
+        '<circle cx="7.5" cy="7.5" r="1.5"/>'
+    ),
+    "banknote": (
+        '<rect width="20" height="12" x="2" y="6" rx="2"/>'
+        '<circle cx="12" cy="12" r="2"/>'
+        '<path d="M6 12h.01M18 12h.01"/>'
+    ),
+    "calendar": (
+        '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>'
+        '<line x1="16" x2="16" y1="2" y2="6"/>'
+        '<line x1="8" x2="8" y1="2" y2="6"/>'
+        '<line x1="3" x2="21" y1="10" y2="10"/>'
+    ),
+    "trending-up": (
+        '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>'
+        '<polyline points="16 7 22 7 22 13"/>'
+    ),
+    "bar-chart-2": (
+        '<line x1="18" x2="18" y1="20" y2="10"/>'
+        '<line x1="12" x2="12" y1="20" y2="4"/>'
+        '<line x1="6" x2="6" y1="20" y2="14"/>'
+    ),
+    "search": (
+        '<circle cx="11" cy="11" r="8"/>'
+        '<path d="m21 21-4.35-4.35"/>'
+    ),
+    "check-circle": (
+        '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>'
+        '<polyline points="22 4 12 14.01 9 11.01"/>'
+    ),
+    "settings": (
+        '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>'
+        '<circle cx="12" cy="12" r="3"/>'
+    ),
+    "award": (
+        '<circle cx="12" cy="8" r="6"/>'
+        '<path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>'
+    ),
+    "map-pin": (
+        '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>'
+        '<circle cx="12" cy="10" r="3"/>'
+    ),
+    "zap": '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+    "activity": '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    "target": (
+        '<circle cx="12" cy="12" r="10"/>'
+        '<circle cx="12" cy="12" r="6"/>'
+        '<circle cx="12" cy="12" r="2"/>'
+    ),
+    "cpu": (
+        '<rect width="16" height="16" x="4" y="4" rx="2"/>'
+        '<rect width="6" height="6" x="9" y="9" rx="1"/>'
+        '<path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/>'
+    ),
+    "info": (
+        '<circle cx="12" cy="12" r="10"/>'
+        '<path d="M12 16v-4"/>'
+        '<path d="M12 8h.01"/>'
+    ),
+    "trophy": (
+        '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>'
+        '<path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>'
+        '<path d="M4 22h16"/>'
+        '<path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>'
+        '<path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>'
+        '<path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>'
+    ),
+    "pie-chart": (
+        '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>'
+        '<path d="M22 12A10 10 0 0 0 12 2v10z"/>'
+    ),
+    "gauge": (
+        '<path d="m12 14 4-4"/>'
+        '<path d="M3.34 19a10 10 0 1 1 17.32 0"/>'
+    ),
+    "arrow-up-right": '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+    "arrow-down-right": '<path d="M7 7h10v10"/><path d="m17 7-10 10"/>',
+    "minus": '<path d="M5 12h14"/>',
+    "layers": (
+        '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>'
+        '<path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/>'
+        '<path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>'
+    ),
+    "git-branch": (
+        '<line x1="6" x2="6" y1="3" y2="15"/>'
+        '<circle cx="18" cy="6" r="3"/>'
+        '<circle cx="6" cy="18" r="3"/>'
+        '<path d="M18 9a9 9 0 0 1-9 9"/>'
+    ),
+    "database": (
+        '<ellipse cx="12" cy="5" rx="9" ry="3"/>'
+        '<path d="M3 5V19a9 3 0 0 0 18 0V5"/>'
+        '<path d="M3 12a9 3 0 0 0 18 0"/>'
+    ),
+    "layout-dashboard": (
+        '<rect width="7" height="9" x="3" y="3" rx="1"/>'
+        '<rect width="7" height="5" x="14" y="3" rx="1"/>'
+        '<rect width="7" height="9" x="14" y="12" rx="1"/>'
+        '<rect width="7" height="5" x="3" y="16" rx="1"/>'
+    ),
+    "sliders": (
+        '<line x1="4" x2="4" y1="21" y2="14"/>'
+        '<line x1="4" x2="4" y1="6" y2="3"/>'
+        '<line x1="12" x2="12" y1="21" y2="12"/>'
+        '<line x1="12" x2="12" y1="6" y2="3"/>'
+        '<line x1="20" x2="20" y1="21" y2="16"/>'
+        '<line x1="20" x2="20" y1="10" y2="3"/>'
+        '<line x1="1" x2="7" y1="14" y2="14"/>'
+        '<line x1="9" x2="15" y1="12" y2="12"/>'
+        '<line x1="17" x2="23" y1="16" y2="16"/>'
+    ),
+}
+
+
+def get_lucide_icon(name: str, size: int = 16, color: str = "#64748B") -> str:
+    """Return an inline SVG string for a Lucide icon.
+
+    Args:
+        name:  Lucide icon slug, e.g. "car", "bar-chart-2", "search".
+        size:  Width and height in pixels (default 16).
+        color: Stroke colour (default slate-500 #64748B).
+
+    Returns:
+        A self-contained ``<svg>`` HTML string.
+    """
+    path_data = _LUCIDE_PATHS.get(name, _LUCIDE_PATHS["minus"])
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" '
+        f'viewBox="0 0 24 24" fill="none" stroke="{color}" '
+        f'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" '
+        f'style="display:inline-block;vertical-align:middle;flex-shrink:0;">'
+        f'{path_data}</svg>'
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -69,13 +215,24 @@ def hero_banner(
 # ---------------------------------------------------------------------------
 
 def page_header(icon: str, title: str, subtitle: str) -> None:
-    """Render a consistent page header with icon merged directly into the title string."""
-    icon_prefix = f"{icon} " if icon else ""
+    """Render a consistent page header with a Lucide SVG icon.
+
+    icon:  A Lucide icon slug (e.g. 'bar-chart-2') or empty string to omit.
+    """
+    icon_html = ""
+    if icon:
+        svg = get_lucide_icon(icon, size=20, color=TEAL)
+        icon_html = (
+            f'<span style="display:inline-flex;align-items:center;justify-content:center;'
+            f'width:2.2rem;height:2.2rem;border-radius:8px;background:#F0FDFA;flex-shrink:0;">'
+            f'{svg}</span>'
+        )
     st.markdown(
         f"""
         <div class="am-page-header">
+            {icon_html}
             <div>
-                <div class="am-page-header-title">{icon_prefix}{title}</div>
+                <div class="am-page-header-title">{title}</div>
                 <div class="am-page-header-subtitle">{subtitle}</div>
             </div>
         </div>
@@ -85,7 +242,7 @@ def page_header(icon: str, title: str, subtitle: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# KPI card
+# KPI card  (Chronicle / Shadcn flat style)
 # ---------------------------------------------------------------------------
 
 def kpi_card(
@@ -93,28 +250,25 @@ def kpi_card(
     value: str,
     icon: str = "",
     help_text: str = "",
-    variant: str = "teal",
+    variant: str = "default",
 ) -> None:
-    """Render a single KPI card matching the master reference design."""
-    badge_classes = {
-        "teal": "am-kpi-badge-teal",
-        "navy": "am-kpi-badge-navy",
-        "amber": "am-kpi-badge-amber",
-        "blue": "am-kpi-badge-blue",
-        "green": "am-kpi-badge-green",
-    }
-    badge_cls = badge_classes.get(variant, "am-kpi-badge-teal")
-    icon_html = f'<div class="am-kpi-icon-badge {badge_cls}">{icon}</div>' if icon else ""
+    """Render a Chronicle-style flat KPI card.
+
+    icon:    Lucide icon slug (e.g. 'car', 'banknote'). Empty string to omit.
+    variant: Unused legacy param kept for backwards-compat; styling is now flat.
+    """
+    icon_html = ""
+    if icon:
+        svg = get_lucide_icon(icon, size=14, color="#64748B")
+        icon_html = f'<span style="margin-right:0.3rem;display:inline-flex;align-items:center;">{svg}</span>'
+
     title_attr = f'title="{help_text}"' if help_text else ""
 
     st.markdown(
         f"""
         <div class="am-kpi-card" {title_attr}>
-            {icon_html}
-            <div>
-                <div class="am-kpi-label">{label}</div>
-                <div class="am-kpi-value">{value}</div>
-            </div>
+            <div class="am-kpi-label">{icon_html}{label}</div>
+            <div class="am-kpi-value">{value}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -134,7 +288,7 @@ def kpi_row(cards: list[dict]) -> None:
                 value=card.get("value", "-"),
                 icon=card.get("icon", ""),
                 help_text=card.get("help", ""),
-                variant=card.get("variant", "teal"),
+                variant=card.get("variant", "default"),
             )
 
 
@@ -159,9 +313,10 @@ def section_card(title: str = "", key: str = "") -> "contextlib._GeneratorContex
 # ---------------------------------------------------------------------------
 
 def insight_card(icon: str, headline: str, body: str, variant: str = "default") -> None:
-    """Render a single insight card with automatic markdown **bold** to <b>bold</b> conversion.
+    """Render a single insight card with a Lucide SVG icon.
 
-    variant: "default" | "warning" | "success" | "info"
+    icon:    Lucide icon slug (e.g. 'trophy', 'map-pin', 'zap').
+    variant: 'default' | 'warning' | 'success' | 'info'
     """
     variant_classes = {
         "default": "am-insight-card",
@@ -171,10 +326,20 @@ def insight_card(icon: str, headline: str, body: str, variant: str = "default") 
     }
     css_class = variant_classes.get(variant, "am-insight-card")
     body_html = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", body)
+
+    icon_color_map = {
+        "default": "#475569",
+        "warning": "#D97706",
+        "success": "#059669",
+        "info": TEAL,
+    }
+    icon_color = icon_color_map.get(variant, "#475569")
+    icon_svg = get_lucide_icon(icon, size=18, color=icon_color) if icon else ""
+
     st.markdown(
         f"""
         <div class="{css_class}">
-            <div class="am-insight-icon">{icon}</div>
+            <div class="am-insight-icon">{icon_svg}</div>
             <div>
                 <div class="am-insight-headline">{headline}</div>
                 <div class="am-insight-body">{body_html}</div>
@@ -322,12 +487,16 @@ def apply_chart_theme(fig: go.Figure) -> go.Figure:
 # Coming-soon placeholder (used in Fase 1 for pages not yet implemented)
 # ---------------------------------------------------------------------------
 
-def coming_soon_placeholder(page_name: str, description: str, icon: str = "🚧") -> None:
-    """Render a placeholder card for a page not yet implemented."""
+def coming_soon_placeholder(page_name: str, description: str, icon: str = "layers") -> None:
+    """Render a placeholder card for a page not yet implemented.
+
+    icon: Lucide icon slug.
+    """
+    icon_svg = get_lucide_icon(icon, size=32, color="#94A3B8")
     st.markdown(
         f"""
         <div class="am-coming-soon">
-            <div class="am-coming-soon-icon">{icon}</div>
+            <div class="am-coming-soon-icon">{icon_svg}</div>
             <div class="am-coming-soon-title">{page_name}</div>
             <div class="am-coming-soon-desc">{description}</div>
             <div class="am-coming-soon-badge">Fase implementasi berikutnya</div>
