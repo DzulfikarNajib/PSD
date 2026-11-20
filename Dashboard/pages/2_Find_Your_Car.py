@@ -2,6 +2,7 @@
 
 from html import escape
 
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
@@ -255,7 +256,7 @@ with results_column:
     filtered = filtered.sort_values(sort_column, ascending=ascending, na_position="last")
     unique_matches = filtered["listing_id"].nunique() if "listing_id" in filtered else len(filtered)
     st.markdown(f"### {unique_matches:,} mobil cocok".replace(",", "."))
-    st.caption(f"Menampilkan hasil dari {len(cars):,} listing pada sumber {source_choice.lower()}.".replace(",", "."))
+    st.caption(f"Menampilkan hasil dari {len(cars):,} listing tersimpan.".replace(",", "."))
     if filtered.empty:
         st.info("Belum ada hasil yang cocok. Coba perlebar rentang anggaran, tahun, kilometer, atau filter spesifikasi.")
         st.stop()
@@ -288,7 +289,6 @@ with results_column:
         fields = ["make", "model", "year", "mileage_km", "engine_cc", "fuel_type", "transmission", "body_type", "price"]
         st.session_state["price_checker_prefill"] = {
             **{key: (None if pd.isna(chosen.get(key)) else chosen.get(key)) for key in fields},
-            "_comparison_source": source_choice,
             "_auto_calculate": True,
         }
         st.switch_page("pages/3_Price_Checker.py")
@@ -347,7 +347,7 @@ with results_column:
                         st.markdown(f"<div class='listing-spec'><span>{label}</span><b>{escape(value)}</b></div>", unsafe_allow_html=True)
                     if bool(row.get("engine_cc_inferred", False)):
                         st.caption("≈ berarti CC diperkirakan dari angka kapasitas di awal varian iklan.")
-                    origins = str(row.get("source_origins") or row.get("data_source") or source_choice)
+                    origins = str(row.get("source_origins") or row.get("data_source") or "Dataset OLX")
                     fetched = pd.to_datetime(row.get("fetched_at"), errors="coerce", utc=True)
                     if pd.notna(fetched):
                         source_time = fetched.tz_convert("Asia/Jakarta").strftime("%d %b %Y, %H:%M WIB")
@@ -358,7 +358,4 @@ with results_column:
                     if pd.notna(url) and str(url).startswith("http"):
                         st.link_button("Buka iklan sumber", str(url), icon=":material/open_in_new:", width="stretch")
 
-if source_choice == "Arsip Penuh":
-    st.warning("Dataset ini sudah dibersihkan untuk analisis, tetapi bukan stok aktif. Iklan dapat berubah atau tidak aktif; snapshot terbaru tersedia pada pilihan Listing Terbaru.")
-else:
-    st.caption("Listing terlihat saat snapshot terakhir diambil, tetapi status iklan dapat berubah. AutoMatch tidak memeriksa kondisi fisik atau dokumen kendaraan.")
+st.caption("Listing berasal dari arsip OLX aktif yang telah dibersihkan. AutoMatch tidak memeriksa kondisi fisik atau dokumen kendaraan secara langsung.")

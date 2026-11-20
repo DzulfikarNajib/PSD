@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.data_loader import load_history_data, load_live_data, load_combined_archive, load_historical_data_with_audit
+from src.data_loader import load_combined_archive, load_historical_data_with_audit
 from src.styles import apply_theme
 from src.ui import (
     format_rupiah,
@@ -114,7 +114,6 @@ if not model_stats.empty:
             st.session_state["prefill_make"] = selected_make
             st.session_state["prefill_model"] = selected_model
             st.session_state["prefill_fuel"] = chosen_fuel if chosen_fuel != "Semua bahan bakar" else None
-            st.session_state["car_source_choice"] = "Arsip Penuh" if source_choice == "Arsip Penuh" else "Listing Terbaru"
             st.switch_page("pages/2_Find_Your_Car.py")
 else:
     st.info("Belum ada kombinasi merek dan bahan bakar dengan model tercatat pada pilihan sumber ini.")
@@ -159,15 +158,14 @@ priced = priced[priced["price"] > 0]
 unique_count = source["listing_id"].nunique() if "listing_id" in source else len(source)
 make_count = source["make"].nunique() if "make" in source else 0
 
-with col_scope:
-    with st.container(border=True, key="market_scope_picker"):
-        scope_choice = st.radio(
-            "Rentang harga analisis",
-            ["Pasar Umum (≤ Persentil 95)", "Semua Data"],
-            horizontal=True,
-            key="market_scope_choice",
-            help="Pasar Umum mengecualikan harga di atas persentil ke-95. Pilihan ini membantu membaca sebaran utama tanpa menghapus data dari arsip.",
-        )
+with st.container(border=True, key="market_scope_picker"):
+    scope_choice = st.radio(
+        "Rentang harga analisis",
+        ["Pasar Umum (≤ Persentil 95)", "Semua Data"],
+        horizontal=True,
+        key="market_scope_choice",
+        help="Pasar Umum mengecualikan harga di atas persentil ke-95. Pilihan ini membantu membaca sebaran utama tanpa menghapus data dari arsip.",
+    )
 
 if not priced.empty and scope_choice == "Pasar Umum (≤ Persentil 95)":
     p95 = priced["price"].quantile(0.95)

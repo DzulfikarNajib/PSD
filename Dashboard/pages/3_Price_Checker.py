@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.data_loader import load_combined_archive, load_live_data, load_training_archive
+from src.data_loader import load_combined_archive, load_training_archive
 from src.car_search import assess_price_position
 from src.modeling import (
     MODEL_PATH,
@@ -104,10 +104,8 @@ with st.expander("Ringkasan Fitur & Transformasi Model"):
 
 prefill = st.session_state.pop("price_checker_prefill", {})
 auto_check_prefill = bool(prefill.pop("_auto_calculate", False))
-prefill_source = prefill.pop("_comparison_source", None)
+prefill.pop("_comparison_source", None)
 if prefill:
-    if prefill_source in {"Arsip Penuh", "Listing Terbaru"}:
-        st.session_state["price_comparison_source"] = prefill_source
     prefill_widgets = {
         "calculator_make": "make",
         "calculator_model": "model",
@@ -125,18 +123,9 @@ if prefill:
             st.session_state[widget_key] = prefill[field]
     st.session_state.pop("price_calculation_result", None)
 
-live = load_live_data()
 archive = load_combined_archive()
 training_data = load_training_archive()
-with st.container(border=True, key="price_source_picker"):
-    source = st.radio(
-        "Sumber pembanding",
-        ["Arsip Penuh", "Listing Terbaru"],
-        horizontal=True,
-        key="price_comparison_source",
-        help="Sumber ini mengubah data pembanding listing serupa. Model machine learning tetap menggunakan arsip historis tervalidasi.",
-    )
-comparison_data = live.copy() if source == "Listing Terbaru" else archive.copy()
+comparison_data = archive.copy()
 render_data_source_status()
 input_data = comparison_data if not comparison_data.empty else training_data.copy()
 for column in ("price", "year", "mileage_km", "engine_cc"):
