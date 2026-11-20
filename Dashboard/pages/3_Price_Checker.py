@@ -92,8 +92,51 @@ def _delta_text(value, reference):
 
 apply_theme()
 st.title("Cek Harga Iklan")
-st.caption("Langkah evaluasi setelah memilih kandidat: bandingkan harga iklan dengan mobil serupa dan, bila tersedia, estimasi model.")
-st.caption("Harga iklan dan estimasi adalah konteks awal. Keduanya bukan harga transaksi pasti dan tidak menggantikan pemeriksaan kondisi mobil.")
+
+with st.container(border=True):
+    st.markdown("### Evaluasi Nilai Penawaran Iklan Mobil")
+    st.markdown(
+        "Ketahui posisi harga iklan mobil yang kamu temukan di marketplace—apakah penawaran tersebut **di bawah pasar (good deal)**, **wajar**, atau **kemahalan (di atas pasar)**. "
+        "Evaluasi menggabungkan perbandingan median mobil sejenis dan estimasi algoritma Machine Learning.",
+        unsafe_allow_html=True,
+    )
+    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+    guide_cols = st.columns(3, gap="medium")
+    with guide_cols[0]:
+        with st.container(border=True):
+            st.markdown(
+                "<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px;'>"
+                "<span style='background:#008B8B;color:#FFFFFF;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;'>1</span>"
+                "<b style='color:#0F172A;font-size:14px;'>Pilih / Input Spek</b>"
+                "</div>"
+                "<span style='color:#475569;font-size:12.5px;line-height:1.4;'>Pilih mobil contoh dari database arsip atau masukkan spesifikasi iklan yang sedang kamu taksir.</span>",
+                unsafe_allow_html=True,
+            )
+    with guide_cols[1]:
+        with st.container(border=True):
+            st.markdown(
+                "<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px;'>"
+                "<span style='background:#008B8B;color:#FFFFFF;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;'>2</span>"
+                "<b style='color:#0F172A;font-size:14px;'>Evaluasi Ganda</b>"
+                "</div>"
+                "<span style='color:#475569;font-size:12.5px;line-height:1.4;'>Sistem otomatis membandingkan dengan <b>median listing serupa di OLX</b> dan <b>prediksi model Machine Learning</b>.</span>",
+                unsafe_allow_html=True,
+            )
+    with guide_cols[2]:
+        with st.container(border=True):
+            st.markdown(
+                "<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px;'>"
+                "<span style='background:#008B8B;color:#FFFFFF;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;'>3</span>"
+                "<b style='color:#0F172A;font-size:14px;'>Baca Status Harga</b>"
+                "</div>"
+                "<div style='font-size:12.5px;line-height:1.45;color:#475569;'>"
+                "🟢 <b>Di Bawah:</b> Potensi good deal<br>"
+                "🔵 <b>Wajar:</b> Standar pasar Jakarta<br>"
+                "🔴 <b>Di Atas:</b> Bahan tawar-menawar"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+
 with st.expander("Ringkasan Fitur & Transformasi Model"):
     st.write("Target model adalah harga penawaran (price). Prediktornya: merek, model, tahun, kilometer, kapasitas mesin, transmisi, bahan bakar, dan tipe bodi.")
     st.caption("Kolom kategori diubah dengan one-hot encoding. Nilai numerik kosong, termasuk CC yang tidak dicantumkan pada sebagian EV, diisi median dari data latih.")
@@ -159,19 +202,6 @@ if not prefill and not st.session_state.get("price_example_initialized") and not
 if input_data.empty or not makes:
     st.info("Belum ada data spesifikasi untuk kalkulator. Impor dataset atau simpan snapshot sebelum memakai kalkulator.")
 else:
-    with st.container(border=True):
-        st.markdown("#### Panduan 3 Langkah Cek Harga Iklan")
-        guide_cols = st.columns(3, gap="medium")
-        with guide_cols[0]:
-            st.markdown("**1. Pilih atau Input Spek**")
-            st.caption("Gunakan dropdown contoh dari database atau masukkan manual spesifikasi iklan mobil yang sedang kamu incar.")
-        with guide_cols[1]:
-            st.markdown("**2. Evaluasi Ganda (Pasar + AI)**")
-            st.caption("Sistem otomatis membandingkan dengan median harga iklan sejenis di OLX sekaligus prediksi harga wajar Machine Learning.")
-        with guide_cols[2]:
-            st.markdown("**3. Pahami Status Penawaran**")
-            st.caption("🟢 **Di Bawah:** Potensi good deal.<br>🔵 **Wajar:** Sesuai standar pasar Jakarta.<br>🔴 **Di Atas:** Bahan tawar-menawar (negosiasi).", unsafe_allow_html=True)
-
     form_col, result_col = st.columns([.95, 1.25], gap="large", vertical_alignment="top")
     with form_col:
         with st.container(border=True):

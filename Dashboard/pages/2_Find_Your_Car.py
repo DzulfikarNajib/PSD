@@ -27,7 +27,15 @@ def _cluster_cached(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 apply_theme()
 st.title("Cari Mobil")
-st.caption("Saring arsip berdasarkan anggaran dan spesifikasi. Bandingkan listing, lalu buka sumber iklan untuk memeriksa detailnya.")
+
+with st.container(border=True):
+    st.markdown("### Temukan Mobil Sesuai Anggaran & Preferensimu")
+    st.markdown(
+        "Saring ribuan listing mobil bekas di wilayah DKI Jakarta berdasarkan anggaran, merek, tahun, kilometer, hingga transmisi. "
+        "Gunakan **klaster persona K-Means** di bawah untuk langsung menemukan kelompok mobil yang paling relevan dengan profil kebutuhanmu.",
+        unsafe_allow_html=True,
+    )
+    st.caption("💡 *Terapkan filter di panel samping untuk mempersempit daftar, lalu klik 'Buka iklan sumber' untuk verifikasi langsung di OLX.*")
 
 archive = load_combined_archive()
 if archive.empty:
