@@ -118,3 +118,11 @@ def test_zero_em_dash_in_redesign_pages():
         content = p.read_text(encoding="utf-8")
         assert "—" not in content, f"Em dash found in {p.name}! Anti-slop rule R-02 violated."
 
+
+def test_anti_slop_linter_full_pass():
+    from scripts.anti_slop_linter import run_anti_slop_audit
+    
+    exit_code = run_anti_slop_audit(root_dir=ROOT, strict=True)
+    assert exit_code == 0, "Anti-Slop Linter found violations in active project files!"
+
+
