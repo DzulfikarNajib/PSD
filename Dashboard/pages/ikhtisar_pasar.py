@@ -1,4 +1,4 @@
-"""Ikhtisar Pasar — ringkasan pasar mobil bekas DKI Jakarta.
+"""Ikhtisar Pasar - ringkasan pasar mobil bekas DKI Jakarta.
 
 Dashboard ringkasan pasar dengan KPI utama, distribusi 5 wilayah,
 komposisi bahan bakar, top merek, dan insight cards terhitung otomatis.
@@ -24,6 +24,7 @@ from src.styles import apply_theme
 from src.ui import format_rupiah_compact
 from src.ui_components import (
     apply_chart_theme,
+    hero_banner,
     insight_card,
     kpi_card,
     page_header,
@@ -32,10 +33,10 @@ from src.ui_components import (
 
 apply_theme()
 
-page_header(
-    icon="📊",
-    title="Ikhtisar Pasar",
-    subtitle="Memahami karakteristik, komposisi wilayah, dan dinamika harga mobil bekas di DKI Jakarta dengan pendekatan data science.",
+hero_banner(
+    title="AutoMatch",
+    subtitle="Analisis Pasar Mobil Bekas di DKI Jakarta",
+    description="Memahami karakteristik, menemukan pola, dan memprediksi harga mobil bekas dengan pendekatan data science.",
 )
 
 archive = load_combined_archive()
@@ -72,7 +73,7 @@ median_price = float(priced["price"].median()) if not priced.empty else 0.0
 
 year_min = int(archive["year"].min()) if archive["year"].notna().any() else 1986
 year_max = int(archive["year"].max()) if archive["year"].notna().any() else 2026
-year_span = f"{year_min} – {year_max}"
+year_span = f"{year_min} - {year_max}"
 
 # ---------------------------------------------------------------------------
 # Baris 1: KPI Metrics
@@ -84,13 +85,15 @@ with kpi_cols[0]:
         value=f"{total_listings:,}".replace(",", "."),
         icon="🚗",
         help_text="Jumlah iklan mobil bekas unik terverifikasi di wilayah DKI Jakarta.",
+        variant="teal",
     )
 with kpi_cols[1]:
     kpi_card(
-        label="Merek Terdaftar",
+        label="Merek",
         value=f"{total_makes:,}".replace(",", "."),
         icon="🏷️",
         help_text="Variasi merek kendaraan yang tercatat di arsip pasar.",
+        variant="blue",
     )
 with kpi_cols[2]:
     kpi_card(
@@ -98,6 +101,7 @@ with kpi_cols[2]:
         value=format_rupiah_compact(median_price),
         icon="💵",
         help_text="Nilai tengah harga penawaran iklan (robust terhadap outlier supercar).",
+        variant="amber",
     )
 with kpi_cols[3]:
     kpi_card(
@@ -105,6 +109,7 @@ with kpi_cols[3]:
         value=year_span,
         icon="📅",
         help_text="Rentang tahun pembuatan kendaraan yang tersedia di pasar.",
+        variant="navy",
     )
 
 st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)

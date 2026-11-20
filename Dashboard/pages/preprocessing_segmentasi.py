@@ -1,4 +1,4 @@
-"""Preprocessing & Segmentasi — alur penyiapan data dan segmentasi pasar K-Means.
+"""Preprocessing & Segmentasi - alur penyiapan data dan segmentasi pasar K-Means.
 
 Tab 1: Preprocessing
 - Funnel Kualitas Data (Data Mentah s/d Data Siap)
@@ -265,16 +265,16 @@ with tab_seg:
                 
                 # Nama deskriptif sesuai urutan median harga
                 if s_name == "Segmen 1":
-                    persona_title = "Segmen 1 — Ekonomis & Komuter Entry"
+                    persona_title = "Segmen 1 - Ekonomis & Komuter Entry"
                     persona_desc = f"Harga: < Rp 150 Jt · Tahun: ~{s_yr} · KM: {s_km} ({s_unit:,} unit, {s_pct:.1f}% pasar)".replace(",", ".")
                 elif s_name == "Segmen 2":
-                    persona_title = "Segmen 2 — Sweet Spot Keluarga & Komuter"
-                    persona_desc = f"Harga: Rp 200–500 Jt · Tahun: ~{s_yr} · KM: {s_km} ({s_unit:,} unit, {s_pct:.1f}% pasar)".replace(",", ".")
+                    persona_title = "Segmen 2 - Sweet Spot Keluarga & Komuter"
+                    persona_desc = f"Harga: Rp 200-500 Jt · Tahun: ~{s_yr} · KM: {s_km} ({s_unit:,} unit, {s_pct:.1f}% pasar)".replace(",", ".")
                 elif s_name == "Segmen 3":
-                    persona_title = "Segmen 3 — Eksekutif & SUV Premium"
-                    persona_desc = f"Harga: Rp 1–2,5 M · Tahun: ~{s_yr} · KM: {s_km} ({s_unit:,} unit, {s_pct:.1f}% pasar)".replace(",", ".")
+                    persona_title = "Segmen 3 - Eksekutif & SUV Premium"
+                    persona_desc = f"Harga: Rp 1-2,5 M · Tahun: ~{s_yr} · KM: {s_km} ({s_unit:,} unit, {s_pct:.1f}% pasar)".replace(",", ".")
                 else:
-                    persona_title = "Segmen 4 — Flagship, Supercar & Koleksi"
+                    persona_title = "Segmen 4 - Flagship, Supercar & Koleksi"
                     persona_desc = f"Harga: > Rp 3 M · Tahun: ~{s_yr} · KM: {s_km} ({s_unit:,} unit, {s_pct:.1f}% pasar)".replace(",", ".")
 
                 st.markdown(

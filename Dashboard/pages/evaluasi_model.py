@@ -1,4 +1,4 @@
-"""Evaluasi Model — perbandingan performa model regresi harga mobil bekas.
+"""Evaluasi Model - perbandingan performa model regresi harga mobil bekas.
 
 Menampilkan:
 - Seleksi model utama: Linear Regression vs Random Forest
@@ -96,6 +96,7 @@ with kpi_cols[0]:
         value=format_rupiah_compact(mae_val),
         icon="📉",
         help_text=f"Rata-rata besar kesalahan absolut prediksi: {format_rupiah(mae_val)}.",
+        variant="blue",
     )
 with kpi_cols[1]:
     kpi_card(
@@ -103,6 +104,7 @@ with kpi_cols[1]:
         value=format_rupiah_compact(rmse_val),
         icon="📊",
         help_text=f"Akar rata-rata kuadrat kesalahan: {format_rupiah(rmse_val)} (memberi penalti lebih berat pada galat besar).",
+        variant="teal",
     )
 with kpi_cols[2]:
     kpi_card(
@@ -110,6 +112,7 @@ with kpi_cols[2]:
         value=f"{r2_val:.4f}" if pd.notna(r2_val) else "-",
         icon="⭐",
         help_text=f"Menjelaskan {r2_val*100:.1f}% variasi harga pasar pada data uji.",
+        variant="amber",
     )
 
 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)

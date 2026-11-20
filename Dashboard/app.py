@@ -81,11 +81,18 @@ active_page = st.navigation(
 )
 
 # Sidebar Branding
+icon_path = ASSETS_DIR / "automatch-icon.png"
+if icon_path.exists():
+    icon_b64 = base64.b64encode(icon_path.read_bytes()).decode()
+    brand_icon_html = f'<img src="data:image/png;base64,{icon_b64}" style="width:34px; height:34px; border-radius:8px; object-fit:contain;" alt="AutoMatch" />'
+else:
+    brand_icon_html = '<div class="am-sidebar-brand-icon">AM</div>'
+
 with st.sidebar:
     st.markdown(
-        """
+        f"""
         <div class="am-sidebar-brand">
-            <div class="am-sidebar-brand-icon">🚗</div>
+            <div style="flex-shrink:0;">{brand_icon_html}</div>
             <div>
                 <div class="am-sidebar-brand-title">AutoMatch</div>
                 <div class="am-sidebar-brand-sub">Analisis Pasar Mobil DKI Jakarta</div>

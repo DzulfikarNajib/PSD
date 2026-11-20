@@ -380,6 +380,157 @@ div[class*="st-key-project_editorial_hero"] {
     border-left: 4px solid #008B8B;
 }
 
+/* Compact Hero Banner per Master Reference Design */
+.am-hero-compact {
+    position: relative;
+    overflow: hidden;
+    min-height: 145px;
+    border-radius: 16px;
+    border: 1px solid var(--dashboard-border);
+    background-color: #FFFFFF;
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: contain;
+    padding: 1.4rem 2rem;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.am-hero-compact-content {
+    position: relative;
+    z-index: 2;
+    max-width: 580px;
+}
+.am-hero-compact-title {
+    font-family: "Plus Jakarta Sans", Inter, sans-serif;
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--dashboard-navy);
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    margin-bottom: 0.25rem;
+}
+.am-hero-compact-subtitle {
+    font-family: "Plus Jakarta Sans", Inter, sans-serif;
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: var(--dashboard-text);
+    margin-bottom: 0.3rem;
+}
+.am-hero-compact-desc {
+    font-size: 0.82rem;
+    color: var(--dashboard-muted);
+    line-height: 1.45;
+}
+
+/* Master Reference KPI Cards */
+.am-kpi-card {
+    background: #FFFFFF;
+    border: 1px solid var(--dashboard-border);
+    border-radius: 14px;
+    padding: 0.85rem 1.05rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-height: 80px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.am-kpi-card:hover {
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+}
+.am-kpi-icon-badge {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+.am-kpi-badge-teal { background: #E3F6F5; color: #008B8B; }
+.am-kpi-badge-navy { background: #E0E7FF; color: #0B2A5B; }
+.am-kpi-badge-amber { background: #FEF3C7; color: #D97706; }
+.am-kpi-badge-blue { background: #E0F2FE; color: #0284C7; }
+.am-kpi-badge-green { background: #DCFCE7; color: #16A34A; }
+.am-kpi-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--dashboard-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.15rem;
+    line-height: 1.2;
+}
+.am-kpi-value {
+    font-family: "Plus Jakarta Sans", Inter, sans-serif;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--dashboard-text);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+/* Streamlit Tab Overrides per Master Reference */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--dashboard-border);
+    margin-bottom: 1.25rem;
+}
+[data-testid="stTabs"] [data-baseweb="tab"] {
+    padding: 0.55rem 1.25rem !important;
+    border-radius: 8px 8px 0 0 !important;
+    font-family: "Plus Jakarta Sans", Inter, sans-serif !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    color: var(--dashboard-muted) !important;
+    border: none !important;
+    background: transparent !important;
+}
+[data-testid="stTabs"] [aria-selected="true"] {
+    color: var(--dashboard-accent) !important;
+    border-bottom: 2px solid var(--dashboard-accent) !important;
+    background: #FFFFFF !important;
+}
+
+/* Horizontal Filter Toolbar */
+.am-filter-toolbar {
+    background: #FFFFFF;
+    border: 1px solid var(--dashboard-border);
+    border-radius: 14px;
+    padding: 0.45rem 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+/* Segment Pill Selector */
+.am-pill-group {
+    display: inline-flex;
+    background: #F1F5F9;
+    padding: 0.25rem;
+    border-radius: 999px;
+    gap: 0.25rem;
+}
+.am-pill-btn {
+    padding: 0.35rem 0.95rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: #475569;
+    transition: all 0.15s ease;
+}
+.am-pill-btn.active {
+    background: #008B8B;
+    color: #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0, 139, 139, 0.3);
+}
+
 /* Coming Soon Placeholder */
 .am-coming-soon {
     text-align: center;

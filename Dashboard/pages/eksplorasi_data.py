@@ -1,4 +1,4 @@
-"""Eksplorasi Data — analisis distribusi dan hubungan antarvariabel.
+"""Eksplorasi Data - analisis distribusi dan hubungan antarvariabel.
 
 Menampilkan visualisasi multivariat dan bivariat:
 - Filter interaktif (Wilayah, Merek, Tahun, Bahan Bakar, Tipe Bodi)
@@ -37,7 +37,7 @@ apply_theme()
 page_header(
     icon="📈",
     title="Eksplorasi Data",
-    subtitle="Menemukan pola, sebaran nilai, dan korelasi antar-spesifikasi kendaraan pada pasar mobil bekas DKI Jakarta.",
+    subtitle="Menemukan pola dan hubungan antarvariabel pada data mobil bekas di DKI Jakarta.",
 )
 
 archive = load_combined_archive()

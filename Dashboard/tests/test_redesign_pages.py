@@ -85,3 +85,36 @@ def test_six_pages_exist():
     ]
     for p in page_files:
         assert p.exists(), f"File {p.name} does not exist!"
+
+
+def test_price_deviation_barometer():
+    from src.ui_components import price_deviation_barometer
+    
+    # Fair price (asking == median)
+    fig_fair = price_deviation_barometer(asking_price=200_000_000, median_price=200_000_000)
+    assert fig_fair is not None
+    assert fig_fair.data[0].value == 50.0  # Normalized center
+    assert "Harga Wajar" in fig_fair.data[0].title.text
+
+    # Underpriced (-20% deviation)
+    fig_under = price_deviation_barometer(asking_price=160_000_000, median_price=200_000_000)
+    assert "Di Bawah Pasar" in fig_under.data[0].title.text
+
+    # Overpriced (+20% deviation)
+    fig_over = price_deviation_barometer(asking_price=240_000_000, median_price=200_000_000)
+    assert "Di Atas Pasar" in fig_over.data[0].title.text
+
+
+def test_zero_em_dash_in_redesign_pages():
+    page_files = [
+        ROOT / "pages" / "ikhtisar_pasar.py",
+        ROOT / "pages" / "eksplorasi_data.py",
+        ROOT / "pages" / "preprocessing_segmentasi.py",
+        ROOT / "pages" / "evaluasi_model.py",
+        ROOT / "pages" / "cek_harga_iklan.py",
+        ROOT / "pages" / "kesimpulan.py",
+    ]
+    for p in page_files:
+        content = p.read_text(encoding="utf-8")
+        assert "—" not in content, f"Em dash found in {p.name}! Anti-slop rule R-02 violated."
+

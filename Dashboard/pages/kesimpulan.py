@@ -1,4 +1,4 @@
-"""Kesimpulan & Rekomendasi — sintesis temuan data science pasar mobil bekas DKI Jakarta.
+"""Kesimpulan & Rekomendasi - sintesis temuan data science pasar mobil bekas DKI Jakarta.
 
 Menampilkan:
 - 4 Kartu Temuan Kunci Pasar (dihitung dari data aktual)
@@ -37,7 +37,7 @@ apply_theme()
 page_header(
     icon="✅",
     title="Kesimpulan & Rekomendasi",
-    subtitle="Ringkasan temuan kunci sains data, segmentasi pasar, performa model, serta panduan praktis bagi pembeli dan penjual di DKI Jakarta.",
+    subtitle="Ringkasan temuan dan saran berdasarkan hasil analisis sains data pasar mobil bekas DKI Jakarta.",
 )
 
 archive = load_combined_archive()
@@ -78,129 +78,112 @@ best_mae = rf_metrics.get("MAE", 170552662)
 best_r2 = rf_metrics.get("R2", 0.8938)
 
 # ---------------------------------------------------------------------------
-# Bagian 1: Empat Temuan Kunci Pasar (Dihitung Dinamis)
+# Bagian 1: Empat Temuan Kunci Pasar (Grid 4 Kolom per Master Reference)
 # ---------------------------------------------------------------------------
-st.markdown("<div class='am-section-title'>📌 Temuan Kunci Pasar Mobil Bekas DKI Jakarta</div>", unsafe_allow_html=True)
+st.markdown("<div class='am-section-title'>📌 Temuan Kunci Pasar</div>", unsafe_allow_html=True)
 
-k_col1, k_col2 = st.columns(2, gap="medium")
+k_col1, k_col2, k_col3, k_col4 = st.columns(4, gap="small")
 
 with k_col1:
     insight_card(
         icon="🏆",
-        headline=f"Dominasi {top_make} & Ekosistem Mobil Mewah",
-        body=(
-            f"**{top_make}** memimpin volume pasar dengan **{top_make_count:,} iklan ({top_make_pct:.1f}%)**. "
-            f"Namun, pasar Jakarta sangat unik karena merek premium Eropa seperti **Mercedes-Benz (823 unit)** "
-            f"dan **BMW (466 unit)** menempati posisi ke-2 dan ke-3 terbanyak, menandakan tingginya perputaran mobil mewah seken di ibu kota."
-        ).replace(",", "."),
+        headline=f"Dominasi {top_make}",
+        body=f"Pasar didominasi mobil Jepang dengan pangsa pasar **{top_make_pct:.1f}% ({top_make_count:,} unit)**.".replace(",", "."),
         variant="info",
-    )
-
-    insight_card(
-        icon="📍",
-        headline=f"Konsentrasi Geografis di {top_loc.title()}",
-        body=(
-            f"Sebanyak **{top_loc_pct:.1f}% pasar ({top_loc_count:,} listing)** berpusat di **{top_loc.title()}**, "
-            f"menjadikannya episentrum showroom mobil bekas terbesar, disusul oleh Jakarta Utara dan Jakarta Pusat. "
-            f"Pembeli memiliki pilihan model dan varian terlengkap di wilayah ini."
-        ).replace(",", "."),
-        variant="success",
     )
 
 with k_col2:
     insight_card(
-        icon="💵",
-        headline="Rentang Harga Pasar 50% Mayoritas",
-        body=(
-            f"Median harga penawaran keseluruhan tercatat sebesar **{format_rupiah_compact(median_price)}**. "
-            f"Sebanyak 50% mobil di pasar berada di rentang interkuartil **{format_rupiah_compact(p25_price)} s/d {format_rupiah_compact(p75_price)}**, "
-            f"menunjukkan titik likuiditas transaksi terbesar berada pada rentang MPV dan Compact SUV keluarga."
-        ),
+        icon="🚙",
+        headline="SUV & MPV Terpopuler",
+        body="Segmen MPV dan Compact SUV keluarga menjadi tipe kendaraan paling diminati di pasar ibu kota.",
         variant="default",
     )
 
+with k_col3:
     insight_card(
-        icon="⚡",
-        headline="Peta Bahan Bakar & Transisi Energi",
-        body=(
-            f"Bahan bakar **Bensin tetap dominan ({bensin_pct:.1f}%)**, namun penetrasi kendaraan ramah lingkungan "
-            f"telah mencapai **{eco_pct:.1f}% ({archive['fuel_type'].isin(['Hybrid', 'Listrik']).sum():,} unit)**. "
-            f"Adopsi mobil listrik (EV) dan hybrid di Jakarta tumbuh pesat didorong oleh insentif bebas ganjil-genap."
-        ).replace(",", "."),
+        icon="📉",
+        headline="Faktor Penentu Harga",
+        body="Harga dipengaruhi paling kuat oleh kombinasi tahun pembuatan, jarak tempuh (KM), dan kapasitas mesin.",
+        variant="success",
+    )
+
+with k_col4:
+    insight_card(
+        icon="🎯",
+        headline="Model Terbaik: RF",
+        body=f"Random Forest menghasilkan akurasi tertinggi dengan **R² = {best_r2:.4f}** dan MAE {format_rupiah_compact(best_mae)}.",
         variant="warning",
     )
 
-st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Bagian 2: Karakteristik Segmen Pasar (K-Means) & Performa AI
+# Bagian 2: Rekomendasi Pembeli, Penjual & Limitasi (Master Reference 3-Kolom)
 # ---------------------------------------------------------------------------
-col_seg_res, col_model_res = st.columns([1.2, 1], gap="medium")
-
-with col_seg_res:
-    with section_card("Segmentasi Pasar Berbasis K-Means (4 Klaster)"):
-        st.markdown(
-            """
-            Pengelompokan tanpa supervisi (*unsupervised learning*) pada fitur Harga, Usia, Kilometer, dan CC membagi pasar menjadi 4 persona:
-            - **Segmen 1 (Ekonomis - ~17% pasar)**: Mobil harian budget bersahabat (< Rp 150 Jt), usia rata-rata 2010 dengan kilometer tinggi (> 100.000 km). Sangat likuid untuk pembeli pertama.
-            - **Segmen 2 (Sweet Spot Komuter & Keluarga - ~56% pasar)**: Segmen terbesar pasar Jakarta (Rp 200–500 Jt, tahun 2018–2023, KM sedang). Didominasi MPV dan Compact SUV Jepang.
-            - **Segmen 3 (Eksekutif & SUV Mewah - ~25% pasar)**: Kisaran Rp 1–2,5 Miliar (tahun muda, KM rendah). Pasar aktif kalangan profesional dan pebisnis.
-            - **Segmen 4 (Flagship & Koleksi - ~2% pasar)**: Mobil ultra-luxury dan supercar (> Rp 3 Miliar) dengan kondisi unit simpanan (odometer mendekati 0 km).
-            """
-        )
-
-with col_model_res:
-    with section_card("Performa Model Machine Learning"):
-        st.markdown(
-            f"""
-            - **Algoritma Terbaik**: **{best_model_name}** mengungguli seluruh model baseline (Linear Regression dan Decision Tree).
-            - **Akurasi Galat (MAE)**: Rata-rata deviasi absolut sebesar **{format_rupiah_compact(best_mae)}** pada data uji independen.
-            - **Koefisien Determinasi (R²)**: Mencapai **{best_r2:.4f}**, membuktikan model mampu menangkap **89,4% pola variasi harga pasar**.
-            - **Fitur Kunci**: Kapasitas mesin (CC), jarak tempuh (KM), dan tahun pembuatan terbukti sebagai 3 prediktor paling berpengaruh terhadap nilai depresiasi kendaraan.
-            """
-        )
-
-st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------------------------
-# Bagian 3: Panduan Rekomendasi Pembeli & Penjual
-# ---------------------------------------------------------------------------
-st.markdown("<div class='am-section-title'>🎯 Rekomendasi Berbasis Data</div>", unsafe_allow_html=True)
-
-r_buyer, r_seller = st.columns(2, gap="medium")
+r_buyer, r_seller, r_limits = st.columns([1.1, 1.1, 1], gap="medium")
 
 with r_buyer:
-    with section_card("Panduan untuk Calon Pembeli"):
+    with section_card("Rekomendasi Untuk Pembeli"):
         st.markdown(
             """
-            - **Manfaatkan Sweet Spot Depresiasi**: Mobil usia 3 s/d 5 tahun mengalami kurva depresiasi paling stabil—harga sudah terkoreksi 30–40% dari baru, namun kondisi mekanikal mesin masih sangat prima.
-            - **Verifikasi Odometer Ganjil**: Berdasarkan pola data, mobil di atas 8 tahun dengan kilometer < 30.000 km memiliki probabilitas manipulasi odometer yang tinggi (*red-flag*). Wajib cek riwayat servis berkala di bengkel resmi.
-            - **Gunakan Cek Harga Sebagai Batas Tawaran**: Manfaatkan rentang P25–P75 dari halaman Cek Harga sebagai acuan negosiasi agar tidak membeli unit di atas harga pasar.
+            - **✔ Bandingkan Harga Serupa**: Bandingkan penawaran dengan median listing sejenis sebelum menawar.
+            - **✔ Perhatikan Tahun & KM**: Mobil usia 3-5 tahun menawarkan kurva depresiasi paling stabil.
+            - **✔ Gunakan Rentang P25-P75**: Jadikan rentang harga wajar sebagai batas maksimal negosiasi.
+            - **✔ Cek Riwayat Perawatan**: Waspadai odometer rendah pada mobil berusia di atas 7 tahun.
             """
         )
 
 with r_seller:
-    with section_card("Panduan untuk Penjual / Diler"):
+    with section_card("Rekomendasi Untuk Penjual"):
         st.markdown(
             """
-            - **Pasang Harga Kompetitif (Dekat Median)**: Menetapkan harga penawaran di rentang median listing serupa mempercepat waktu perputaran (*turnover rate*) unit di diler.
-            - **Transparansi Riwayat & Kilometer**: Menampilkan catatan servis berkala lengkap dan kondisi bebas banjir/tabrakan dapat menjustifikasi harga penawaran di persentil P75.
-            - **Optimalkan Momentum Elektrifikasi**: Permintaan untuk model Hybrid dan EV bekas di Jakarta terus meningkat akibat aturan ganjil-genap; pertahankan harga wajar untuk menarik segmen pembeli urban modern.
+            - **✔ Pasang Harga Dekat Median**: Mempercepat perputaran unit (turnover rate) di diler.
+            - **✔ Highlight Keunggulan Mobil**: Cantumkan servis berkala resmi untuk justifikasi harga P75.
+            - **✔ Kenali Target Segmen**: Tentukan persona pembeli (ekonomis vs eksekutif) pada iklan.
+            - **✔ Respons Tren Elektrifikasi**: Permintaan Hybrid/EV bekas di Jakarta terus meningkat.
             """
         )
 
-st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+with r_limits:
+    with section_card("⚠️ Limitasi Analisis"):
+        st.markdown(
+            """
+            <div style="font-size:0.8rem; color:#475569; line-height:1.5;">
+                <p style="margin-bottom:0.4rem;"><b>1. Harga Iklan vs Transaksi</b><br>
+                Data berasal dari harga penawaran daring (OLX), bukan harga riil transaksi final (negosiasi 3-8%).</p>
+                <p style="margin-bottom:0.4rem;"><b>2. Cakupan 5 Wilayah DKI</b><br>
+                Hanya mencakup Jakarta Selatan, Utara, Pusat, Barat, dan Timur (tanpa Bodetabek).</p>
+                <p style="margin-bottom:0;"><b>3. Sifat Model Estimasi</b><br>
+                Model regresi bersifat statistik acuan dan tidak merekam kondisi fisik riil (cat, ban, modifikasi).</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Bagian 4: Keterbatasan Data & Metodologi Penelitian
+# Bagian 3: Ringkasan Metodologi & K-Means
 # ---------------------------------------------------------------------------
-with st.expander("⚠️ Keterbatasan Data dan Cakupan Model (Research Limitations)", expanded=False):
-    st.markdown(
-        """
-        1. **Harga Penawaran vs Harga Transaksi**: Data yang dianalisis bersumber dari harga iklan (*asking price*) di platform daring (OLX Indonesia), bukan nilai transaksi kesepakatan akhir (*transacted price*) yang biasanya mengalami negosiasi 3–8%.
-        2. **Cakupan Wilayah**: Data secara ketat hanya mencakup 5 kota administrasi DKI Jakarta (*Jakarta Selatan, Jakarta Utara, Jakarta Pusat, Jakarta Barat, Jakarta Timur*). Kepulauan Seribu dan kota satelit Bodetabek tidak diikutsertakan.
-        3. **Variabel Kondisi Fisik Riil**: Model mengestimasi harga berdasarkan spesifikasi teknis (merek, model, tahun, km, CC, transmisi, bodi, bahan bakar). Kondisi riil fisik seperti ketebalan ban, riwayat cat ulang, maupun modifikasi personal tidak tercatat di dataset mentah.
-        4. **Ambang Batas Outlier**: Analisis membatasi data penawaran antara Rp 30 Juta (menghindari DP kredit) hingga Rp 30 Miliar.
-        5. **Kinerja pada Segmen Supercar**: Pada kendaraan kelas ultra-luxury / supercar (> Rp 5 Miliar), model cenderung mengalami *under-prediction* karena kelangkaan sampel data latih pada segmen tersebut.
-        """
-    )
+with st.expander("Detail Metodologi Sains Data & Segmentasi Pasar (K-Means)", expanded=False):
+    col_exp1, col_exp2 = st.columns(2)
+    with col_exp1:
+        st.markdown(
+            """
+            **Ringkasan 4 Segmen K-Means:**
+            - **Segmen 1 (Ekonomis)**: Harga < Rp 150 Jt, usia rata-rata 2010, kilometer tinggi (> 100.000 km).
+            - **Segmen 2 (Keluarga & Komuter)**: Harga Rp 200-500 Jt, tahun 2018-2023, segmen terbesar (56% pasar).
+            - **Segmen 3 (Eksekutif)**: Harga Rp 1-2,5 Miliar, didominasi SUV premium dan sedan Eropa.
+            - **Segmen 4 (Koleksi / Ultra-Luxury)**: Harga > Rp 3 Miliar, mobil hobi dan supercar simpanan.
+            """
+        )
+    with col_exp2:
+        st.markdown(
+            f"""
+            **Integritas Model Regresi:**
+            - Data latih: 5.040 observasi, data uji holdout independen: 1.261 observasi (split 80/20).
+            - Evaluasi 6 kandidat model regresi memilih **{best_model_name}** sebagai model utama.
+            - MAE pada data uji sebesar **{format_rupiah_compact(best_mae)}** dan nilai determinasi **R² = {best_r2:.4f}**.
+            """
+        )
