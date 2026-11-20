@@ -10,7 +10,6 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from src.api_handler import safe_refresh_snapshot
 from src.data_loader import (
     load_combined_archive,
 )
@@ -81,21 +80,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+hero_count = int(preprocessing_audit.get("clean_rows", archive["listing_id"].nunique() if not archive.empty and "listing_id" in archive else len(archive)))
+
 with st.container(key="home_hero"):
-    hero_copy, hero_metric = st.columns([3.2, 1], vertical_alignment="center")
-    with hero_copy:
-        st.caption("OVERVIEW MOBIL BEKAS DKI JAKARTA")
-        st.markdown("# Ayo cari mobil kamu")
-        st.markdown("### Temukan pilihan dari iklan mobil yang tersimpan di AutoMatch.")
-        st.write("Data AutoMatch mencakup iklan mobil bekas dari DKI Jakarta. Iklan yang sama dihitung satu kali, dan peta di bawah menampilkan lima kota administrasi.")
-        if st.button("Mulai cari mobil", icon=":material/search:", type="primary", key="home_start_search"):
-            st.switch_page("pages/2_Find_Your_Car.py")
-    with hero_metric:
-        hero_count = int(preprocessing_audit.get("clean_rows", archive["listing_id"].nunique() if not archive.empty and "listing_id" in archive else len(archive)))
-        with st.container(border=True, key="home_count_card"):
-            st.caption("DATA AUTOMATCH")
-            st.markdown(f"## {hero_count:,}".replace(",", "."))
-            st.caption("iklan bersih tersimpan")
+    st.caption("OVERVIEW MOBIL BEKAS DKI JAKARTA")
+    st.markdown("# Ayo cari mobil kamu")
+    st.markdown("### Temukan pilihan dari iklan mobil yang tersimpan di AutoMatch.")
+    st.write("Data AutoMatch mencakup iklan mobil bekas dari DKI Jakarta. Iklan yang sama dihitung satu kali, dan peta di bawah menampilkan lima kota administrasi.")
+    if st.button("Mulai cari mobil", icon=":material/search:", type="primary", key="home_start_search"):
+        st.switch_page("pages/2_Find_Your_Car.py")
 
 if archive.empty:
     render_empty_state(
@@ -129,67 +122,70 @@ else:
             {"Kode": region_code[key], "Wilayah": label, "Iklan tersimpan": int(district_counts.get(key, 0))}
             for key, label in district_labels.items()
         ])
-        with st.container(border=True):
-            st.markdown("#### Temukan mobil di wilayah Jakarta")
-            st.caption("Klik salah satu wilayah untuk melihat jumlah iklan tersimpan dan membuka hasil pencariannya.")
-            boundaries = load_dki_boundaries()
-            map_builder = getattr(px, "choropleth_map", None)
-            map_style_argument = "map_style"
-            if map_builder is None:
-                map_builder = px.choropleth_mapbox
-                map_style_argument = "mapbox_style"
-            jakarta_center = {"lat": -6.2233, "lon": 106.8296}
-            jakarta_zoom = 9.7
-            map_fig = map_builder(
-                regions,
-                geojson=boundaries,
-                locations="Kode",
-                featureidkey="properties.kdpkab",
-                color="Iklan tersimpan",
-                hover_name="Wilayah",
-                hover_data={"Kode": False, "Iklan tersimpan": ":,.0f"},
-                color_continuous_scale=["#D9EFEB", "#72BDB3", "#008B8B", "#075985"],
-                range_color=(0, max(1, int(regions["Iklan tersimpan"].max()))),
-                opacity=0.9,
-                height=560,
-                center=jakarta_center,
-                zoom=jakarta_zoom,
-                **{map_style_argument: "white-bg"},
-            )
-            map_view_key = "map" if map_style_argument == "map_style" else "mapbox"
-            map_fig.update_layout(
-                margin=dict(l=0, r=0, t=0, b=0),
-                **{map_view_key: {"center": jakarta_center, "zoom": jakarta_zoom}},
-                coloraxis_colorbar=dict(
-                    title="Jumlah iklan",
-                    orientation="h",
-                    thickness=10,
-                    len=0.5,
-                    x=0.5,
-                    xanchor="center",
-                    y=-0.08,
-                    yanchor="top",
-                    tickformat="~s",
-                ),
-                clickmode="event+select",
-            )
-            map_fig.update_traces(marker_line_color="#FFFFFF", marker_line_width=1.5)
-            map_selection = st.plotly_chart(
-                map_fig,
-                width="stretch",
-                config={
-                    "displayModeBar": True,
-                    "displaylogo": False,
-                    "scrollZoom": True,
-                    "modeBarButtonsToAdd": ["zoomInMap", "zoomOutMap", "resetViewMap"],
-                },
-                key="home_jakarta_choropleth",
-                on_select="rerun",
-                selection_mode="points",
-                alt="Peta choropleth lima kota administrasi Jakarta menurut jumlah iklan mobil tersimpan di AutoMatch",
-            )
-            st.caption("Warna lebih gelap berarti iklan tersimpan lebih banyak. Arahkan kursor untuk melihat angka. Peta mencakup lima kota administrasi Jakarta.")
+        map_col, info_col = st.columns([1.6, 1], gap="medium")
+        with map_col:
+            with st.container(border=True):
+                st.markdown("#### Temukan mobil di wilayah Jakarta")
+                st.caption("Klik salah satu wilayah untuk melihat jumlah iklan tersimpan dan membuka hasil pencariannya.")
+                boundaries = load_dki_boundaries()
+                map_builder = getattr(px, "choropleth_map", None)
+                map_style_argument = "map_style"
+                if map_builder is None:
+                    map_builder = px.choropleth_mapbox
+                    map_style_argument = "mapbox_style"
+                jakarta_center = {"lat": -6.2233, "lon": 106.8296}
+                jakarta_zoom = 9.7
+                map_fig = map_builder(
+                    regions,
+                    geojson=boundaries,
+                    locations="Kode",
+                    featureidkey="properties.kdpkab",
+                    color="Iklan tersimpan",
+                    hover_name="Wilayah",
+                    hover_data={"Kode": False, "Iklan tersimpan": ":,.0f"},
+                    color_continuous_scale=["#D9EFEB", "#72BDB3", "#008B8B", "#075985"],
+                    range_color=(0, max(1, int(regions["Iklan tersimpan"].max()))),
+                    opacity=0.9,
+                    height=460,
+                    center=jakarta_center,
+                    zoom=jakarta_zoom,
+                    **{map_style_argument: "white-bg"},
+                )
+                map_view_key = "map" if map_style_argument == "map_style" else "mapbox"
+                map_fig.update_layout(
+                    margin=dict(l=0, r=0, t=0, b=0),
+                    **{map_view_key: {"center": jakarta_center, "zoom": jakarta_zoom}},
+                    coloraxis_colorbar=dict(
+                        title="Jumlah iklan",
+                        orientation="h",
+                        thickness=10,
+                        len=0.5,
+                        x=0.5,
+                        xanchor="center",
+                        y=-0.08,
+                        yanchor="top",
+                        tickformat="~s",
+                    ),
+                    clickmode="event+select",
+                )
+                map_fig.update_traces(marker_line_color="#FFFFFF", marker_line_width=1.5)
+                map_selection = st.plotly_chart(
+                    map_fig,
+                    width="stretch",
+                    config={
+                        "displayModeBar": True,
+                        "displaylogo": False,
+                        "scrollZoom": True,
+                        "modeBarButtonsToAdd": ["zoomInMap", "zoomOutMap", "resetViewMap"],
+                    },
+                    key="home_jakarta_choropleth",
+                    on_select="rerun",
+                    selection_mode="points",
+                    alt="Peta choropleth lima kota administrasi Jakarta menurut jumlah iklan mobil tersimpan di AutoMatch",
+                )
+                st.caption("Warna lebih gelap berarti iklan tersimpan lebih banyak. Arahkan kursor untuk melihat angka. Peta mencakup lima kota administrasi Jakarta.")
 
+        with info_col:
             selected_code = None
             selected_points = map_selection.selection.points if map_selection else []
             if selected_points:
@@ -199,21 +195,26 @@ else:
                     point_index = selected_point.get("point_index", selected_point.get("point_number"))
                     if point_index is not None and 0 <= int(point_index) < len(regions):
                         selected_code = regions.iloc[int(point_index)]["Kode"]
-            if selected_code is not None:
-                selected_region = regions[regions["Kode"].astype(str).eq(str(selected_code))]
-                if not selected_region.empty:
-                    row = selected_region.iloc[0]
-                    selected_label = str(row["Wilayah"])
-                    selected_count = int(row["Iklan tersimpan"])
-                    with st.container(border=True, key="home_selected_region_result"):
-                        result_copy, result_action = st.columns([1.5, 1], vertical_alignment="center")
-                        with result_copy:
-                            st.markdown(f"**{selected_label}** · **{selected_count:,}** iklan tersimpan di AutoMatch".replace(",", "."))
-                        with result_action:
-                            if st.button(f"Lihat mobil di {selected_label}", icon=":material/directions_car:", type="primary", key="home_selected_region_search", width="stretch"):
-                                st.session_state["prefill_location"] = selected_label.casefold()
-                                st.session_state["car_source_choice"] = "Arsip Penuh"
-                                st.switch_page("pages/2_Find_Your_Car.py")
+
+            with st.container(border=True, key="home_region_info_card"):
+                if selected_code is not None:
+                    selected_region = regions[regions["Kode"].astype(str).eq(str(selected_code))]
+                    if not selected_region.empty:
+                        row = selected_region.iloc[0]
+                        selected_label = str(row["Wilayah"])
+                        selected_count = int(row["Iklan tersimpan"])
+                        st.caption(selected_label.upper())
+                        st.markdown(f"## {selected_count:,}".replace(",", "."))
+                        st.caption("iklan tersimpan di wilayah ini")
+                        if st.button(f"Lihat mobil di {selected_label}", type="primary", key="home_selected_region_search", width="stretch"):
+                            st.session_state["prefill_location"] = selected_label.casefold()
+                            st.session_state["car_source_choice"] = "Arsip Penuh"
+                            st.switch_page("pages/2_Find_Your_Car.py")
+                else:
+                    st.caption("DKI JAKARTA")
+                    st.markdown(f"## {clean_count:,}".replace(",", "."))
+                    st.caption("listing tersedia di 5 kota administrasi")
+                    st.markdown("Klik wilayah di peta untuk melihat jumlah iklan dan langsung mencari mobil di sana.")
 
     st.markdown("### Mulai dari bahan bakar")
     st.caption("Pilih bahan bakar untuk melihat merek dan model yang tersedia.")
@@ -277,31 +278,3 @@ else:
                 st.session_state["market_source_choice"] = "Arsip Penuh"
                 st.switch_page("pages/1_Explore_Market.py")
 
-with st.expander("Perbarui listing OLX (manual)", expanded=st.session_state.pop("open_refresh_panel", False)):
-    st.caption("Refresh mengirim permintaan ke OLX melalui API dan memakai kredit bersama. Arsip yang tersimpan tetap bisa dicari tanpa refresh.")
-    with st.form("refresh_listings_form"):
-        search_url = st.text_input("URL pencarian OLX", value=DEFAULT_SEARCH_URL, key="refresh_search_url_jabodetabek_v1")
-        max_pages = st.slider("Jumlah halaman (menggunakan kredit API)", min_value=1, max_value=5, value=1, step=1)
-        refresh = st.form_submit_button("Refresh Listings", type="primary")
-    st.caption("Hanya listing yang lokasinya dapat dikenali di lima wilayah DKI Jakarta yang disimpan. Hasil API bukan seluruh stok Jakarta. Refresh menambahkan snapshot baru ke arsip.")
-    if refresh:
-        try:
-            with st.spinner("Mengambil snapshot dari Datawebot..."):
-                result = safe_refresh_snapshot(search_url, max_pages=max_pages)
-            st.session_state["last_refresh"] = result
-            if result["status"] == "success":
-                st.success(result["message"])
-            else:
-                st.warning(result["message"])
-        except Exception as exc:  # UI boundary
-            st.session_state["last_refresh"] = {"status": "error", "message": str(exc), "live_count": 0, "filtered_count": 0, "last_successful_fetch": None, "used_credits": None, "remaining_credits": None}
-            st.error(f"Refresh gagal: {exc}")
-
-last_refresh = st.session_state.get("last_refresh")
-if last_refresh:
-    with st.expander("Detail refresh terakhir"):
-        st.write(f"Status: **{last_refresh.get('status', 'unknown')}** · Mentah: **{last_refresh.get('raw_count', '-')}** · Valid: **{last_refresh.get('validated_count', '-')}** · Tersimpan setelah filter DKI: **{last_refresh.get('filtered_count', 0)}**")
-        if last_refresh.get("quality"):
-            st.caption("Data invalid/kosong: " + " · ".join(f"{key.replace('_', ' ')}: {value}" for key, value in last_refresh["quality"].items()))
-        st.caption(f"Kredit digunakan: {last_refresh.get('used_credits', '-')} · Sisa kredit: {last_refresh.get('remaining_credits', '-')} · Penyimpanan: {last_refresh.get('storage_backend', 'CSV lokal')}")
-        st.caption(last_refresh.get("message", ""))

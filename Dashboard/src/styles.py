@@ -129,11 +129,10 @@ div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] {
     text-align: left;
 }
 div[class*="st-key-home_hero"] [data-testid="stHorizontalBlock"] { align-items:center !important; gap:2rem; }
-div[class*="st-key-home_hero"] [data-testid="stColumn"]:first-child { max-width: 650px; }
-div[class*="st-key-home_hero"] [data-testid="stColumn"]:last-child { max-width: 240px; min-width:210px; margin-left:auto; }
-div[class*="st-key-home_count_card"] { width:100%; min-width:0; padding:.6rem .9rem; background:rgba(255,255,255,.97); border-color:#DCE6EB; box-shadow:0 8px 24px rgba(15,23,42,.08); }
-div[class*="st-key-home_count_card"] [data-testid="stMarkdownContainer"] h2 { margin:.1rem 0; font-size:2rem; line-height:1.05; white-space:nowrap; }
-div[class*="st-key-home_count_card"] [data-testid="stCaptionContainer"] p { line-height:1.25; white-space:normal; }
+div[class*="st-key-home_region_info_card"] { width:100%; min-width:0; padding:1.2rem 1.4rem; background:#FFFFFF; border-color:#DCE6EB; height:100%; }
+div[class*="st-key-home_region_info_card"] [data-testid="stMarkdownContainer"] h2 { margin:.1rem 0; font-size:2.2rem; line-height:1.05; }
+div[class*="st-key-home_region_info_card"] [data-testid="stCaptionContainer"] p { line-height:1.25; }
+div[class*="st-key-home_region_info_card"] [data-testid="stMarkdownContainer"] p { font-size:.88rem; color:var(--dashboard-muted); line-height:1.5; margin:.5rem 0 .8rem; }
 div[class*="st-key-home_fuel_card_"] [data-testid="stVerticalBlockBorderWrapper"] { height:100%; min-height:9rem; background:linear-gradient(145deg,#FFFFFF 12%,#F0F8F7 100%); border-color:#D4E7E4; }
 div[class*="st-key-home_fuel_card_"] [data-testid="stVerticalBlockBorderWrapper"] { padding:1rem; }
 .home-fuel-heading { display:flex; align-items:center; gap:.7rem; min-height:2.7rem; margin:0 0 .55rem; color:#19364F; font-size:1.08rem; }
@@ -349,7 +348,6 @@ div.stAlert { border-radius: 12px; }
     div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] { max-width: 100%; }
     div[class*="st-key-home_hero"] [data-testid="stHorizontalBlock"] { flex-wrap:wrap !important; gap:.5rem; }
     div[class*="st-key-home_hero"] [data-testid="stColumn"] { min-width:100% !important; }
-    div[class*="st-key-home_hero"] [data-testid="stColumn"]:last-child { max-width:220px; margin:0; }
     .listing-meta { gap:.25rem; }
     .listing-meta span { font-size:.68rem; }
     .car-price { font-size: 1.2rem; }
