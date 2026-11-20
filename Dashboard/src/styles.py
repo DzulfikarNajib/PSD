@@ -129,17 +129,11 @@ div[class*="st-key-home_hero"] > div[data-testid="stVerticalBlock"] {
     text-align: left;
 }
 div[class*="st-key-home_hero"] [data-testid="stHorizontalBlock"] { align-items:center !important; gap:2rem; }
-div[class*="st-key-home_region_info_card"] { width:100%; min-width:0; padding:1.1rem 1.3rem; background:#FFFFFF; border-color:#DCE6EB; }
-div[class*="st-key-home_region_info_card"] [data-testid="stMarkdownContainer"] h2 { margin:.1rem 0; font-size:2.1rem; line-height:1.05; }
-div[class*="st-key-home_region_info_card"] [data-testid="stCaptionContainer"] p { line-height:1.2; font-size:.78rem; font-weight:600; }
-div[class*="st-key-home_region_info_card"] .stButton > button { margin-top:.4rem; }
-
-div[class*="st-key-home_city_breakdown_card"] { width:100%; min-width:0; padding:1rem 1.2rem; background:#FFFFFF; border-color:#DCE6EB; margin-top:.6rem; }
-div[class*="st-key-home_city_breakdown_card"] [data-testid="stCaptionContainer"] p { font-size:.75rem; font-weight:700; letter-spacing:.03em; color:var(--dashboard-muted); margin-bottom:.5rem; }
-div[class*="st-key-home_city_breakdown_card"] [data-testid="stDataFrame"] { border:none; border-radius:10px; overflow:hidden; }
-div[class*="st-key-home_city_breakdown_card"] [data-testid="stDataFrame"] th { background:#F0F8F7 !important; color:#008B8B !important; font-size:.75rem !important; font-weight:700 !important; letter-spacing:.02em; }
-div[class*="st-key-home_city_breakdown_card"] [data-testid="stDataFrame"] td { font-size:.8rem !important; color:var(--dashboard-text); padding:.4rem .6rem !important; }
-div[class*="st-key-home_city_breakdown_card"] [data-testid="stDataFrame"] tr:hover td { background:#E6F4F1 !important; cursor:pointer; }
+div[class*="st-key-home_region_profile_card"] { width:100%; min-width:0; padding:1.4rem 1.6rem; background:#FFFFFF; border-color:#DCE6EB; }
+div[class*="st-key-home_region_profile_card"] h2 { margin:.1rem 0; font-size:2.2rem; color:var(--dashboard-text); }
+div[class*="st-key-home_region_profile_card"] p { margin:.15rem 0; font-size:.9rem; }
+div[class*="st-key-home_region_profile_card"] hr { margin:.8rem 0; border-color:#F1F5F9; }
+div[class*="st-key-home_region_profile_card"] .stButton > button { margin-top:.3rem; }
 
 div[class*="st-key-home_other_brand_card"] { padding:1.2rem 1.4rem; background:#FFFFFF; border-color:#DCE6EB; margin-top:.7rem; }
 div[class*="st-key-home_other_brand_card"] h3 { margin:.1rem 0; font-size:1.45rem; color:var(--dashboard-text); }

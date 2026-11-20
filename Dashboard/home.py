@@ -194,63 +194,60 @@ else:
                     if point_index is not None and 0 <= int(point_index) < len(regions):
                         selected_code = regions.iloc[int(point_index)]["Kode"]
 
-            with st.container(border=True, key="home_region_info_card"):
+            # Filter data wilayah aktif
+            if selected_code is not None:
+                selected_region = regions[regions["Kode"].astype(str).eq(str(selected_code))]
+                active_label = str(selected_region.iloc[0]["Wilayah"]) if not selected_region.empty else "DKI Jakarta"
+                target_df = archive[archive["location_normalized"].astype(str).str.casefold().eq(active_label.casefold())] if "location_normalized" in archive else pd.DataFrame()
+            else:
+                active_label = "DKI Jakarta"
+                target_df = archive
+
+            total_active_ads = len(target_df) if not target_df.empty else clean_count
+            porsi_pct = (total_active_ads / clean_count * 100) if clean_count > 0 else 100.0
+
+            # Profil pasar: median harga, merek dominan, rentang tahun
+            median_p = target_df["price"].dropna().median() if ("price" in target_df and not target_df.empty) else None
+            median_p_str = format_rupiah_compact(median_p) if median_p and pd.notna(median_p) else "-"
+
+            top_brands = target_df["make"].dropna().astype(str).str.strip().value_counts().head(2) if ("make" in target_df and not target_df.empty) else pd.Series(dtype=int)
+            top_brands_str = ", ".join(f"{b} ({c})" for b, c in top_brands.items()) if not top_brands.empty else "-"
+
+            year_s = target_df["year"].dropna() if ("year" in target_df and not target_df.empty) else pd.Series(dtype=float)
+            year_info = f"{int(year_s.quantile(0.25))}–{int(year_s.quantile(0.75))}" if len(year_s) >= 4 else f"{int(year_s.min())}–{int(year_s.max())}" if not year_s.empty else "-"
+
+            with st.container(border=True, key="home_region_profile_card"):
+                st.caption("PROFIL PASAR WILAYAH")
+                st.markdown(f"## {active_label}")
+                st.markdown(f"**{total_active_ads:,} iklan** ({porsi_pct:.1f}% pasar DKI)".replace(",", "."))
+
+                st.divider()
+
+                m_col1, m_col2 = st.columns(2)
+                with m_col1:
+                    st.caption("MEDIAN HARGA")
+                    st.markdown(f"**{median_p_str}**")
+                with m_col2:
+                    st.caption("RENTANG TAHUN UTAMA")
+                    st.markdown(f"**{year_info}**")
+
+                st.caption("MEREK TERBANYAK")
+                st.markdown(f"**{top_brands_str}**")
+
+                st.divider()
+
                 if selected_code is not None:
-                    selected_region = regions[regions["Kode"].astype(str).eq(str(selected_code))]
-                    if not selected_region.empty:
-                        row = selected_region.iloc[0]
-                        selected_label = str(row["Wilayah"])
-                        selected_count = int(row["Iklan tersimpan"])
-                        st.caption(selected_label.upper())
-                        st.markdown(f"## {selected_count:,}".replace(",", "."))
-                        st.caption("iklan tersimpan di wilayah ini")
-                        if st.button(f"Lihat mobil di {selected_label}", type="primary", key="home_selected_region_search", width="stretch"):
-                            st.session_state["prefill_location"] = selected_label.casefold()
-                            st.session_state["car_source_choice"] = "Arsip Penuh"
-                            st.switch_page("pages/2_Find_Your_Car.py")
+                    if st.button(f"Cari mobil di {active_label}", type="primary", key="home_selected_region_search", width="stretch"):
+                        st.session_state["prefill_location"] = active_label.casefold()
+                        st.session_state["car_source_choice"] = "Arsip Penuh"
+                        st.switch_page("pages/2_Find_Your_Car.py")
                 else:
-                    st.caption("DKI JAKARTA")
-                    st.markdown(f"## {clean_count:,}".replace(",", "."))
-                    st.caption("listing tersedia di 5 kota administrasi")
-                    if st.button("Lihat semua mobil di Jakarta", type="primary", key="home_all_region_search", width="stretch"):
+                    if st.button("Jelajahi semua mobil di Jakarta", type="primary", key="home_all_region_search", width="stretch"):
                         st.session_state.pop("prefill_location", None)
                         st.session_state["car_source_choice"] = "Arsip Penuh"
                         st.switch_page("pages/2_Find_Your_Car.py")
-                st.caption("Klik wilayah di peta untuk menyaring hasil pencarian. Warna lebih gelap = iklan lebih banyak.")
 
-            with st.container(border=True, key="home_city_breakdown_card"):
-                st.caption("SEBARAN 5 KOTA ADMINISTRASI")
-                sorted_regions = regions.sort_values(by="Iklan tersimpan", ascending=False).reset_index(drop=True)
-                breakdown_df = pd.DataFrame({
-                    "Wilayah": sorted_regions["Wilayah"],
-                    "Iklan": sorted_regions["Iklan tersimpan"].apply(lambda x: f"{x:,}".replace(",", ".")),
-                    "Porsi (%)": sorted_regions["Iklan tersimpan"].apply(
-                        lambda x: f"{(x / clean_count * 100):.1f}%" if clean_count > 0 else "-"
-                    ),
-                })
-                st.dataframe(
-                    breakdown_df,
-                    hide_index=True,
-                    use_container_width=True,
-                    column_config={
-                        "Wilayah": st.column_config.TextColumn("Wilayah", width="medium"),
-                        "Iklan": st.column_config.TextColumn("Iklan", width="small"),
-                        "Porsi (%)": st.column_config.TextColumn("Porsi", width="small"),
-                    },
-                    key="home_city_breakdown_table",
-                    on_select="rerun",
-                    selection_mode="single-row",
-                )
-                selected_table_rows = st.session_state.get("home_city_breakdown_table", {})
-                if isinstance(selected_table_rows, dict):
-                    sel_rows = selected_table_rows.get("selection", {}).get("rows", [])
-                    if sel_rows and selected_code is None:
-                        picked_idx = sel_rows[0]
-                        if 0 <= picked_idx < len(sorted_regions):
-                            picked_row = sorted_regions.iloc[picked_idx]
-                            st.session_state["prefill_location"] = str(picked_row["Wilayah"]).casefold()
-                            st.session_state["car_source_choice"] = "Arsip Penuh"
-                            st.switch_page("pages/2_Find_Your_Car.py")
+                st.caption("Klik salah satu wilayah pada peta untuk melihat profil pasar kota tersebut.")
 
     st.markdown("### Mulai dari bahan bakar")
     st.caption("Pilih bahan bakar untuk melihat merek dan model yang tersedia.")
