@@ -30,7 +30,7 @@ with st.container(border=True):
         "Pelajari perbandingan transmisi, sebaran harga, hubungan antar-spesifikasi, hingga detektor keausan kilometer sebelum menentukan mobil incaranmu.",
         unsafe_allow_html=True,
     )
-    st.caption("💡 *Scroll ke bawah untuk membaca analisis pasar makro, atau langsung telusuri model spesifik di bagian akhir halaman.*")
+    st.caption("*Scroll ke bawah untuk membaca analisis pasar makro, atau langsung telusuri model spesifik di bagian akhir halaman.*")
 
 archive = load_combined_archive()
 if archive.empty:
@@ -48,24 +48,6 @@ priced = source.dropna(subset=["price"]).copy() if "price" in source else pd.Dat
 priced = priced[priced["price"] > 0]
 unique_count = source["listing_id"].nunique() if "listing_id" in source else len(source)
 make_count = source["make"].nunique() if "make" in source else 0
-
-# Scope Picker
-with st.container(border=True, key="market_scope_picker"):
-    scope_choice = st.radio(
-        "Rentang harga analisis",
-        ["Pasar Umum (≤ Persentil 95)", "Semua Data"],
-        horizontal=True,
-        key="market_scope_choice",
-        help="Pasar Umum mengecualikan harga di atas persentil ke-95. Pilihan ini membantu membaca sebaran utama tanpa menghapus data dari arsip.",
-    )
-
-if not priced.empty and scope_choice == "Pasar Umum (≤ Persentil 95)":
-    p95 = priced["price"].quantile(0.95)
-    filtered_priced = priced[priced["price"] <= p95].copy()
-    scope_note = f"Grafik harga menampilkan {len(filtered_priced):,} listing sampai persentil ke-95 (maks. {format_rupiah_compact(p95)}); ringkasan sumber tetap memakai seluruh arsip."
-else:
-    filtered_priced = priced.copy()
-    scope_note = f"Menampilkan seluruh {len(filtered_priced):,} listing bertarif valid termasuk mobil bernilai tinggi."
 
 # Ringkasan KPI Makro
 year_min = int(source["year"].min()) if "year" in source and source["year"].notna().any() else 2000
@@ -156,7 +138,7 @@ with comp_col1:
 with comp_col2:
     with st.container(border=True):
         st.markdown("**Perbandingan Median Harga Berdasarkan Transmisi**")
-        trans_priced = filtered_priced.dropna(subset=["transmission", "price"]).copy()
+        trans_priced = priced.dropna(subset=["transmission", "price"]).copy()
         trans_priced = trans_priced[trans_priced["transmission"].ne("")]
         if len(trans_priced) >= 5 and trans_priced["transmission"].nunique() >= 2:
             trans_summary = trans_priced.groupby("transmission")["price"].agg(["median", "count"]).reset_index()
@@ -198,6 +180,25 @@ with comp_col2:
 # Baris 2: Sebaran Harga & Hubungan Fitur Bersebelahan
 # ---------------------------------------------------------
 st.markdown("### 2. Sebaran Harga & Analisis Hubungan Fitur")
+
+with st.container(border=True, key="market_scope_picker"):
+    scope_col1, scope_col2 = st.columns([1.3, 2], vertical_alignment="center")
+    with scope_col1:
+        scope_choice = st.radio(
+            "Fokus rentang harga grafik:",
+            ["Pasar Mobil Umum (≤ 95% Pasar)", "Semua Data (Termasuk Supercar)"],
+            horizontal=True,
+            key="market_scope_choice",
+        )
+    with scope_col2:
+        if not priced.empty and scope_choice == "Pasar Mobil Umum (≤ 95% Pasar)":
+            p95 = priced["price"].quantile(0.95)
+            filtered_priced = priced[priced["price"] <= p95].copy()
+            st.caption(f"Fokus pada mobil komuter harian (maks. {format_rupiah_compact(p95)}). Menyaring 5% mobil termahal agar grafik harga proporsional dan mudah dianalisis.")
+        else:
+            filtered_priced = priced.copy()
+            st.caption("Menampilkan seluruh listing hingga mobil koleksi & supercar puluhan miliar (skala harga akan melebar mengikuti mobil termahal).")
+
 price_hist_col, rel_chart_col = st.columns(2, gap="medium")
 
 with price_hist_col:
@@ -552,7 +553,7 @@ if not model_stats.empty:
             rho = pair["price"].corr(pair["mileage_km"], method="spearman")
             if pd.notna(rho):
                 direction = "cenderung lebih rendah" if rho < -0.15 else "cenderung lebih tinggi" if rho > 0.15 else "belum menunjukkan hubungan yang kuat"
-                st.info(f"Pada {len(pair):,} listing {selected_model} dengan harga dan kilometer tercatat, harga penawaran {direction} saat kilometer berubah (korelasi peringkat {rho:.2f}). Gunakan ini sebagai petunjuk pembanding sebelum inspeksi unit.", icon=":material/lightbulb:")
+                st.info(f"Pada {len(pair):,} listing {selected_model} dengan harga dan kilometer tercatat, harga penawaran {direction} saat kilometer berubah (korelasi peringkat {rho:.2f}). Gunakan ini sebagai petunjuk pembanding sebelum inspeksi unit.")
         
         if st.button(f"Cari listing {selected_model} di Halaman Cari Mobil →", icon=":material/directions_car:", type="primary", key="market_go_search", width="stretch"):
             st.session_state["prefill_make"] = selected_make

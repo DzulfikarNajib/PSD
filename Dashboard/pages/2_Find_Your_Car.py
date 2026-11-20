@@ -35,7 +35,7 @@ with st.container(border=True):
         "Gunakan **klaster persona K-Means** di bawah untuk langsung menemukan kelompok mobil yang paling relevan dengan profil kebutuhanmu.",
         unsafe_allow_html=True,
     )
-    st.caption("💡 *Terapkan filter di panel samping untuk mempersempit daftar, lalu klik 'Buka iklan sumber' untuk verifikasi langsung di OLX.*")
+    st.caption("*Terapkan filter di panel samping untuk mempersempit daftar, lalu klik 'Buka iklan sumber' untuk verifikasi langsung di OLX.*")
 
 archive = load_combined_archive()
 if archive.empty:
