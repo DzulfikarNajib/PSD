@@ -11,3 +11,4 @@ __pycache__/
 models/*.joblib
 !models/best_model.joblib
 tmp_test/
+anti-slop/
