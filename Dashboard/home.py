@@ -14,7 +14,7 @@ from src.data_loader import (
     load_combined_archive,
 )
 from src.styles import apply_theme
-from src.ui import format_timestamp_wib, render_empty_state
+from src.ui import format_rupiah_compact, format_timestamp_wib, render_empty_state
 
 
 DEFAULT_SEARCH_URL = "https://www.olx.co.id/mobil-bekas_c198/q-mobil"
@@ -214,7 +214,36 @@ else:
                     st.caption("DKI JAKARTA")
                     st.markdown(f"## {clean_count:,}".replace(",", "."))
                     st.caption("listing tersedia di 5 kota administrasi")
-                    st.markdown("Klik wilayah di peta untuk melihat jumlah iklan dan langsung mencari mobil di sana.")
+                    if st.button("Lihat semua mobil di Jakarta", type="primary", key="home_all_region_search", width="stretch"):
+                        st.session_state.pop("prefill_location", None)
+                        st.session_state["car_source_choice"] = "Arsip Penuh"
+                        st.switch_page("pages/2_Find_Your_Car.py")
+
+            with st.container(border=True, key="home_city_breakdown_card"):
+                st.caption("SEBARAN 5 KOTA ADMINISTRASI")
+                sorted_regions = regions.sort_values(by="Iklan tersimpan", ascending=False)
+                max_regional = max(1, int(sorted_regions["Iklan tersimpan"].max()))
+                for _, r_row in sorted_regions.iterrows():
+                    w_name = str(r_row["Wilayah"])
+                    w_count = int(r_row["Iklan tersimpan"])
+                    pct = (w_count / clean_count * 100) if clean_count > 0 else 0
+                    bar_w = int((w_count / max_regional) * 100)
+                    is_active = (selected_code is not None and str(r_row["Kode"]) == str(selected_code))
+                    active_cls = " home-city-row-active" if is_active else ""
+                    st.markdown(
+                        f"""
+                        <div class="home-city-row{active_cls}">
+                            <div class="home-city-header">
+                                <span class="home-city-name">{w_name}</span>
+                                <span class="home-city-count"><strong>{w_count:,}</strong> <span class="home-city-pct">({pct:.1f}%)</span></span>
+                            </div>
+                            <div class="home-city-bar-bg">
+                                <div class="home-city-bar-fill" style="width: {bar_w}%;"></div>
+                            </div>
+                        </div>
+                        """.replace(",", "."),
+                        unsafe_allow_html=True,
+                    )
 
     st.markdown("### Mulai dari bahan bakar")
     st.caption("Pilih bahan bakar untuk melihat merek dan model yang tersedia.")
@@ -269,11 +298,35 @@ else:
                 st.markdown(f"- **{make.title()}** — {photo_info['credit']} · [Sumber foto]({photo_info['page']})")
     if not brand_counts.empty:
         all_brands = sorted(brand_counts.index.astype(str), key=str.casefold)
-        other_col, open_col = st.columns([3, 1], vertical_alignment="bottom")
-        with other_col:
-            other_brand = st.selectbox("Merek lain", all_brands, key="home_brand_choice")
-        with open_col:
-            if st.button("Buka grafik", icon=":material/insights:", key="home_find_brand", width="stretch"):
+        st.markdown("#### Cari merek lainnya")
+        st.caption("Pilih merek di luar 8 merek terpopuler di atas untuk melihat ringkasan model dan membuka grafiknya.")
+        other_brand = st.selectbox("Pilih merek lain", all_brands, key="home_brand_choice", label_visibility="collapsed")
+        
+        brand_df = archive[archive["make"].astype(str).str.casefold().eq(other_brand.casefold())] if "make" in archive else pd.DataFrame()
+        brand_ads_count = int(brand_counts.get(other_brand, len(brand_df)))
+        model_count = int(brand_df["model"].dropna().nunique()) if ("model" in brand_df and not brand_df.empty) else 0
+        
+        price_range_str = "-"
+        if "price" in brand_df and not brand_df.empty:
+            valid_prices = brand_df["price"].dropna()
+            if not valid_prices.empty:
+                min_p = valid_prices.min()
+                max_p = valid_prices.max()
+                price_range_str = f"{format_rupiah_compact(min_p)} – {format_rupiah_compact(max_p)}"
+
+        with st.container(border=True, key="home_other_brand_card"):
+            card_col1, card_col2, card_col3 = st.columns([1.5, 1.5, 2], vertical_alignment="center")
+            with card_col1:
+                st.caption("MEREK")
+                st.markdown(f"### {other_brand}")
+            with card_col2:
+                st.caption("IKLAN & MODEL")
+                st.markdown(f"**{brand_ads_count:,} iklan** · {model_count} model".replace(",", "."))
+            with card_col3:
+                st.caption("RENTANG HARGA PENAWARAN")
+                st.markdown(f"**{price_range_str}**")
+            
+            if st.button(f"Buka grafik & jelajahi model {other_brand}", icon=":material/insights:", key="home_find_brand", type="primary", width="stretch"):
                 st.session_state["market_focus_make"] = other_brand
                 st.session_state["market_source_choice"] = "Arsip Penuh"
                 st.switch_page("pages/1_Explore_Market.py")
