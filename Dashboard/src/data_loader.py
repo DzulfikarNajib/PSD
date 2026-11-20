@@ -8,6 +8,7 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+import streamlit as st
 
 from src.preprocessing import HIGH_PRICE_OUTLIER_REASON, enrich_engine_cc, is_dki_jakarta, normalize_timestamp_utc, parse_engine_cc, parse_mileage_km, preprocess_listing_dataset, split_financing_listings
 from src.supabase_store import is_configured as supabase_is_configured
@@ -146,6 +147,7 @@ def _dki_scope(frame: pd.DataFrame) -> pd.DataFrame:
     return frame.loc[location.map(is_dki_jakarta)].copy()
 
 
+@st.cache_data(show_spinner=False, ttl=3600)
 def load_combined_archive() -> pd.DataFrame:
     """Load the active cleaned dataset; use legacy merging only as a fallback."""
     excel = load_historical_data()

@@ -22,33 +22,13 @@ st.title("Pahami Pasar")
 st.caption("Cari tahu merek dan model yang tersedia, lalu bandingkan harga iklan serta spesifikasinya sebelum membuat shortlist.")
 st.info("Semua angka harga adalah harga penawaran. Hasil menggambarkan arsip AutoMatch, bukan seluruh pasar atau harga transaksi.", icon=":material/info:")
 
-history, live, archive = load_history_data(), load_live_data(), load_combined_archive()
-if archive.empty and history.empty and live.empty:
-    render_empty_state("Belum ada data untuk dianalisis", "Arsip dan snapshot akan tampil setelah dataset tersedia atau refresh manual berhasil. Tidak ada data contoh.")
+archive = load_combined_archive()
+if archive.empty:
+    render_empty_state("Belum ada data untuk dianalisis", "Arsip dan snapshot akan tampil setelah dataset tersedia. Tidak ada data contoh.")
     st.stop()
 
-col_src, col_scope = st.columns([1, 1], gap="medium")
-with col_src:
-    with st.container(border=True, key="market_source_picker"):
-        source_choice = st.radio(
-            "Pilih sumber data",
-            ["Arsip Penuh", "Listing Terbaru"],
-            horizontal=True,
-            key="market_source_choice",
-            help="Arsip Penuh memakai dataset OLX aktif yang sudah dibersihkan. Snapshot terbaru tersedia terpisah di Listing Terbaru.",
-        )
-if source_choice == "Arsip Penuh":
-    source = archive.copy()
-    source_label = "Dataset OLX aktif yang sudah dibersihkan"
-    snapshot_count = history["snapshot_id"].nunique() if "snapshot_id" in history else 0
-else:
-    source = live.copy()
-    source_label = "Snapshot OLX terbaru"
-    snapshot_count = source["snapshot_id"].nunique() if "snapshot_id" in source else 0
-
-if source.empty:
-    st.info("Belum ada data di pilihan ini. Pilih Arsip Penuh atau lakukan refresh manual untuk memperoleh listing terbaru.")
-    st.stop()
+source = archive.copy()
+source_label = "Dataset OLX aktif yang sudah dibersihkan"
 render_data_source_status()
 
 # Accept focused paths from Beranda while keeping all filters editable here.
@@ -433,6 +413,70 @@ with spec_cols[1]:
         else:
             st.caption("Data kapasitas mesin belum mencukupi.")
 
+# ---------------------------------------------------------
+# Dynamic Key Insights & Rekomendasi Pasar (Analitik Aktif)
+# ---------------------------------------------------------
+st.markdown("### Temuan Kunci Pasar & Rekomendasi")
+st.caption("Insight dihitung secara dinamis dari data yang sedang aktif, memberikan ringkasan pasar yang objektif bagi calon pembeli.")
+
+ins_df = explore if len(explore) >= 10 else source
+
+# 1. Depresiasi & Sweet Spot Usia
+years_valid = ins_df["year"].dropna()
+prices_valid = ins_df["price"].dropna()
+if len(years_valid) >= 5 and len(prices_valid) >= 5:
+    median_recent = ins_df[ins_df["year"].ge(2020)]["price"].median()
+    median_older = ins_df[ins_df["year"].between(2015, 2019)]["price"].median()
+    if pd.notna(median_recent) and pd.notna(median_older) and median_recent > 0:
+        deprec_pct = max(0, int(round((median_recent - median_older) / median_recent * 100)))
+        sweet_spot_desc = f"Mobil usia 5–9 tahun (2015–2019) mengalami penurunan harga median ~{deprec_pct}% dibanding unit baru (≥2020), menjadikannya sweet spot rasio harga-ke-nilai."
+    else:
+        sweet_spot_desc = "Penurunan harga paling curam terjadi pada 3–4 tahun pertama; membeli mobil usia 5–7 tahun meminimalkan kerugian depresiasi."
+else:
+    sweet_spot_desc = "Penurunan harga paling curam terjadi pada 3–4 tahun pertama masa pemakaian unit."
+
+# 2. Segmen Terlikuid Mesin
+engines_valid = ins_df["engine_cc"].dropna()
+if not engines_valid.empty:
+    mid_cc_share = (engines_valid.between(1001, 1500).sum() / len(engines_valid)) * 100
+    liquid_desc = f"Sebanyak {mid_cc_share:.1f}% unit di sampel ini bermesin 1.001–1.500 cc. Kapasitas ini paling likuid dengan perputaran unit cepat dan ketersediaan onderdil melimpah."
+else:
+    liquid_desc = "Kapasitas mesin 1.000–1.500 cc mendominasi perputaran iklan di DKI Jakarta dengan likuiditas suku cadang paling terjamin."
+
+# 3. Rasio Odometer Riil
+km_valid = ins_df["mileage_km"].dropna()
+if not km_valid.empty and not years_valid.empty:
+    curr_yr = 2024
+    annual_kms = (km_valid / (curr_yr - years_valid).clip(lower=1)).dropna()
+    med_annual_km = int(annual_kms.median()) if not annual_kms.empty else 15000
+    odo_desc = f"Rata-rata penggunaan normal Jakarta di sampel ini adalah ~{med_annual_km:,} km/tahun. Waspadai unit usia >5 tahun dengan odometer jauh di bawah standar tanpa riwayat servis bengkel resmi.".replace(",", ".")
+else:
+    odo_desc = "Penggunaan normal mobil harian berkisar 15.000–20.000 km/tahun. Periksa kecocokan odometer dengan kondisi pedal dan setir."
+
+insight_cols = st.columns(3, gap="medium")
+with insight_cols[0]:
+    with st.container(border=True):
+        st.caption("SWEET SPOT DEPRESIASI")
+        st.markdown("#### Usia 5–7 Tahun")
+        st.write(sweet_spot_desc)
+
+with insight_cols[1]:
+    with st.container(border=True):
+        st.caption("SEGMEN TERLIKUID")
+        st.markdown("#### Mesin 1.001–1.500 cc")
+        st.write(liquid_desc)
+
+with insight_cols[2]:
+    with st.container(border=True):
+        st.caption("INSPEKSI ODOMETER")
+        st.markdown("#### Rasio Jarak Tempuh")
+        st.write(odo_desc)
+
+if st.button("Cari mobil berdasarkan insight ini →", type="primary", key="market_to_search_cta"):
+    st.switch_page("pages/2_Find_Your_Car.py")
+
+st.markdown("")
+
 with st.expander("Tentang sumber dan batasan data"):
     st.write(f"Sumber data aktif: **{source_label}**. Angka merangkum {unique_count:,} mobil unik dari {len(source):,} baris data tersimpan.".replace(",", "."))
-    st.write("Dataset OLX aktif sudah melalui preprocessing dan menjadi sumber grafik arsip penuh. Snapshot terbaru tersedia pada pilihan terpisah. Seluruh grafik menunjukkan harga penawaran pengiklan, bukan kesepakatan transaksi riil di pasar.")
+    st.write("Dataset OLX aktif sudah melalui preprocessing dan menjadi sumber grafik pasar. Seluruh grafik menunjukkan harga penawaran pengiklan, bukan kesepakatan transaksi riil di pasar.")

@@ -2,11 +2,12 @@
 
 from html import escape
 
-import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.car_search import compare_listings, filter_listings
-from src.data_loader import load_combined_archive, load_live_data
+from src.data_loader import load_combined_archive
 from src.market_segments import cluster_market_segments
 from src.styles import apply_theme
 from src.ui import (
@@ -27,23 +28,12 @@ apply_theme()
 st.title("Cari Mobil")
 st.caption("Saring arsip berdasarkan anggaran dan spesifikasi. Bandingkan listing, lalu buka sumber iklan untuk memeriksa detailnya.")
 
-latest, archive = load_live_data(), load_combined_archive()
-if latest.empty and archive.empty:
-    render_empty_state("Belum ada data mobil", "Dataset bersih atau snapshot OLX terbaru belum tersedia. Tidak ada data contoh yang ditampilkan.")
+archive = load_combined_archive()
+if archive.empty:
+    render_empty_state("Belum ada data mobil", "Dataset bersih OLX belum tersedia. Tidak ada data contoh yang ditampilkan.")
     st.stop()
 
-with st.container(border=True, key="car_source_picker"):
-    source_choice = st.radio(
-        "Sumber listing",
-        ["Arsip Penuh", "Listing Terbaru"],
-        horizontal=True,
-        key="car_source_choice",
-        help="Arsip Penuh memakai dataset OLX aktif yang sudah dibersihkan. Snapshot terbaru tersedia terpisah di Listing Terbaru.",
-    )
-cars = archive.copy() if source_choice == "Arsip Penuh" else latest.copy()
-if cars.empty:
-    st.info("Belum ada data pada sumber ini. Pilih Arsip Penuh atau lakukan refresh manual untuk memperoleh listing terbaru.")
-    st.stop()
+cars = archive.copy()
 for column in ("price", "year", "mileage_km", "engine_cc"):
     if column in cars:
         cars[column] = pd.to_numeric(cars[column], errors="coerce")
@@ -52,26 +42,66 @@ cars, segment_summary = _cluster_cached(cars)
 render_data_source_status()
 
 segment_expanded = st.session_state.get("car_market_segment_filter", "Semua segmen") != "Semua segmen"
-with st.expander("Segmen pasar · K-Means", expanded=segment_expanded):
-    st.caption("Ini hasil unsupervised learning K-Means: sistem mengelompokkan mobil yang mirip dari harga, tahun, kilometer, dan CC. Untuk memakai kelompok sebagai filter, pilih segmen pada kontrol di panel kiri. Segmen relatif terhadap sumber data, bukan peringkat kualitas.")
+with st.expander("Segmen Pasar · K-Means (Unsupervised Learning)", expanded=segment_expanded):
+    st.caption("Sistem mengelompokkan mobil ke dalam klaster karakteristik pasar (K-Means) berdasarkan kombinasi Harga, Tahun, Kilometer, dan Kapasitas Mesin. Gunakan dropdown filter di panel kiri untuk menyaring mobil per klaster persona.")
     if segment_summary.empty:
         st.info("Belum cukup listing dengan harga valid untuk membentuk kelompok karakteristik.")
         segment_options = ["Semua segmen"]
     else:
-        segment_display = segment_summary.rename(columns={
-            "market_segment": "Segmen",
-            "profile": "Profil relatif",
-            "listings": "Jumlah listing",
-            "median_price": "Median harga",
-            "median_year": "Median tahun",
-            "median_mileage_km": "Median kilometer",
-            "median_engine_cc": "Median CC",
-        }).copy()
-        segment_display["Median harga"] = segment_display["Median harga"].map(format_rupiah_compact)
-        segment_display["Median tahun"] = segment_display["Median tahun"].map(lambda value: f"{value:.0f}" if pd.notna(value) else "-")
-        segment_display["Median kilometer"] = segment_display["Median kilometer"].map(format_km)
-        segment_display["Median CC"] = segment_display["Median CC"].map(lambda value: f"{value:.0f} cc" if pd.notna(value) else "-")
-        st.dataframe(segment_display, hide_index=True, width="stretch", alt="Ringkasan kelompok listing berdasarkan harga, tahun, kilometer, dan CC")
+        kmeans_col1, kmeans_col2 = st.columns([1.3, 1], gap="medium")
+        with kmeans_col1:
+            st.markdown("**Visualisasi Sebaran Klaster Pasar**")
+            scatter_data = cars.dropna(subset=["year", "price"]).copy()
+            scatter_data = scatter_data[scatter_data["market_segment"].astype(str).ne("") & scatter_data["price"].between(20_000_000, 2_000_000_000)]
+            if len(scatter_data) > 2500:
+                scatter_data = scatter_data.sample(2500, random_state=42)
+            scatter_data["Harga_Juta"] = scatter_data["price"] / 1_000_000
+            
+            fig_km = px.scatter(
+                scatter_data,
+                x="year",
+                y="Harga_Juta",
+                color="market_segment",
+                color_discrete_sequence=["#008B8B", "#0284C7", "#F59E0B", "#10B981", "#64748B"],
+                hover_name="title" if "title" in scatter_data else "make",
+                hover_data={"year": True, "Harga_Juta": ":.1f", "market_segment": True},
+                render_mode="webgl",
+                labels={"year": "Tahun Kendaraan", "Harga_Juta": "Harga Penawaran (Juta Rp)", "market_segment": "Segmen Pasar"},
+            )
+            fig_km.update_layout(
+                margin=dict(l=0, r=0, t=10, b=0),
+                height=340,
+                legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center", font=dict(size=10)),
+                xaxis=dict(title="Tahun Kendaraan", showgrid=True, gridcolor="#F1F5F9"),
+                yaxis=dict(title="Harga (Juta Rp)", showgrid=True, gridcolor="#F1F5F9"),
+            )
+            fig_km.update_traces(marker=dict(size=5, opacity=0.75))
+            st.plotly_chart(fig_km, width="stretch", config={"displayModeBar": False}, key="kmeans_scatter_webgl")
+
+        with kmeans_col2:
+            st.markdown("**Profil Ringkasan Persona Segmen**")
+            segment_display = segment_summary.rename(columns={
+                "market_segment": "Segmen",
+                "profile": "Karakteristik",
+                "listings": "Unit",
+                "median_price": "Median harga",
+                "median_year": "Tahun",
+                "median_mileage_km": "Median km",
+            }).copy()
+            segment_display["Median harga"] = segment_display["Median harga"].map(format_rupiah_compact)
+            segment_display["Tahun"] = segment_display["Tahun"].map(lambda value: f"{value:.0f}" if pd.notna(value) else "-")
+            segment_display["Median km"] = segment_display["Median km"].map(format_km)
+            cols_to_show = [col for col in ["Segmen", "Unit", "Median harga", "Tahun", "Median km"] if col in segment_display.columns]
+            st.dataframe(
+                segment_display[cols_to_show],
+                hide_index=True,
+                width="stretch",
+                column_config={
+                    "Segmen": st.column_config.TextColumn("Segmen", width="medium"),
+                    "Unit": st.column_config.NumberColumn("Unit", width="small"),
+                },
+                key="kmeans_segment_table",
+            )
         segment_options = ["Semua segmen", *segment_summary["market_segment"].tolist()]
 
 if st.session_state.get("car_market_segment_filter", "Semua segmen") not in segment_options:

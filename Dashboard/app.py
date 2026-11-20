@@ -51,14 +51,14 @@ active_page = st.navigation(
 
 logo_data = base64.b64encode((ASSETS_DIR / "automatch-logo.png").read_bytes()).decode("ascii")
 with st.container(key="automatch_topnav"):
-    nav = st.columns([1.65, 4.15, 1.05], gap="small", vertical_alignment="center")
+    nav = st.columns([1.8, 5.2], gap="small", vertical_alignment="center")
     with nav[0]:
         st.markdown(
             f'<div class="automatch-brand"><img src="data:image/png;base64,{logo_data}" alt="AutoMatch" /><span>Find the car that fits you</span></div>',
             unsafe_allow_html=True,
         )
 
-    link_columns = nav[1].columns([.85, 1.05, 1.25, 1.05, 1.35], gap="small", vertical_alignment="center")
+    link_columns = nav[1].columns([1, 1.15, 1.05, 1.25, 1.2], gap="small", vertical_alignment="center")
     page_links = [
         (link_columns[0], home_page, "Beranda", ":material/home:", "beranda"),
         (link_columns[1], market_page, "Pahami Pasar", ":material/insights:", "pasar"),
@@ -71,9 +71,5 @@ with st.container(key="automatch_topnav"):
         with column:
             with st.container(key=f"nav_active_{slug}" if is_active else f"nav_{slug}"):
                 st.page_link(page, label=label, icon=icon, help=label)
-    with nav[2]:
-        if st.button("Refresh", icon=":material/refresh:", help="Buka panel refresh manual. Tombol ini tidak mengambil data.", key="nav_open_refresh", width="stretch"):
-            st.session_state["open_refresh_panel"] = True
-            st.switch_page("home.py")
 
 active_page.run()
