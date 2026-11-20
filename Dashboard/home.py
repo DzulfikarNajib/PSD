@@ -124,9 +124,8 @@ else:
         ])
         map_col, info_col = st.columns([1.6, 1], gap="medium")
         with map_col:
-            with st.container(border=True):
+            with st.container(border=True, key="home_map_container"):
                 st.markdown("#### Temukan mobil di wilayah Jakarta")
-                st.caption("Klik salah satu wilayah untuk melihat jumlah iklan tersimpan dan membuka hasil pencariannya.")
                 boundaries = load_dki_boundaries()
                 map_builder = getattr(px, "choropleth_map", None)
                 map_style_argument = "map_style"
@@ -183,7 +182,6 @@ else:
                     selection_mode="points",
                     alt="Peta choropleth lima kota administrasi Jakarta menurut jumlah iklan mobil tersimpan di AutoMatch",
                 )
-                st.caption("Warna lebih gelap berarti iklan tersimpan lebih banyak. Arahkan kursor untuk melihat angka. Peta mencakup lima kota administrasi Jakarta.")
 
         with info_col:
             selected_code = None
@@ -218,32 +216,41 @@ else:
                         st.session_state.pop("prefill_location", None)
                         st.session_state["car_source_choice"] = "Arsip Penuh"
                         st.switch_page("pages/2_Find_Your_Car.py")
+                st.caption("Klik wilayah di peta untuk menyaring hasil pencarian. Warna lebih gelap = iklan lebih banyak.")
 
             with st.container(border=True, key="home_city_breakdown_card"):
                 st.caption("SEBARAN 5 KOTA ADMINISTRASI")
-                sorted_regions = regions.sort_values(by="Iklan tersimpan", ascending=False)
-                max_regional = max(1, int(sorted_regions["Iklan tersimpan"].max()))
-                for _, r_row in sorted_regions.iterrows():
-                    w_name = str(r_row["Wilayah"])
-                    w_count = int(r_row["Iklan tersimpan"])
-                    pct = (w_count / clean_count * 100) if clean_count > 0 else 0
-                    bar_w = int((w_count / max_regional) * 100)
-                    is_active = (selected_code is not None and str(r_row["Kode"]) == str(selected_code))
-                    active_cls = " home-city-row-active" if is_active else ""
-                    st.markdown(
-                        f"""
-                        <div class="home-city-row{active_cls}">
-                            <div class="home-city-header">
-                                <span class="home-city-name">{w_name}</span>
-                                <span class="home-city-count"><strong>{w_count:,}</strong> <span class="home-city-pct">({pct:.1f}%)</span></span>
-                            </div>
-                            <div class="home-city-bar-bg">
-                                <div class="home-city-bar-fill" style="width: {bar_w}%;"></div>
-                            </div>
-                        </div>
-                        """.replace(",", "."),
-                        unsafe_allow_html=True,
-                    )
+                sorted_regions = regions.sort_values(by="Iklan tersimpan", ascending=False).reset_index(drop=True)
+                breakdown_df = pd.DataFrame({
+                    "Wilayah": sorted_regions["Wilayah"],
+                    "Iklan": sorted_regions["Iklan tersimpan"].apply(lambda x: f"{x:,}".replace(",", ".")),
+                    "Porsi (%)": sorted_regions["Iklan tersimpan"].apply(
+                        lambda x: f"{(x / clean_count * 100):.1f}%" if clean_count > 0 else "-"
+                    ),
+                })
+                st.dataframe(
+                    breakdown_df,
+                    hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "Wilayah": st.column_config.TextColumn("Wilayah", width="medium"),
+                        "Iklan": st.column_config.TextColumn("Iklan", width="small"),
+                        "Porsi (%)": st.column_config.TextColumn("Porsi", width="small"),
+                    },
+                    key="home_city_breakdown_table",
+                    on_select="rerun",
+                    selection_mode="single-row",
+                )
+                selected_table_rows = st.session_state.get("home_city_breakdown_table", {})
+                if isinstance(selected_table_rows, dict):
+                    sel_rows = selected_table_rows.get("selection", {}).get("rows", [])
+                    if sel_rows and selected_code is None:
+                        picked_idx = sel_rows[0]
+                        if 0 <= picked_idx < len(sorted_regions):
+                            picked_row = sorted_regions.iloc[picked_idx]
+                            st.session_state["prefill_location"] = str(picked_row["Wilayah"]).casefold()
+                            st.session_state["car_source_choice"] = "Arsip Penuh"
+                            st.switch_page("pages/2_Find_Your_Car.py")
 
     st.markdown("### Mulai dari bahan bakar")
     st.caption("Pilih bahan bakar untuk melihat merek dan model yang tersedia.")

@@ -136,15 +136,10 @@ div[class*="st-key-home_region_info_card"] .stButton > button { margin-top:.4rem
 
 div[class*="st-key-home_city_breakdown_card"] { width:100%; min-width:0; padding:1rem 1.2rem; background:#FFFFFF; border-color:#DCE6EB; margin-top:.6rem; }
 div[class*="st-key-home_city_breakdown_card"] [data-testid="stCaptionContainer"] p { font-size:.75rem; font-weight:700; letter-spacing:.03em; color:var(--dashboard-muted); margin-bottom:.5rem; }
-.home-city-row { padding:.35rem .5rem; border-radius:8px; margin-bottom:.35rem; transition: background .15s ease; }
-.home-city-row:hover { background: #F1F5F9; }
-.home-city-row-active { background: #E6F4F1 !important; border-left: 3px solid #008B8B; }
-.home-city-header { display:flex; justify-content:space-between; align-items:center; font-size:.82rem; margin-bottom:.25rem; }
-.home-city-name { color: var(--dashboard-text); font-weight: 550; }
-.home-city-count { color: var(--dashboard-muted); font-size: .8rem; }
-.home-city-pct { color: #64748B; font-size: .75rem; }
-.home-city-bar-bg { width:100%; height:5px; background:#E2E8F0; border-radius:999px; overflow:hidden; }
-.home-city-bar-fill { height:100%; background:linear-gradient(90deg, #72BDB3, #008B8B); border-radius:999px; }
+div[class*="st-key-home_city_breakdown_card"] [data-testid="stDataFrame"] { border:none; border-radius:10px; overflow:hidden; }
+div[class*="st-key-home_city_breakdown_card"] [data-testid="stDataFrame"] th { background:#F0F8F7 !important; color:#008B8B !important; font-size:.75rem !important; font-weight:700 !important; letter-spacing:.02em; }
+div[class*="st-key-home_city_breakdown_card"] [data-testid="stDataFrame"] td { font-size:.8rem !important; color:var(--dashboard-text); padding:.4rem .6rem !important; }
+div[class*="st-key-home_city_breakdown_card"] [data-testid="stDataFrame"] tr:hover td { background:#E6F4F1 !important; cursor:pointer; }
 
 div[class*="st-key-home_other_brand_card"] { padding:1.2rem 1.4rem; background:#FFFFFF; border-color:#DCE6EB; margin-top:.7rem; }
 div[class*="st-key-home_other_brand_card"] h3 { margin:.1rem 0; font-size:1.45rem; color:var(--dashboard-text); }
