@@ -1,4 +1,4 @@
-"""AutoMatch application shell with a compact, persistent top navigation."""
+"""AutoMatch application shell with a navy sidebar navigation (6 pages)."""
 
 import base64
 import sys
@@ -29,47 +29,85 @@ import streamlit as st
 from src.styles import apply_theme
 
 st.set_page_config(
-    page_title="AutoMatch",
+    page_title="AutoMatch · Analisis Pasar Mobil Bekas DKI Jakarta",
     page_icon=str(ASSETS_DIR / "automatch-icon.png"),
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 apply_theme()
 
-# Design read: ENERGY 1, RHYTHM 2, MOTION 1. Keep the existing AutoMatch
-# teal/navy identity; navigation follows the audience's discovery sequence.
-
-home_page = st.Page("home.py", title="Beranda", url_path="beranda", icon=":material/home:", default=True)
-search_page = st.Page("pages/2_Find_Your_Car.py", title="Cari Mobil", url_path="cari-mobil", icon=":material/directions_car:")
-price_page = st.Page("pages/3_Price_Checker.py", title="Cek Harga Iklan", url_path="cek-harga-iklan", icon=":material/price_check:")
-market_page = st.Page("pages/1_Explore_Market.py", title="Pahami Pasar", url_path="pahami-pasar", icon=":material/insights:")
-project_page = st.Page("pages/4_Tentang_Proyek.py", title="Tentang Proyek", url_path="tentang-proyek", icon=":material/menu_book:")
-
-active_page = st.navigation(
-    [home_page, market_page, search_page, price_page, project_page],
-    position="hidden",
+# 6 pages per Master Reference Design (AutoMatch Redesign Blueprint)
+p_ikhtisar = st.Page(
+    "pages/ikhtisar_pasar.py",
+    title="Ikhtisar Pasar",
+    url_path="ikhtisar-pasar",
+    icon=":material/dashboard:",
+    default=True,
+)
+p_eksplorasi = st.Page(
+    "pages/eksplorasi_data.py",
+    title="Eksplorasi Data",
+    url_path="eksplorasi-data",
+    icon=":material/bar_chart:",
+)
+p_preproc = st.Page(
+    "pages/preprocessing_segmentasi.py",
+    title="Preprocessing & Segmentasi",
+    url_path="preprocessing-segmentasi",
+    icon=":material/tune:",
+)
+p_evaluasi = st.Page(
+    "pages/evaluasi_model.py",
+    title="Evaluasi Model",
+    url_path="evaluasi-model",
+    icon=":material/query_stats:",
+)
+p_cek_harga = st.Page(
+    "pages/cek_harga_iklan.py",
+    title="Cek Harga Iklan",
+    url_path="cek-harga-iklan",
+    icon=":material/search_check:",
+)
+p_kesimpulan = st.Page(
+    "pages/kesimpulan.py",
+    title="Kesimpulan & Rekomendasi",
+    url_path="kesimpulan-rekomendasi",
+    icon=":material/fact_check:",
 )
 
-logo_data = base64.b64encode((ASSETS_DIR / "automatch-logo.png").read_bytes()).decode("ascii")
-with st.container(key="automatch_topnav"):
-    nav = st.columns([1.8, 5.2], gap="small", vertical_alignment="center")
-    with nav[0]:
-        st.markdown(
-            f'<div class="automatch-brand"><img src="data:image/png;base64,{logo_data}" alt="AutoMatch" /><span>Find the car that fits you</span></div>',
-            unsafe_allow_html=True,
-        )
+active_page = st.navigation(
+    [p_ikhtisar, p_eksplorasi, p_preproc, p_evaluasi, p_cek_harga, p_kesimpulan],
+    position="sidebar",
+)
 
-    link_columns = nav[1].columns([1, 1.15, 1.05, 1.25, 1.2], gap="small", vertical_alignment="center")
-    page_links = [
-        (link_columns[0], home_page, "Beranda", ":material/home:", "beranda"),
-        (link_columns[1], market_page, "Pahami Pasar", ":material/insights:", "pasar"),
-        (link_columns[2], search_page, "Cari Mobil", ":material/directions_car:", "cari"),
-        (link_columns[3], price_page, "Cek Harga Iklan", ":material/price_check:", "harga"),
-        (link_columns[4], project_page, "Tentang Proyek", ":material/menu_book:", "proyek"),
-    ]
-    for column, page, label, icon, slug in page_links:
-        is_active = active_page.title == label
-        with column:
-            with st.container(key=f"nav_active_{slug}" if is_active else f"nav_{slug}"):
-                st.page_link(page, label=label, icon=icon, help=label)
+# Sidebar Branding
+with st.sidebar:
+    st.markdown(
+        """
+        <div class="am-sidebar-brand">
+            <div class="am-sidebar-brand-icon">🚗</div>
+            <div>
+                <div class="am-sidebar-brand-title">AutoMatch</div>
+                <div class="am-sidebar-brand-sub">Analisis Pasar Mobil DKI Jakarta</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# Top utility header above page content (matching master reference design)
+top_cols = st.columns([8, 2], vertical_alignment="center")
+with top_cols[0]:
+    st.markdown(
+        '<div class="am-scope-pill"><span style="color:#008B8B;">📍</span> DKI Jakarta &nbsp;·&nbsp; 5 Wilayah</div>',
+        unsafe_allow_html=True,
+    )
+with top_cols[1]:
+    st.markdown(
+        '<div style="text-align:right; font-size:0.78rem; color:#64748B;">☀️ Mode Terang</div>',
+        unsafe_allow_html=True,
+    )
+
+st.markdown("<div style='margin-bottom:0.75rem;'></div>", unsafe_allow_html=True)
 
 active_page.run()

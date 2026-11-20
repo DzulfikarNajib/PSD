@@ -1,4 +1,4 @@
-"""Theme-aware styling for a calm, automotive-inspired buyer experience."""
+"""Theme-aware styling for the AutoMatch dashboard (navy/teal sidebar layout)."""
 
 import streamlit as st
 
@@ -6,10 +6,13 @@ import streamlit as st
 COLORS = {
     "background": "#F8FAFC",
     "surface": "#FFFFFF",
+    "navy": "#0B2A5B",
+    "navy_dark": "#071B3A",
     "text": "#0F172A",
     "muted": "#475569",
     "accent": "#008B8B",
     "accent_hover": "#066B6B",
+    "accent_light": "#E3F6F5",
     "border": "#E2E8F0",
     "grid": "#F1F5F9",
     "warning": "#F59E0B",
@@ -33,8 +36,11 @@ CSS = """
     --dashboard-soft: #FFFFFF;
     --dashboard-surface: #FFFFFF;
     --dashboard-text: #0F172A;
+    --dashboard-navy: #0B2A5B;
+    --dashboard-navy-dark: #071B3A;
     --dashboard-accent: #008B8B;
     --dashboard-accent-hover: #066B6B;
+    --dashboard-accent-light: #E3F6F5;
     --dashboard-muted: #475569;
     --dashboard-border: #E2E8F0;
     --status-under-background: #ECFDF5;
@@ -206,18 +212,225 @@ div[class*="st-key-project_editorial_hero"] {
 .project-illustration svg { display:block; width:100%; max-height:240px; }
 .project-illustration span { display:block; margin-top:.3rem; }
 
+/* AutoMatch Navy Sidebar (Master Reference Design) */
 [data-testid="stSidebar"] {
-    background: var(--dashboard-surface);
-    border-right: 1px solid var(--dashboard-border);
+    background: linear-gradient(180deg, #0B2A5B 0%, #081D3F 65%, #05142E 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
-[data-testid="stSidebar"] [data-testid="stPageLink"] a {
+[data-testid="stSidebar"] > div:first-child {
+    padding-top: 1.2rem;
+}
+[data-testid="stSidebar"] [data-testid="stSidebarNav"] {
+    padding-top: 0.5rem;
+}
+[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] {
+    gap: 0.25rem;
+}
+[data-testid="stSidebar"] [data-testid="stPageLink"] a,
+[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] a {
+    border-radius: 10px !important;
+    padding: 0.55rem 0.9rem !important;
+    color: #CBD5E1 !important;
+    font-family: "Plus Jakarta Sans", Inter, sans-serif !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+    transition: all 0.15s ease-in-out !important;
+    border: 1px solid transparent !important;
+    margin: 0.1rem 0 !important;
+}
+[data-testid="stSidebar"] [data-testid="stPageLink"] a:hover,
+[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] a:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+}
+[data-testid="stSidebar"] a[aria-current="page"],
+[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"],
+[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] a[aria-current="page"] {
+    background: #008B8B !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 8px rgba(0, 139, 139, 0.35) !important;
+}
+[data-testid="stSidebar"] [data-testid="stPageLink"] a svg,
+[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] a svg {
+    fill: currentColor !important;
+}
+[data-testid="stSidebar"] p, 
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+    color: #E2E8F0 !important;
+}
+.am-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.4rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0.75rem;
+}
+.am-sidebar-brand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
     border-radius: 8px;
-    padding: .45rem .6rem;
+    background: #008B8B;
+    color: #FFFFFF;
+    font-size: 1.25rem;
+    box-shadow: 0 2px 6px rgba(0, 139, 139, 0.4);
 }
-[data-testid="stSidebar"] [data-testid="stPageLink"] a:hover {
+.am-sidebar-brand-title {
+    font-family: "Plus Jakarta Sans", Inter, sans-serif;
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: #FFFFFF !important;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+.am-sidebar-brand-sub {
+    font-size: 0.72rem;
+    color: #94A3B8 !important;
+    line-height: 1.2;
+    margin-top: 0.1rem;
+}
+.am-sidebar-footer {
+    padding: 1rem 0.5rem 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: 2rem;
+    font-size: 0.74rem;
+    color: #64748B !important;
+}
+
+/* Page Header Component */
+.am-page-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.35rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--dashboard-border);
+}
+.am-page-header-icon {
+    font-size: 1.9rem;
+    line-height: 1;
+    padding: 0.35rem;
+    border-radius: 10px;
     background: #F1F5F9;
 }
-[data-testid="stSidebar"] p, [data-testid="stSidebar"] label { color: var(--dashboard-text); }
+.am-page-header-title {
+    font-family: "Plus Jakarta Sans", Inter, sans-serif;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: var(--dashboard-text);
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+}
+.am-page-header-subtitle {
+    font-size: 0.88rem;
+    color: var(--dashboard-muted);
+    margin-top: 0.2rem;
+    line-height: 1.45;
+}
+
+/* Reusable Section Title & Insight Cards */
+.am-section-title {
+    font-family: "Plus Jakarta Sans", Inter, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--dashboard-text);
+    margin-bottom: 0.65rem;
+    letter-spacing: -0.015em;
+}
+.am-insight-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem 1.15rem;
+    background: #FFFFFF;
+    border: 1px solid var(--dashboard-border);
+    border-radius: 14px;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+.am-insight-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+    padding-top: 0.1rem;
+}
+.am-insight-headline {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--dashboard-text);
+    margin-bottom: 0.2rem;
+}
+.am-insight-body {
+    font-size: 0.84rem;
+    color: var(--dashboard-muted);
+    line-height: 1.5;
+}
+.am-insight-warning {
+    border-left: 4px solid #F59E0B;
+}
+.am-insight-success {
+    border-left: 4px solid #10B981;
+}
+.am-insight-info {
+    border-left: 4px solid #008B8B;
+}
+
+/* Coming Soon Placeholder */
+.am-coming-soon {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    background: #FFFFFF;
+    border: 1px dashed var(--dashboard-border);
+    border-radius: 16px;
+    margin: 1rem 0;
+}
+.am-coming-soon-icon {
+    font-size: 2.2rem;
+    margin-bottom: 0.6rem;
+}
+.am-coming-soon-title {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--dashboard-text);
+    margin-bottom: 0.35rem;
+}
+.am-coming-soon-desc {
+    font-size: 0.86rem;
+    color: var(--dashboard-muted);
+    max-width: 580px;
+    margin: 0 auto 1rem;
+    line-height: 1.5;
+}
+.am-coming-soon-badge {
+    display: inline-block;
+    padding: 0.28rem 0.75rem;
+    border-radius: 999px;
+    background: #E3F6F5;
+    color: #008B8B;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+/* Top bar indicator pill */
+.am-scope-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    background: #FFFFFF;
+    border: 1px solid var(--dashboard-border);
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--dashboard-text);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
 
 h1, h2, h3, h4 {
     letter-spacing: -0.025em;
