@@ -605,19 +605,21 @@ h1, h2, h3, h4 {
 .stMetric [data-testid="stMetricValue"] > div { font-size:inherit !important; line-height:inherit; white-space:normal !important; overflow:visible !important; text-overflow:clip !important; overflow-wrap:anywhere; }
 [data-testid="stMetricLabel"] p { font-size: .84rem; font-weight: 500; white-space:normal; line-height:1.2; }
 
-/* Cards & Containers */
+/* Cards & Containers (Anti-Slop Clean Elevation) */
 [data-testid="stVerticalBlockBorderWrapper"] {
-    background: var(--dashboard-surface);
-    border: 1px solid var(--dashboard-border);
-    border-radius: 16px;
-    box-shadow: none;
+    background: var(--dashboard-surface) !important;
+    border: 1px solid var(--dashboard-border) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02) !important;
+    padding: 1.15rem 1.25rem !important;
+    margin-bottom: 0.75rem !important;
 }
 .card {
     background: var(--dashboard-surface);
     border: 1px solid var(--dashboard-border);
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 1.1rem 1.25rem;
-    box-shadow: none;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
 }
 [data-testid="stImage"] img { border-radius: 12px; aspect-ratio: 16 / 9; object-fit: cover; }
 [data-testid="stImage"] figcaption { color: var(--dashboard-muted); font-size: .78rem; }

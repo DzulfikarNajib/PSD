@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 from pathlib import Path
+import re
 import streamlit as st
 import plotly.graph_objects as go
 
@@ -68,13 +69,13 @@ def hero_banner(
 # ---------------------------------------------------------------------------
 
 def page_header(icon: str, title: str, subtitle: str) -> None:
-    """Render a consistent page header with icon, title, and subtitle."""
+    """Render a consistent page header with icon merged directly into the title string."""
+    icon_prefix = f"{icon} " if icon else ""
     st.markdown(
         f"""
         <div class="am-page-header">
-            <div class="am-page-header-icon">{icon}</div>
             <div>
-                <div class="am-page-header-title">{title}</div>
+                <div class="am-page-header-title">{icon_prefix}{title}</div>
                 <div class="am-page-header-subtitle">{subtitle}</div>
             </div>
         </div>
@@ -158,7 +159,7 @@ def section_card(title: str = "", key: str = "") -> "contextlib._GeneratorContex
 # ---------------------------------------------------------------------------
 
 def insight_card(icon: str, headline: str, body: str, variant: str = "default") -> None:
-    """Render a single insight card.
+    """Render a single insight card with automatic markdown **bold** to <b>bold</b> conversion.
 
     variant: "default" | "warning" | "success" | "info"
     """
@@ -169,13 +170,14 @@ def insight_card(icon: str, headline: str, body: str, variant: str = "default") 
         "info": "am-insight-card am-insight-info",
     }
     css_class = variant_classes.get(variant, "am-insight-card")
+    body_html = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", body)
     st.markdown(
         f"""
         <div class="{css_class}">
             <div class="am-insight-icon">{icon}</div>
             <div>
                 <div class="am-insight-headline">{headline}</div>
-                <div class="am-insight-body">{body}</div>
+                <div class="am-insight-body">{body_html}</div>
             </div>
         </div>
         """,

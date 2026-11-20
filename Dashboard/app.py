@@ -25,6 +25,7 @@ if loaded_src is not None:
                 sys.modules.pop(module_name, None)
 
 import streamlit as st
+from streamlit_option_menu import option_menu
 
 from src.styles import apply_theme
 
@@ -75,12 +76,15 @@ p_kesimpulan = st.Page(
     icon=":material/fact_check:",
 )
 
+pages_list = [p_ikhtisar, p_eksplorasi, p_preproc, p_evaluasi, p_cek_harga, p_kesimpulan]
+page_map = {p.title: p for p in pages_list}
+
 active_page = st.navigation(
-    [p_ikhtisar, p_eksplorasi, p_preproc, p_evaluasi, p_cek_harga, p_kesimpulan],
-    position="sidebar",
+    pages_list,
+    position="hidden",
 )
 
-# Sidebar Branding
+# Sidebar Branding & Option Menu Navigation
 icon_path = ASSETS_DIR / "automatch-icon.png"
 if icon_path.exists():
     icon_b64 = base64.b64encode(icon_path.read_bytes()).decode()
@@ -89,6 +93,7 @@ else:
     brand_icon_html = '<div class="am-sidebar-brand-icon">AM</div>'
 
 with st.sidebar:
+    # 1. Branding at the very top of sidebar
     st.markdown(
         f"""
         <div class="am-sidebar-brand">
@@ -97,6 +102,63 @@ with st.sidebar:
                 <div class="am-sidebar-brand-title">AutoMatch</div>
                 <div class="am-sidebar-brand-sub">Analisis Pasar Mobil DKI Jakarta</div>
             </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # 2. Polished option menu navigation
+    page_names = [p.title for p in pages_list]
+    page_icons = [
+        "speedometer2",
+        "bar-chart-line",
+        "sliders",
+        "graph-up-arrow",
+        "search",
+        "check2-circle",
+    ]
+
+    curr_idx = 0
+    for idx, p in enumerate(pages_list):
+        if p == active_page:
+            curr_idx = idx
+            break
+
+    selected = option_menu(
+        menu_title=None,
+        options=page_names,
+        icons=page_icons,
+        default_index=curr_idx,
+        styles={
+            "container": {"padding": "0!important", "background-color": "transparent"},
+            "icon": {"color": "#94A3B8", "font-size": "15px"},
+            "nav-link": {
+                "font-size": "0.88rem",
+                "text-align": "left",
+                "margin": "3px 0",
+                "color": "#CBD5E1",
+                "border-radius": "10px",
+                "font-family": "'Plus Jakarta Sans', Inter, sans-serif",
+                "font-weight": "500",
+                "--hover-color": "rgba(255, 255, 255, 0.08)",
+            },
+            "nav-link-selected": {
+                "background-color": "#008B8B",
+                "color": "#FFFFFF",
+                "font-weight": "700",
+                "box-shadow": "0 2px 8px rgba(0, 139, 139, 0.35)",
+            },
+        },
+    )
+
+    if selected in page_map and page_map[selected] != active_page:
+        st.switch_page(page_map[selected])
+
+    st.markdown(
+        """
+        <div class="am-sidebar-footer">
+            <div>Sains Data · STA1381</div>
+            <div style="color:#64748B; margin-top:2px;">Institut Pertanian Bogor</div>
         </div>
         """,
         unsafe_allow_html=True,

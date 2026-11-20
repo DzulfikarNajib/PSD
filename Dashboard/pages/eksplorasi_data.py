@@ -164,6 +164,7 @@ with r1_c2:
         top_f_makes = filtered["make"].value_counts().head(5).reset_index()
         top_f_makes.columns = ["make", "count"]
         top_f_makes = top_f_makes.sort_values("count", ascending=True)
+        max_cnt = float(top_f_makes["count"].max()) if not top_f_makes.empty else 100.0
 
         fig_f_makes = go.Figure(go.Bar(
             x=top_f_makes["count"],
@@ -177,8 +178,8 @@ with r1_c2:
         apply_chart_theme(fig_f_makes)
         fig_f_makes.update_layout(
             height=295,
-            margin=dict(l=10, r=16, t=10, b=10),
-            xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9"),
+            margin=dict(l=10, r=20, t=10, b=10),
+            xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9", range=[0, max_cnt * 1.2]),
             yaxis=dict(title=None, showgrid=False),
         )
         st.plotly_chart(fig_f_makes, width="stretch", config={"displayModeBar": False}, key="chart_eda_makes")
@@ -193,6 +194,7 @@ with r1_c3:
             body_median = body_data.groupby("body_type")["price"].median().reset_index()
             body_median["price_jt"] = body_median["price"] / 1_000_000
             body_median = body_median.sort_values("price_jt", ascending=False).head(5)
+            max_body = float(body_median["price_jt"].max()) if not body_median.empty else 100.0
 
             fig_body = go.Figure(go.Bar(
                 x=body_median["body_type"],
@@ -206,9 +208,9 @@ with r1_c3:
             apply_chart_theme(fig_body)
             fig_body.update_layout(
                 height=295,
-                margin=dict(l=10, r=10, t=20, b=10),
+                margin=dict(l=10, r=10, t=30, b=10),
                 xaxis=dict(title=None, showgrid=False),
-                yaxis=dict(title="Median Harga (Jt)", showgrid=True, gridcolor="#F1F5F9"),
+                yaxis=dict(title="Median Harga (Jt)", showgrid=True, gridcolor="#F1F5F9", range=[0, max_body * 1.25]),
             )
             st.plotly_chart(fig_body, width="stretch", config={"displayModeBar": False}, key="chart_eda_body")
         else:
@@ -293,6 +295,7 @@ with r2_c3:
         loc_dist = filtered["location_display"].value_counts().reset_index()
         loc_dist.columns = ["Wilayah", "Listing"]
         loc_dist = loc_dist.sort_values("Listing", ascending=False)
+        max_loc = float(loc_dist["Listing"].max()) if not loc_dist.empty else 100.0
 
         fig_loc = go.Figure(go.Bar(
             x=loc_dist["Wilayah"],
@@ -306,8 +309,8 @@ with r2_c3:
         apply_chart_theme(fig_loc)
         fig_loc.update_layout(
             height=280,
-            margin=dict(l=10, r=10, t=20, b=10),
+            margin=dict(l=10, r=10, t=30, b=10),
             xaxis=dict(title=None, tickangle=-15, showgrid=False),
-            yaxis=dict(title="Jumlah Listing", showgrid=True, gridcolor="#F1F5F9"),
+            yaxis=dict(title="Jumlah Listing", showgrid=True, gridcolor="#F1F5F9", range=[0, max_loc * 1.25]),
         )
         st.plotly_chart(fig_loc, width="stretch", config={"displayModeBar": False}, key="chart_eda_region_bar")

@@ -80,41 +80,41 @@ best_r2 = rf_metrics.get("R2", 0.8938)
 # ---------------------------------------------------------------------------
 # Bagian 1: Empat Temuan Kunci Pasar (Grid 4 Kolom per Master Reference)
 # ---------------------------------------------------------------------------
-st.markdown("<div class='am-section-title'>📌 Temuan Kunci Pasar</div>", unsafe_allow_html=True)
+with st.container(border=True):
+    st.markdown("<div class='am-section-title'>Temuan Kunci Pasar Mobil Bekas DKI Jakarta</div>", unsafe_allow_html=True)
+    k_col1, k_col2, k_col3, k_col4 = st.columns(4, gap="small")
 
-k_col1, k_col2, k_col3, k_col4 = st.columns(4, gap="small")
+    with k_col1:
+        insight_card(
+            icon="🏆",
+            headline=f"Dominasi {top_make}",
+            body=f"Pasar didominasi mobil Jepang dengan pangsa pasar <b>{top_make_pct:.1f}% ({top_make_count:,} unit)</b>.".replace(",", "."),
+            variant="info",
+        )
 
-with k_col1:
-    insight_card(
-        icon="🏆",
-        headline=f"Dominasi {top_make}",
-        body=f"Pasar didominasi mobil Jepang dengan pangsa pasar **{top_make_pct:.1f}% ({top_make_count:,} unit)**.".replace(",", "."),
-        variant="info",
-    )
+    with k_col2:
+        insight_card(
+            icon="🚙",
+            headline="SUV & MPV Terpopuler",
+            body="Segmen MPV dan Compact SUV keluarga menjadi tipe kendaraan paling diminati di pasar ibu kota.",
+            variant="default",
+        )
 
-with k_col2:
-    insight_card(
-        icon="🚙",
-        headline="SUV & MPV Terpopuler",
-        body="Segmen MPV dan Compact SUV keluarga menjadi tipe kendaraan paling diminati di pasar ibu kota.",
-        variant="default",
-    )
+    with k_col3:
+        insight_card(
+            icon="📉",
+            headline="Faktor Penentu Harga",
+            body="Harga dipengaruhi paling kuat oleh kombinasi tahun pembuatan, jarak tempuh (KM), dan kapasitas mesin.",
+            variant="success",
+        )
 
-with k_col3:
-    insight_card(
-        icon="📉",
-        headline="Faktor Penentu Harga",
-        body="Harga dipengaruhi paling kuat oleh kombinasi tahun pembuatan, jarak tempuh (KM), dan kapasitas mesin.",
-        variant="success",
-    )
-
-with k_col4:
-    insight_card(
-        icon="🎯",
-        headline="Model Terbaik: RF",
-        body=f"Random Forest menghasilkan akurasi tertinggi dengan **R² = {best_r2:.4f}** dan MAE {format_rupiah_compact(best_mae)}.",
-        variant="warning",
-    )
+    with k_col4:
+        insight_card(
+            icon="🎯",
+            headline="Model Terbaik: RF",
+            body=f"Random Forest menghasilkan akurasi tertinggi dengan <b>R² = {best_r2:.4f}</b> dan MAE {format_rupiah_compact(best_mae)}.",
+            variant="warning",
+        )
 
 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
@@ -146,7 +146,7 @@ with r_seller:
         )
 
 with r_limits:
-    with section_card("⚠️ Limitasi Analisis"):
+    with section_card("Limitasi Analisis"):
         st.markdown(
             """
             <div style="font-size:0.8rem; color:#475569; line-height:1.5;">

@@ -86,6 +86,7 @@ with tab_prep:
 
     with col_funnel_viz:
         with section_card("Visualisasi Retensi Observasi"):
+            max_funnel = float(funnel_df["Listing tersisa"].max()) if not funnel_df.empty else 1000.0
             fig_funnel = go.Figure(go.Bar(
                 x=funnel_df["Listing tersisa"],
                 y=funnel_df["Tahap"],
@@ -104,7 +105,7 @@ with tab_prep:
             fig_funnel.update_layout(
                 height=250,
                 margin=dict(l=10, r=10, t=10, b=10),
-                xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9"),
+                xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9", range=[0, max_funnel * 1.18]),
                 yaxis=dict(title=None, showgrid=False, autorange="reversed"),
             )
             st.plotly_chart(fig_funnel, width="stretch", config={"displayModeBar": False}, key="chart_funnel_bar")

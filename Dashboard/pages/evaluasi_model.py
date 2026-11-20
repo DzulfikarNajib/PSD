@@ -89,31 +89,33 @@ mae_val = model_metrics.get("MAE", 0)
 rmse_val = model_metrics.get("RMSE", 0)
 r2_val = model_metrics.get("R2", 0)
 
-kpi_cols = st.columns(3, gap="medium")
-with kpi_cols[0]:
-    kpi_card(
-        label="MAE (Mean Absolute Error)",
-        value=format_rupiah_compact(mae_val),
-        icon="📉",
-        help_text=f"Rata-rata besar kesalahan absolut prediksi: {format_rupiah(mae_val)}.",
-        variant="blue",
-    )
-with kpi_cols[1]:
-    kpi_card(
-        label="RMSE (Root Mean Squared Error)",
-        value=format_rupiah_compact(rmse_val),
-        icon="📊",
-        help_text=f"Akar rata-rata kuadrat kesalahan: {format_rupiah(rmse_val)} (memberi penalti lebih berat pada galat besar).",
-        variant="teal",
-    )
-with kpi_cols[2]:
-    kpi_card(
-        label="R² Score (Koefisien Determinasi)",
-        value=f"{r2_val:.4f}" if pd.notna(r2_val) else "-",
-        icon="⭐",
-        help_text=f"Menjelaskan {r2_val*100:.1f}% variasi harga pasar pada data uji.",
-        variant="amber",
-    )
+with st.container(border=True):
+    st.markdown(f"<div class='am-section-title'>Metrik Evaluasi Model: {selected_model_view}</div>", unsafe_allow_html=True)
+    kpi_cols = st.columns(3, gap="medium")
+    with kpi_cols[0]:
+        kpi_card(
+            label="MAE (Mean Absolute Error)",
+            value=format_rupiah_compact(mae_val),
+            icon="📉",
+            help_text=f"Rata-rata besar kesalahan absolut prediksi: {format_rupiah(mae_val)}.",
+            variant="blue",
+        )
+    with kpi_cols[1]:
+        kpi_card(
+            label="RMSE (Root Mean Squared Error)",
+            value=format_rupiah_compact(rmse_val),
+            icon="📊",
+            help_text=f"Akar rata-rata kuadrat kesalahan: {format_rupiah(rmse_val)} (memberi penalti lebih berat pada galat besar).",
+            variant="teal",
+        )
+    with kpi_cols[2]:
+        kpi_card(
+            label="R² Score (Koefisien Determinasi)",
+            value=f"{r2_val:.4f}" if pd.notna(r2_val) else "-",
+            icon="⭐",
+            help_text=f"Menjelaskan {r2_val*100:.1f}% variasi harga pasar pada data uji.",
+            variant="amber",
+        )
 
 st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
@@ -207,6 +209,7 @@ with col_imp:
         if not imp_df.empty:
             # Urutkan untuk bar horizontal ke atas
             plot_imp = imp_df.iloc[::-1]
+            max_imp = float(plot_imp["importance"].max()) if not plot_imp.empty else 0.5
 
             fig_imp = go.Figure(go.Bar(
                 x=plot_imp["importance"],
@@ -221,8 +224,8 @@ with col_imp:
             apply_chart_theme(fig_imp)
             fig_imp.update_layout(
                 height=280,
-                margin=dict(l=10, r=36, t=10, b=10),
-                xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9"),
+                margin=dict(l=10, r=40, t=10, b=10),
+                xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9", range=[0, max_imp * 1.25]),
                 yaxis=dict(title=None, showgrid=False, tickfont=dict(size=10)),
             )
             st.plotly_chart(fig_imp, width="stretch", config={"displayModeBar": False}, key="chart_eval_imp")

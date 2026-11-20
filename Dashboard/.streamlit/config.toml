@@ -8,3 +8,10 @@ borderColor = "#E2E8F0"
 baseRadius = "medium"
 buttonRadius = "small"
 font = "sans serif"
+
+[client]
+showErrorDetails = false
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false

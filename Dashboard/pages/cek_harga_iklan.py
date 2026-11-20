@@ -413,26 +413,26 @@ with col_result:
         st.markdown("<hr style='margin:0.65rem 0; border-color:#F1F5F9;'>", unsafe_allow_html=True)
         if status_label == "Harga Wajar":
             explanation_text = (
-                f"Harga iklan **{format_rupiah(asking_price)}** berada di dalam rentang wajar pasar Jakarta. "
+                f"Harga iklan <b>{format_rupiah(asking_price)}</b> berada di dalam rentang wajar pasar Jakarta. "
                 f"Selisih harga ({delta_pct:+.1f}%) konsisten dengan pola penawaran {n_comps} mobil sejenis "
                 f"di rentang P25-P75 ({format_rupiah_compact(comp_p25 or 0)} s/d {format_rupiah_compact(comp_p75 or 0)})."
             )
         elif status_label == "Di Bawah Kisaran Pasar":
             explanation_text = (
-                f"Harga iklan **{format_rupiah(asking_price)}** berada **di bawah rata-rata pasar** ({delta_pct:+.1f}% vs referensi). "
+                f"Harga iklan <b>{format_rupiah(asking_price)}</b> berada <b>di bawah rata-rata pasar</b> ({delta_pct:+.1f}% vs referensi). "
                 f"Ini merupakan penawaran menarik (good deal), namun pembeli disarankan memeriksa kelengkapan dokumen "
                 f"dan riwayat servis berkala sebelum transaksi."
             )
         else:
             explanation_text = (
-                f"Harga iklan **{format_rupiah(asking_price)}** berada **di atas rata-rata pasar** ({delta_pct:+.1f}% vs referensi). "
+                f"Harga iklan <b>{format_rupiah(asking_price)}</b> berada <b>di atas rata-rata pasar</b> ({delta_pct:+.1f}% vs referensi). "
                 f"Penawaran ini tergolong premium, kecuali unit memiliki modifikasi bernilai tinggi atau kondisi istimewa."
             )
 
         st.markdown(
             f"""
             <div style="display:flex; align-items:flex-start; gap:0.5rem; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:0.65rem 0.85rem;">
-                <span style="font-size:1.1rem; line-height:1;">💡</span>
+                <span style="font-size:1.1rem; line-height:1;">ℹ️</span>
                 <div style="font-size:0.8rem; color:#334155; line-height:1.45;">{explanation_text}</div>
             </div>
             """,
