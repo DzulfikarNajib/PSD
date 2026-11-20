@@ -176,9 +176,12 @@ else:
     scope_note = f"Menampilkan seluruh {len(filtered_priced):,} listing bertarif valid termasuk mobil bernilai tinggi."
 
 st.markdown("### Ringkasan Pilihan")
+year_min = int(source["year"].min()) if "year" in source and source["year"].notna().any() else 2000
+year_max = int(source["year"].max()) if "year" in source and source["year"].notna().any() else 2024
+year_span = f"{year_min}–{year_max}" if year_min != year_max else str(year_min)
 kpis = st.columns(4, gap="small")
 kpis[0].metric("Listing unik", f"{unique_count:,}".replace(",", "."), help="Jumlah iklan berbeda setelah listing duplikat dibersihkan.", border=True)
-kpis[1].metric("Snapshot OLX", f"{snapshot_count:,}".replace(",", "."), help="Jumlah sesi pengambilan data yang tersimpan, bukan jumlah mobil.", border=True)
+kpis[1].metric("Rentang tahun", year_span, help="Rentang tahun produksi mobil pada dataset aktif.", border=True)
 kpis[2].metric("Merek tersedia", f"{make_count:,}".replace(",", "."), help="Jumlah nama merek berbeda pada sumber data terpilih.", border=True)
 kpis[3].metric("Median harga iklan", format_rupiah_compact(priced["price"].median()) if len(priced) else "-", help="Nilai tengah harga penawaran pada iklan dengan harga valid; bukan harga transaksi.", border=True)
 st.caption("Cara membaca: jumlah menunjukkan cakupan iklan tersimpan; median adalah titik tengah harga sehingga tidak mudah ditarik naik oleh beberapa mobil yang sangat mahal.")

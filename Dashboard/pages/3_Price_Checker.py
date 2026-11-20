@@ -174,7 +174,7 @@ else:
                     year = pd.to_numeric(row.get("year"), errors="coerce")
                     year_text = str(int(year)) if pd.notna(year) else "tahun -"
                     labels[listing_id] = f"{row.get('make', 'Mobil')} {row.get('model', '')} · {year_text} · {format_rupiah(row.get('price'))}"
-            selector_key = f"saved_price_listing_{'latest' if source == 'Listing Terbaru' else 'archive'}"
+            selector_key = "saved_price_listing_archive"
 
             def apply_saved_listing():
                 selected_id = st.session_state.get(selector_key)
@@ -187,7 +187,6 @@ else:
                 fields = ["make", "model", "year", "mileage_km", "engine_cc", "fuel_type", "transmission", "body_type", "price"]
                 st.session_state["price_checker_prefill"] = {
                     **{key: (None if pd.isna(chosen.get(key)) else chosen.get(key)) for key in fields},
-                    "_comparison_source": source,
                     "_auto_calculate": True,
                 }
 
@@ -285,7 +284,7 @@ else:
                         estimate = predict_asking_price(model_features)
                     except (ValueError, FileNotFoundError, OSError) as exc:
                         model_message = str(exc)
-                st.session_state["price_calculation_result"] = {"source": source, "asking_price": int(asking_price), "estimate": estimate, "peers": peers}
+                st.session_state["price_calculation_result"] = {"asking_price": int(asking_price), "estimate": estimate, "peers": peers}
 
     with result_col:
         st.markdown("### Hasil Analisis Harga")
@@ -294,9 +293,7 @@ else:
         best_model_name = metadata.get("best_model", "Random Forest Regressor")
         best_mae = float(metadata.get("models", {}).get(best_model_name, {}).get("MAE", 0))
 
-        if result and result.get("source") != source:
-            st.info("Sumber pembanding berubah. Tekan Cek harga lagi untuk menghitung hasil dengan sumber yang dipilih.")
-        elif not result:
+        if not result:
             with st.container(border=True):
                 st.markdown("#### Contoh dari arsip tersimpan")
                 st.write("Form di sebelah kiri sudah diisi dengan contoh mobil dari arsip. Contoh ini belum dinilai sebagai iklan pengguna.")
@@ -367,7 +364,7 @@ else:
                     st.markdown("**Listing Serupa**")
                     if peers.empty:
                         st.metric("Jumlah pembanding", "0")
-                        st.caption(f"Tidak ada listing {source.lower()} yang cocok. Status harga pasar tidak ditampilkan; gunakan estimasi model sebagai konteks umum saja.")
+                        st.caption("Tidak ada listing serupa yang cocok di arsip. Status harga pasar tidak ditampilkan; gunakan estimasi model sebagai konteks umum saja.")
                     else:
                         median = float(peers["price"].median())
                         low, high = float(peers["price"].min()), float(peers["price"].max())
