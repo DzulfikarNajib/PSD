@@ -10,23 +10,23 @@ COLORS = {
     "navy_dark": "#071B3A",
     "text": "#0F172A",
     "muted": "#475569",
-    "accent": "#008B8B",
-    "accent_hover": "#066B6B",
-    "accent_light": "#E3F6F5",
+    "accent": "#059669",
+    "accent_hover": "#047857",
+    "accent_light": "#ECFDF5",
     "border": "#E2E8F0",
     "grid": "#F1F5F9",
     "warning": "#F59E0B",
     "under_background": "#ECFDF5",
     "under_text": "#047857",
     "under_border": "#A7F3D0",
-    "fair_background": "#F0FDFA",
-    "fair_text": "#008B8B",
-    "fair_border": "#99F6E4",
+    "fair_background": "#ECFDF5",
+    "fair_text": "#059669",
+    "fair_border": "#A7F3D0",
     "over_background": "#FEF2F2",
     "over_text": "#B91C1C",
     "over_border": "#FECACA",
 }
-CHART_PALETTE = (COLORS["accent"], "#0F766E", "#0369A1", COLORS["warning"], "#10B981", "#64748B")
+CHART_PALETTE = (COLORS["accent"], "#10B981", "#0D9488", "#047857", "#34D399", "#6EE7B7")
 
 CSS = """
 <style>
@@ -38,17 +38,17 @@ CSS = """
     --dashboard-text: #0F172A;
     --dashboard-navy: #0B2A5B;
     --dashboard-navy-dark: #071B3A;
-    --dashboard-accent: #008B8B;
-    --dashboard-accent-hover: #066B6B;
-    --dashboard-accent-light: #E3F6F5;
+    --dashboard-accent: #059669;
+    --dashboard-accent-hover: #047857;
+    --dashboard-accent-light: #ECFDF5;
     --dashboard-muted: #475569;
     --dashboard-border: #E2E8F0;
     --status-under-background: #ECFDF5;
     --status-under-text: #047857;
     --status-under-border: #A7F3D0;
-    --status-fair-background: #F0FDFA;
-    --status-fair-text: #008B8B;
-    --status-fair-border: #99F6E4;
+    --status-fair-background: #ECFDF5;
+    --status-fair-text: #059669;
+    --status-fair-border: #A7F3D0;
     --status-over-background: #FEF2F2;
     --status-over-text: #B91C1C;
     --status-over-border: #FECACA;
@@ -220,7 +220,7 @@ div[class*="st-key-project_editorial_hero"] {
 [data-testid="stSidebar"] > div:first-child,
 [data-testid="stSidebarContent"],
 [data-testid="stSidebarUserContent"] {
-    padding-top: 0.4rem !important;
+    padding-top: 1.25rem !important;
     padding-left: 0.85rem !important;
     padding-right: 0.85rem !important;
 }
@@ -301,8 +301,8 @@ div[class*="st-key-project_editorial_hero"] {
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 8px;
-    background: #EFF6FF;
-    color: #2563EB;
+    background: #ECFDF5;
+    color: #059669;
     flex-shrink: 0;
 }
 .am-sidebar-brand-title {
@@ -404,14 +404,14 @@ div[class*="st-key-project_editorial_hero"] {
 .am-hero-compact {
     position: relative;
     overflow: hidden;
-    min-height: 145px;
+    min-height: 155px;
     border-radius: 16px;
     border: 1px solid var(--dashboard-border);
     background-color: #FFFFFF;
     background-repeat: no-repeat;
-    background-position: right center;
-    background-size: contain;
-    padding: 1.4rem 2rem;
+    background-position: center right;
+    background-size: cover;
+    padding: 1.6rem 2.2rem;
     margin-bottom: 1.2rem;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
     display: flex;

@@ -24,9 +24,9 @@
 
 ---
 
-## Design System — Chronicle / Shadcn UI Style
+## Design System - Chronicle / Shadcn UI Style
 
-### Color Palette (Blue Monochromatic)
+### Color Palette (Emerald Green Monochromatic)
 
 ```
 Background page:  #F8FAFC
@@ -34,11 +34,11 @@ Surface (card):   #FFFFFF
 Border:           #E2E8F0
 Text primary:     #0F172A
 Text muted:       #475569 / #64748B
-Accent blue:      #2563EB  (primary)
-                  #1E40AF  (dark)
-                  #3B82F6  (medium)
-                  #60A5FA  (light)
-                  #93C5FD  (lighter)
+Accent green:     #059669  (primary)
+                  #047857  (dark)
+                  #10B981  (medium)
+                  #34D399  (light)
+                  #A7F3D0 / #ECFDF5  (lighter / soft)
 Amber (median):   #F59E0B  (keep for annotation lines only)
 ```
 
@@ -48,26 +48,26 @@ Amber (median):   #F59E0B  (keep for annotation lines only)
 - `border: 1px solid #E2E8F0`
 - `border-radius: 10px`
 - `box-shadow: none`
-- Use `st.container(border=True)` to group chart + title together — no floating titles outside a card.
+- Use `st.container(border=True)` to group chart + title together - no floating titles outside a card.
 
 ### Sidebar Rules
 
 - Background: `#F8FAFC`, right border `1px solid #E2E8F0`
-- Brand icon: `background: #EFF6FF`, SVG stroke `#2563EB`
+- Brand icon: `background: #ECFDF5`, SVG stroke `#059669`
 - Inactive links: color `#64748B`
 - Active pill: background `#E2E8F0`, color `#0F172A`, font-weight `700`
-- No institutional footer (IPB / STA1381) — it is hidden via `.am-sidebar-footer { display:none }`.
+- No institutional footer (IPB / STA1381) - it is hidden via `.am-sidebar-footer { display:none }`.
 
-### Icons — Mandatory Lucide SVG
+### Icons - Mandatory Lucide SVG
 
-- **Never use OS emoji** (🚗 🏷️ 📈 etc.) anywhere — not in page titles, KPI labels, badges, or markdown.
+- **Never use OS emoji** (car, chart, etc.) anywhere - not in page titles, KPI labels, badges, or markdown.
 - Always use `get_lucide_icon(name, size=16, color="#64748B")` from `src/ui_components.py`.
 - Available slugs: `car`, `tag`, `banknote`, `calendar`, `trending-up`, `bar-chart-2`, `search`, `check-circle`, `settings`, `activity`, `target`, `gauge`, `trophy`, `map-pin`, `zap`, `info`, `pie-chart`, `layers`, `git-branch`, `database`, `sliders`, `cpu`, `award`, `arrow-up-right`, `arrow-down-right`, `minus`, `layout-dashboard`.
 
 ### Typography
 
 ```
-Headings:   "Plus Jakarta Sans", Inter, system-ui — font-weight 800, letter-spacing -0.025em
+Headings:   "Plus Jakarta Sans", Inter, system-ui - font-weight 800, letter-spacing -0.025em
 Body:       Inter, "Segoe UI", system-ui
 KPI label:  0.78rem, weight 500, #64748B
 KPI value:  1.75rem, weight 700, #0F172A
@@ -75,10 +75,10 @@ KPI value:  1.75rem, weight 700, #0F172A
 
 ### Chart Colors (Plotly)
 
-Always use this blue palette — no teal (`#008B8B`), no old navy (`#0B2A5B`):
+Always use this emerald green palette - no teal (`#008B8B`), no old navy (`#0B2A5B`):
 
 ```python
-CHART_COLORS = ["#2563EB", "#3B82F6", "#60A5FA", "#1E40AF", "#93C5FD", "#94A3B8", "#475569", "#1D4ED8"]
+CHART_COLORS = ["#059669", "#10B981", "#0D9488", "#047857", "#34D399", "#6EE7B7", "#0F766E", "#065F46"]
 ```
 
 Amber `#F59E0B` is allowed **only** for median/reference lines.

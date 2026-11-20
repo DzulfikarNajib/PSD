@@ -135,7 +135,7 @@ with r1_c1:
             fig_hist.add_trace(go.Histogram(
                 x=plot_prices_jt,
                 nbinsx=30,
-                marker=dict(color="#2563EB", line=dict(color="#1D4ED8", width=1)),
+                marker=dict(color="#059669", line=dict(color="#047857", width=1)),
                 hovertemplate="Rentang: Rp %{x:.0f} Jt<br>Frekuensi: <b>%{y:,} listing</b><extra></extra>",
             ))
             fig_hist.add_vline(
@@ -171,7 +171,7 @@ with r1_c2:
             x=top_f_makes["count"],
             y=top_f_makes["make"],
             orientation="h",
-            marker=dict(color="#2563EB", cornerradius=4),
+            marker=dict(color="#059669", cornerradius=4),
             text=[f"{v:,}".replace(",", ".") for v in top_f_makes["count"]],
             textposition="auto",
             hovertemplate="Merek: <b>%{y}</b><br>Listing: <b>%{x:,}</b><extra></extra>",
@@ -201,7 +201,7 @@ with r1_c3:
                 x=body_median["price_jt"],
                 y=body_median["body_type"],
                 orientation="h",
-                marker=dict(color="#0284C7", cornerradius=4),
+                marker=dict(color="#10B981", cornerradius=4),
                 text=[f"Rp {v:.0f} Jt" for v in body_median["price_jt"]],
                 textposition="outside",
                 cliponaxis=False,
@@ -240,8 +240,7 @@ with r2_c1:
                 pair_year,
                 x="year",
                 y="price_jt",
-                color_discrete_sequence=["#2563EB"],
-                render_mode="webgl",
+                color_discrete_sequence=["#059669"],
                 labels={"year": "Tahun", "price_jt": "Harga (Jt)"},
                 hover_data={"make": True, "model": True, "year": True, "price_jt": ":.1f"},
             )
@@ -274,8 +273,7 @@ with r2_c2:
                 pair_km,
                 x="km_rb",
                 y="price_jt",
-                color_discrete_sequence=["#3B82F6"],
-                render_mode="webgl",
+                color_discrete_sequence=["#10B981"],
                 labels={"km_rb": "Kilometer (Ribu)", "price_jt": "Harga (Jt)"},
                 hover_data={"make": True, "model": True, "km_rb": ":.0f", "price_jt": ":.1f"},
             )
@@ -302,7 +300,7 @@ with r2_c3:
         fig_loc = go.Figure(go.Bar(
             x=loc_dist["Wilayah"],
             y=loc_dist["Listing"],
-            marker=dict(color="#1E40AF", cornerradius=4),
+            marker=dict(color="#047857", cornerradius=4),
             text=[f"{v:,}".replace(",", ".") for v in loc_dist["Listing"]],
             textposition="outside",
             cliponaxis=False,

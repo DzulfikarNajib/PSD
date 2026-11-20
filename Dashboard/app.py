@@ -114,17 +114,10 @@ with st.sidebar:
     st.page_link(p_kesimpulan, label="Kesimpulan & Rekomendasi", icon=":material/fact_check:")
 
 # Top utility header above page content (matching master reference design)
-top_cols = st.columns([8, 2], vertical_alignment="center")
-with top_cols[0]:
-    st.markdown(
-        '<div class="am-scope-pill"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#008B8B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> DKI Jakarta &nbsp;·&nbsp; 5 Wilayah</div>',
-        unsafe_allow_html=True,
-    )
-with top_cols[1]:
-    st.markdown(
-        '<div style="text-align:right; font-size:0.78rem; color:#64748B;">Mode Terang</div>',
-        unsafe_allow_html=True,
-    )
+st.markdown(
+    '<div class="am-scope-pill"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> DKI Jakarta &nbsp;·&nbsp; 5 Wilayah</div>',
+    unsafe_allow_html=True,
+)
 
 st.markdown("<div style='margin-bottom:0.75rem;'></div>", unsafe_allow_html=True)
 

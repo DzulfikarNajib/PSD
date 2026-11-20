@@ -129,7 +129,7 @@ with col_brand:
             x=top_makes["count"],
             y=top_makes["make"],
             orientation="h",
-            marker=dict(color="#2563EB", cornerradius=4),
+            marker=dict(color="#059669", cornerradius=4),
             textposition="inside",
             insidetextanchor="end",
             textfont=dict(color="#FFFFFF", size=11, family="Inter, sans-serif"),
@@ -150,7 +150,7 @@ with col_region:
         region_counts = archive["location_display"].value_counts().reset_index()
         region_counts.columns = ["region", "count"]
         
-        region_colors = ["#1E40AF", "#2563EB", "#3B82F6", "#60A5FA", "#93C5FD"]
+        region_colors = ["#047857", "#059669", "#10B981", "#34D399", "#6EE7B7"]
         fig_region = go.Figure(go.Pie(
             labels=region_counts["region"],
             values=region_counts["count"],
@@ -184,7 +184,7 @@ with col_fuel:
         fuel_counts = archive["fuel_type"].value_counts().reset_index()
         fuel_counts.columns = ["fuel", "count"]
 
-        fuel_colors = ["#2563EB", "#1E40AF", "#3B82F6", "#60A5FA"]
+        fuel_colors = ["#059669", "#047857", "#10B981", "#34D399"]
         fig_fuel = go.Figure(go.Pie(
             labels=fuel_counts["fuel"],
             values=fuel_counts["count"],

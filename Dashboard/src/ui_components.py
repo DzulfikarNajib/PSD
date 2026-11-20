@@ -20,17 +20,17 @@ ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 # ---------------------------------------------------------------------------
 
 NAVY = "#0B2A5B"
-TEAL = "#008B8B"
-TEAL_DARK = "#066B6B"
-TEAL_LIGHT = "#E3F6F5"
-TEAL_100 = "#CCEFEE"
+TEAL = "#059669"
+TEAL_DARK = "#047857"
+TEAL_LIGHT = "#ECFDF5"
+TEAL_100 = "#D1FAE5"
 MUTED = "#475569"
 TEXT = "#0F172A"
 BORDER = "#E2E8F0"
 BG = "#F8FAFC"
 WHITE = "#FFFFFF"
 
-CHART_COLORS = ["#2563EB", "#3B82F6", "#60A5FA", "#1E40AF", "#93C5FD", "#94A3B8", "#475569", "#1D4ED8"]
+CHART_COLORS = ["#059669", "#10B981", "#0D9488", "#047857", "#34D399", "#6EE7B7", "#0F766E", "#065F46"]
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +194,7 @@ def hero_banner(
     bg_style = ""
     if img_path.exists():
         b64 = base64.b64encode(img_path.read_bytes()).decode()
-        bg_style = f"background-image: linear-gradient(90deg, #FFFFFF 0%, rgba(255,255,255,0.96) 42%, rgba(255,255,255,0.55) 65%, rgba(255,255,255,0.0) 100%), url('data:image/jpeg;base64,{b64}');"
+        bg_style = f"background-image: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.92) 40%, rgba(255,255,255,0.50) 70%, rgba(255,255,255,0.15) 100%), url('data:image/jpeg;base64,{b64}');"
 
     st.markdown(
         f"""
@@ -224,7 +224,7 @@ def page_header(icon: str, title: str, subtitle: str) -> None:
         svg = get_lucide_icon(icon, size=20, color=TEAL)
         icon_html = (
             f'<span style="display:inline-flex;align-items:center;justify-content:center;'
-            f'width:2.2rem;height:2.2rem;border-radius:8px;background:#F0FDFA;flex-shrink:0;">'
+            f'width:2.2rem;height:2.2rem;border-radius:8px;background:#ECFDF5;flex-shrink:0;">'
             f'{svg}</span>'
         )
     st.markdown(

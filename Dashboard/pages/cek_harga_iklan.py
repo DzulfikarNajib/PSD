@@ -373,7 +373,7 @@ with col_result:
                     f"""
                     <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:0.65rem 0.85rem; margin-bottom:0.55rem;">
                         <div style="font-size:0.72rem; color:#475569; font-weight:600; text-transform:uppercase;">Estimasi Model Machine Learning</div>
-                        <div style="font-size:1.15rem; font-weight:800; color:#2563EB; margin:0.1rem 0;">{format_rupiah(ml_estimate)}</div>
+                        <div style="font-size:1.15rem; font-weight:800; color:#059669; margin:0.1rem 0;">{format_rupiah(ml_estimate)}</div>
                         <div style="font-size:0.76rem; color:#475569;">
                             Selisih AI: <b>{diff_sign}{format_rupiah(est_diff_rp)} ({diff_sign}{est_diff_pct:.1f}%)</b>
                         </div>
