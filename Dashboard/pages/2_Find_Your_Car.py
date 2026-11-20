@@ -40,7 +40,7 @@ for column in ("price", "year", "mileage_km", "engine_cc"):
         cars[column] = pd.to_numeric(cars[column], errors="coerce")
 cars, segment_summary = _cluster_cached(cars)
 
-render_data_source_status()
+# Sumber data status dipindahkan ke footnote metodologi di bagian bawah halaman
 
 segment_expanded = st.session_state.get("car_market_segment_filter", "Semua segmen") != "Semua segmen"
 with st.expander("Segmen Pasar · K-Means (Unsupervised Learning)", expanded=segment_expanded):
@@ -103,6 +103,25 @@ with st.expander("Segmen Pasar · K-Means (Unsupervised Learning)", expanded=seg
                 },
                 key="kmeans_segment_table",
             )
+        
+        st.markdown("##### Karakteristik & Rekomendasi Belanja per Segmen")
+        rec_cols = st.columns(3, gap="small")
+        with rec_cols[0]:
+            with st.container(border=True):
+                st.markdown("**Segmen 1: Budget Entry / Pemula**")
+                st.caption("Median: ~Rp 85 Jt · Usia ~2010 · KM ~117k")
+                st.write("Pilihan hemat untuk mobilitas awal. Siapkan dana cadangan peremajaan Rp 10–15 Jt untuk pemeriksaan kaki-kaki, timing belt, kampas rem, dan kuras oli.")
+        with rec_cols[1]:
+            with st.container(border=True):
+                st.markdown("**Segmen 2: Sweet Spot Komuter**")
+                st.caption("Median: ~Rp 369 Jt · Usia ~2022 · KM ~32k (55%+ pasar)")
+                st.write("Segmen paling likuid dan aman. Depresiasi harga sudah stabil, suku cadang berlimpah, resale value terjaga, dan minim risiko perbaikan besar mendadak.")
+        with rec_cols[2]:
+            with st.container(border=True):
+                st.markdown("**Segmen 3 & 4: Eksekutif & Koleksi**")
+                st.caption("Median: ~Rp 1,8 M – 3,8 M · Usia Muda/Baru · KM Rendah")
+                st.write("Kenyamanan dan prestise tinggi. Prioritaskan kelengkapan rekam servis resmi bengkel ATPM, sisa masa garansi pabrik, dan polis asuransi all-risk aktif.")
+
         segment_options = ["Semua segmen", *segment_summary["market_segment"].tolist()]
 
 if st.session_state.get("car_market_segment_filter", "Semua segmen") not in segment_options:
@@ -358,4 +377,7 @@ with results_column:
                     if pd.notna(url) and str(url).startswith("http"):
                         st.link_button("Buka iklan sumber", str(url), icon=":material/open_in_new:", width="stretch")
 
-st.caption("Listing berasal dari arsip OLX aktif yang telah dibersihkan. AutoMatch tidak memeriksa kondisi fisik atau dokumen kendaraan secara langsung.")
+st.markdown("")
+with st.expander("Catatan Metodologi & Sumber Data"):
+    st.write(f"Listing berasal dari **Dataset OLX aktif yang telah dibersihkan** ({len(cars):,} unit tervalidasi).".replace(",", "."))
+    st.write("Pengelompokan klaster menggunakan algoritma K-Means (Unsupervised Learning) berbasis fitur harga, tahun, kilometer, dan kapasitas mesin. AutoMatch tidak memeriksa kondisi fisik atau keabsahan dokumen kendaraan secara langsung.")

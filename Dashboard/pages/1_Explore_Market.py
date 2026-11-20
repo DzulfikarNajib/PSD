@@ -29,7 +29,7 @@ if archive.empty:
 
 source = archive.copy()
 source_label = "Dataset OLX aktif yang sudah dibersihkan"
-render_data_source_status()
+# Sumber data status dipindahkan ke footnote metodologi di bagian bawah halaman
 
 # Accept focused paths from Beranda while keeping all filters editable here.
 market_makes = sorted(source.get("make", pd.Series(dtype=str)).dropna().astype(str).unique(), key=str.casefold)
@@ -371,6 +371,49 @@ with year_scatter_col:
         else:
             st.caption("Data tahun dan harga belum cukup untuk membentuk box plot.")
 
+st.markdown("### Hubungan Multivariat: Harga vs Tahun vs Jarak Tempuh vs Merek")
+st.caption("Visualisasi 4 dimensi: sumbu X menunjukkan tahun kendaraan (usia), sumbu Y harga penawaran (skala logaritmik), ukuran lingkaran merefleksikan jarak tempuh odometer (makin besar lingkarannya, makin tinggi kilometer penggunaannya), dan warna membedakan merek kendaraan.")
+with st.container(border=True):
+    bubble_df = filtered_priced.dropna(subset=["year", "price", "mileage_km"]).copy()
+    if len(bubble_df) >= 10:
+        if len(bubble_df) > 2000:
+            bubble_df = bubble_df.sample(2000, random_state=42)
+        bubble_df["Harga_Juta"] = bubble_df["price"] / 1_000_000
+        top_makes = bubble_df["make"].value_counts().head(7).index.tolist()
+        bubble_df["Merek_Kategori"] = bubble_df["make"].apply(lambda m: m if m in top_makes else "Merek Lainnya")
+
+        fig_multi = px.scatter(
+            bubble_df,
+            x="year",
+            y="Harga_Juta",
+            size="mileage_km",
+            color="Merek_Kategori",
+            color_discrete_sequence=["#008B8B", "#0284C7", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#64748B", "#94A3B8"],
+            hover_name="model" if "model" in bubble_df else "make",
+            hover_data={"year": True, "Harga_Juta": ":.1f", "mileage_km": ":,.0f", "Merek_Kategori": True},
+            render_mode="webgl",
+            labels={
+                "year": "Tahun Kendaraan",
+                "Harga_Juta": "Harga Penawaran (Juta Rp)",
+                "mileage_km": "Kilometer (Odometer)",
+                "Merek_Kategori": "Merek",
+            },
+        )
+        fig_multi.update_layout(
+            height=420,
+            margin=dict(l=16, r=16, t=20, b=16),
+            paper_bgcolor="#FFFFFF",
+            plot_bgcolor="#FFFFFF",
+            font=dict(family="Inter, sans-serif", color=NAVY, size=12),
+            xaxis=dict(title="Tahun Kendaraan", showgrid=True, gridcolor="#F1F5F9"),
+            yaxis=dict(title="Harga Penawaran (Juta Rp)", type="log", showgrid=True, gridcolor="#F1F5F9"),
+            legend=dict(orientation="h", y=-0.22, x=0.5, xanchor="center", font=dict(size=11)),
+        )
+        st.plotly_chart(fig_multi, width="stretch", config={"displayModeBar": False}, key="market_multi_4d_plot")
+        st.caption(f"Menampilkan sampel sebaran {len(bubble_df):,} mobil. Sumbu harga memakai skala logaritmik agar mobil hemat dan mobil mewah dapat dibandingkan secara proporsional.".replace(",", "."))
+    else:
+        st.caption("Data belum cukup untuk membentuk grafik multivariat.")
+
 st.markdown("### Spesifikasi Odometer & Kapasitas Mesin")
 spec_cols = st.columns(2, gap="medium")
 with spec_cols[0]:
@@ -449,10 +492,18 @@ km_valid = ins_df["mileage_km"].dropna()
 if not km_valid.empty and not years_valid.empty:
     curr_yr = 2024
     annual_kms = (km_valid / (curr_yr - years_valid).clip(lower=1)).dropna()
-    med_annual_km = int(annual_kms.median()) if not annual_kms.empty else 15000
-    odo_desc = f"Rata-rata penggunaan normal Jakarta di sampel ini adalah ~{med_annual_km:,} km/tahun. Waspadai unit usia >5 tahun dengan odometer jauh di bawah standar tanpa riwayat servis bengkel resmi.".replace(",", ".")
+    med_annual_km = int(annual_kms.median()) if not annual_kms.empty else 12500
+    odo_desc = (
+        f"Dihitung otomatis dari median rasio penggunaan tahunan di DKI Jakarta: ~{med_annual_km:,} km/tahun "
+        "(standar komuter normal 10.000–15.000 km/tahun).\n\n"
+        "⚠️ **Detektor Odometer:** Jika mobil usia >5 tahun memiliki rasio <5.000 km/tahun, waspadai potensi manipulasi "
+        "odometer dan wajib verifikasi rekam servis bengkel resmi."
+    ).replace(",", ".")
 else:
-    odo_desc = "Penggunaan normal mobil harian berkisar 15.000–20.000 km/tahun. Periksa kecocokan odometer dengan kondisi pedal dan setir."
+    odo_desc = (
+        "Rata-rata penggunaan normal komuter Jakarta adalah 10.000–15.000 km/tahun. "
+        "Jika kilometer tertera sangat rendah untuk usia mobilnya, mintalah rekam servis resmi dealer untuk verifikasi keaslian."
+    )
 
 insight_cols = st.columns(3, gap="medium")
 with insight_cols[0]:
@@ -469,7 +520,7 @@ with insight_cols[1]:
 
 with insight_cols[2]:
     with st.container(border=True):
-        st.caption("INSPEKSI ODOMETER")
+        st.caption("DETEKTOR ODOMETER (RED-FLAG)")
         st.markdown("#### Rasio Jarak Tempuh")
         st.write(odo_desc)
 
@@ -478,6 +529,6 @@ if st.button("Cari mobil berdasarkan insight ini →", type="primary", key="mark
 
 st.markdown("")
 
-with st.expander("Tentang sumber dan batasan data"):
+with st.expander("Catatan Metodologi & Sumber Data"):
     st.write(f"Sumber data aktif: **{source_label}**. Angka merangkum {unique_count:,} mobil unik dari {len(source):,} baris data tersimpan.".replace(",", "."))
-    st.write("Dataset OLX aktif sudah melalui preprocessing dan menjadi sumber grafik pasar. Seluruh grafik menunjukkan harga penawaran pengiklan, bukan kesepakatan transaksi riil di pasar.")
+    st.write("Dataset OLX aktif telah melalui pipeline pembersihan (deduplikasi, filter wilayah DKI Jakarta, eliminasi TDP/Down Payment < Rp 30 Juta, dan pembersihan outlier). Seluruh grafik menunjukkan harga penawaran pengiklan, bukan kesepakatan transaksi riil di pasar.")

@@ -126,7 +126,7 @@ if prefill:
 archive = load_combined_archive()
 training_data = load_training_archive()
 comparison_data = archive.copy()
-render_data_source_status()
+# Sumber data status dipindahkan ke footnote metodologi di bagian bawah halaman
 input_data = comparison_data if not comparison_data.empty else training_data.copy()
 for column in ("price", "year", "mileage_km", "engine_cc"):
     if column in input_data:
@@ -159,6 +159,19 @@ if not prefill and not st.session_state.get("price_example_initialized") and not
 if input_data.empty or not makes:
     st.info("Belum ada data spesifikasi untuk kalkulator. Impor dataset atau simpan snapshot sebelum memakai kalkulator.")
 else:
+    with st.container(border=True):
+        st.markdown("#### Panduan 3 Langkah Cek Harga Iklan")
+        guide_cols = st.columns(3, gap="medium")
+        with guide_cols[0]:
+            st.markdown("**1. Pilih atau Input Spek**")
+            st.caption("Gunakan dropdown contoh dari database atau masukkan manual spesifikasi iklan mobil yang sedang kamu incar.")
+        with guide_cols[1]:
+            st.markdown("**2. Evaluasi Ganda (Pasar + AI)**")
+            st.caption("Sistem otomatis membandingkan dengan median harga iklan sejenis di OLX sekaligus prediksi harga wajar Machine Learning.")
+        with guide_cols[2]:
+            st.markdown("**3. Pahami Status Penawaran**")
+            st.caption("🟢 **Di Bawah:** Potensi good deal.<br>🔵 **Wajar:** Sesuai standar pasar Jakarta.<br>🔴 **Di Atas:** Bahan tawar-menawar (negosiasi).", unsafe_allow_html=True)
+
     form_col, result_col = st.columns([.95, 1.25], gap="large", vertical_alignment="top")
     with form_col:
         with st.container(border=True):
@@ -411,10 +424,10 @@ else:
                 if len(source_urls):
                     st.link_button("Buka iklan pembanding", source_urls.iloc[0], icon=":material/open_in_new:", width="stretch")
 
-st.markdown("### Metode & Evaluasi Model Regresi")
-with st.container(border=True):
-    st.write("Model prediksi menggunakan pendekatan **Supervised Learning (Regresi)** yang dilatih berdasarkan spesifikasi kendaraan untuk memprediksi harga penawaran.")
-    st.caption("Bedanya dengan Bandingkan Mobil: Bandingkan Mobil menaruh spesifikasi 2–3 iklan berdampingan. Cek Harga memakai 1 iklan, lalu membandingkan harganya dengan iklan serupa dan—jika model lolos validasi—estimasi regresi.")
+st.markdown("")
+with st.expander("Metodologi & Bukti Evaluasi Model AI (Machine Learning)", expanded=False):
+    st.write("Model prediksi menggunakan pendekatan **Supervised Learning (Regresi)** yang dilatih berdasarkan spesifikasi kendaraan untuk memprediksi harga penawaran wajar.")
+    st.caption("Cek Harga memakai spesifikasi 1 iklan, lalu membandingkan harganya dengan iklan serupa dan—jika model lolos kriteria validasi—menampilkan estimasi regresi Machine Learning.")
     eligible, eligibility_message, model_data = training_eligibility(training_data)
     st.caption(f"Dataset pelatihan: {len(model_data):,} listing unik tervalidasi. {eligibility_message}".replace(",", "."))
     
@@ -477,3 +490,8 @@ with st.container(border=True):
             st.caption(f"Model aktif: **{metadata.get('best_model', '-')}** ({metadata.get('training_unique_listings', 0):,} listing training). Pada model pohon, skor berasal dari kontribusi fitur pada pemisahan cabang dan dapat memberi bobot lebih besar pada fitur numerik yang punya banyak kemungkinan ambang. Skor ini relatif, bukan persentase harga atau bukti sebab-akibat.")
     else:
         st.info("Model belum dilatih atau belum lolos kriteria minimum validasi.")
+
+st.markdown("")
+with st.expander("Catatan Metodologi & Sumber Data"):
+    st.write(f"Estimasi dan perbandingan listing memakai **Dataset OLX aktif yang telah dibersihkan** ({len(input_data):,} unit).".replace(",", "."))
+    st.write("Model prediksi dilatih pada fitur spesifikasi (merek, model, tahun, kilometer, kapasitas mesin, transmisi, bahan bakar, dan tipe bodi). Estimasi berfungsi sebagai pembanding konteks awal, bukan jaminan nilai pasar mutlak atau pengganti inspeksi fisik kendaraan.")
