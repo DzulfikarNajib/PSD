@@ -235,6 +235,7 @@ def price_deviation_barometer(
         bar_color = "#F59E0B"
         status_text = "Di Atas Pasar"
 
+    sign_prefix = "+" if pct_diff > 0 else ""
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=gauge_val,
@@ -244,7 +245,7 @@ def price_deviation_barometer(
             "valueformat": ".0f",
         },
         title={
-            "text": f"<b>{status_text}</b><br><span style='font-size:0.75rem; color:{MUTED};'>Deviasi: {pct_diff:+.1f}% vs median</span>",
+            "text": f"<b>{status_text}</b><br><span style='font-size:0.82rem; color:{bar_color}; font-weight:700;'>{sign_prefix}{pct_diff:.1f}% vs median</span>",
             "font": {"size": 13, "family": "Inter, sans-serif", "color": TEXT},
         },
         gauge={

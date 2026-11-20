@@ -217,42 +217,67 @@ div[class*="st-key-project_editorial_hero"] {
     background: linear-gradient(180deg, #0B2A5B 0%, #081D3F 65%, #05142E 100%) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
-[data-testid="stSidebar"] > div:first-child {
-    padding-top: 1.2rem;
+[data-testid="stSidebar"] > div:first-child,
+[data-testid="stSidebarContent"],
+[data-testid="stSidebarUserContent"] {
+    padding-top: 0.6rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
 }
-[data-testid="stSidebar"] [data-testid="stSidebarNav"] {
-    padding-top: 0.5rem;
+[data-testid="stSidebarHeader"] {
+    display: none !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
-[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] {
-    gap: 0.25rem;
+[data-testid="stSidebarNav"] {
+    display: none !important;
 }
-[data-testid="stSidebar"] [data-testid="stPageLink"] a,
-[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] a {
+[data-testid="stSidebar"] [data-testid="stPageLink"] {
+    margin: 0.15rem 0 !important;
+}
+[data-testid="stSidebar"] [data-testid="stPageLink"] a {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.65rem !important;
     border-radius: 10px !important;
-    padding: 0.55rem 0.9rem !important;
-    color: #CBD5E1 !important;
+    padding: 0.58rem 0.85rem !important;
+    color: #94A3B8 !important;
     font-family: "Plus Jakarta Sans", Inter, sans-serif !important;
     font-size: 0.88rem !important;
     font-weight: 500 !important;
+    text-decoration: none !important;
     transition: all 0.15s ease-in-out !important;
     border: 1px solid transparent !important;
-    margin: 0.1rem 0 !important;
+    background: transparent !important;
 }
-[data-testid="stSidebar"] [data-testid="stPageLink"] a:hover,
-[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] a:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
+[data-testid="stSidebar"] [data-testid="stPageLink"] a:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
     color: #FFFFFF !important;
 }
-[data-testid="stSidebar"] a[aria-current="page"],
-[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"],
-[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] a[aria-current="page"] {
+/* Active Pill Highlight - only when clicked / active page */
+[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] {
     background: #008B8B !important;
     color: #FFFFFF !important;
     font-weight: 700 !important;
     box-shadow: 0 2px 8px rgba(0, 139, 139, 0.35) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
-[data-testid="stSidebar"] [data-testid="stPageLink"] a svg,
-[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] a svg {
+[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] span,
+[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] p {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+}
+[data-testid="stSidebar"] [data-testid="stPageLink"] a:not([aria-current="page"]) span,
+[data-testid="stSidebar"] [data-testid="stPageLink"] a:not([aria-current="page"]) p {
+    color: #94A3B8 !important;
+    font-weight: 500 !important;
+}
+[data-testid="stSidebar"] [data-testid="stPageLink"] a:hover:not([aria-current="page"]) span,
+[data-testid="stSidebar"] [data-testid="stPageLink"] a:hover:not([aria-current="page"]) p {
+    color: #FFFFFF !important;
+}
+[data-testid="stSidebar"] [data-testid="stPageLink"] a svg {
     fill: currentColor !important;
 }
 [data-testid="stSidebar"] p, 
@@ -265,9 +290,9 @@ div[class*="st-key-project_editorial_hero"] {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.5rem 0.4rem 1.25rem;
+    padding: 0.15rem 0.2rem 0.95rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.85rem;
 }
 .am-sidebar-brand-icon {
     display: flex;
@@ -738,6 +763,11 @@ div.stAlert { border-radius: 12px; }
     .car-price { font-size: 1.2rem; }
     [data-testid="stMetricValue"] { font-size: 1.15rem !important; }
 }
+/* Suppress default bullet on custom icon lists (✔ ✓ markers) */
+.stMarkdown ul { list-style: none; padding-left: 0; }
+.stMarkdown ul li { padding-left: 0; }
+.stMarkdown ul li::before { content: none; }
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }

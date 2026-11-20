@@ -74,12 +74,12 @@ with ctrl_col:
 with badge_col:
     if selected_model_view == best_model_name:
         st.markdown(
-            '<div style="text-align:right;"><span class="badge-fair" style="font-size:0.85rem; padding:0.4rem 0.9rem;">🏆 Model Terbaik Terpilih</span></div>',
+            '<div style="text-align:right;"><span style="display:inline-flex;align-items:center;gap:0.4rem;background:#008B8B;color:#FFFFFF;border-radius:999px;padding:0.38rem 1rem;font-size:0.82rem;font-weight:700;letter-spacing:0.01em;box-shadow:0 2px 6px rgba(0,139,139,0.3);">🏆 Model Terbaik Terpilih</span></div>',
             unsafe_allow_html=True,
         )
     else:
         st.markdown(
-            '<div style="text-align:right;"><span style="background:#F1F5F9; color:#475569; border-radius:999px; padding:0.4rem 0.9rem; font-size:0.85rem; font-weight:600;">Model Baseline</span></div>',
+            '<div style="text-align:right;"><span style="display:inline-flex;align-items:center;background:#F1F5F9;color:#475569;border-radius:999px;padding:0.38rem 1rem;font-size:0.82rem;font-weight:600;">Model Baseline</span></div>',
             unsafe_allow_html=True,
         )
 
@@ -224,9 +224,9 @@ with col_imp:
             apply_chart_theme(fig_imp)
             fig_imp.update_layout(
                 height=280,
-                margin=dict(l=10, r=40, t=10, b=10),
-                xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9", range=[0, max_imp * 1.25]),
-                yaxis=dict(title=None, showgrid=False, tickfont=dict(size=10)),
+                margin=dict(l=10, r=50, t=10, b=10),
+                xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9", range=[0, max_imp * 1.3]),
+                yaxis=dict(title=None, showgrid=False, tickfont=dict(size=10), automargin=True),
             )
             st.plotly_chart(fig_imp, width="stretch", config={"displayModeBar": False}, key="chart_eval_imp")
         else:

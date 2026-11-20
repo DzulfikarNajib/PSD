@@ -143,9 +143,10 @@ with r1_c1:
                 line_dash="dash",
                 line_color="#F59E0B",
                 line_width=2,
-                annotation_text=f"Median: Rp {median_jt:.0f} Jt",
-                annotation_position="top right",
-                annotation_font=dict(size=10, color="#F59E0B"),
+                annotation_text=f"  Median: Rp {median_jt:.0f} Jt",
+                annotation_position="top left",
+                annotation_font=dict(size=10, color="#D97706"),
+                annotation_xanchor="left",
             )
             apply_chart_theme(fig_hist)
             fig_hist.update_layout(
@@ -184,7 +185,7 @@ with r1_c2:
         )
         st.plotly_chart(fig_f_makes, width="stretch", config={"displayModeBar": False}, key="chart_eda_makes")
 
-# 3. Median Harga per Tipe Bodi
+# 3. Median Harga per Tipe Bodi (horizontal bar agar label tidak terpotong)
 with r1_c3:
     with section_card("Harga per Tipe Mobil"):
         body_data = filtered.dropna(subset=["body_type", "price"])
@@ -193,24 +194,25 @@ with r1_c3:
         if not body_data.empty:
             body_median = body_data.groupby("body_type")["price"].median().reset_index()
             body_median["price_jt"] = body_median["price"] / 1_000_000
-            body_median = body_median.sort_values("price_jt", ascending=False).head(5)
+            body_median = body_median.sort_values("price_jt", ascending=True).head(6)
             max_body = float(body_median["price_jt"].max()) if not body_median.empty else 100.0
 
             fig_body = go.Figure(go.Bar(
-                x=body_median["body_type"],
-                y=body_median["price_jt"],
+                x=body_median["price_jt"],
+                y=body_median["body_type"],
+                orientation="h",
                 marker=dict(color="#0284C7", cornerradius=4),
                 text=[f"Rp {v:.0f} Jt" for v in body_median["price_jt"]],
                 textposition="outside",
                 cliponaxis=False,
-                hovertemplate="Tipe: <b>%{x}</b><br>Median: <b>Rp %{y:.1f} Jt</b><extra></extra>",
+                hovertemplate="Tipe: <b>%{y}</b><br>Median: <b>Rp %{x:.1f} Jt</b><extra></extra>",
             ))
             apply_chart_theme(fig_body)
             fig_body.update_layout(
                 height=295,
-                margin=dict(l=10, r=10, t=30, b=10),
-                xaxis=dict(title=None, showgrid=False),
-                yaxis=dict(title="Median Harga (Jt)", showgrid=True, gridcolor="#F1F5F9", range=[0, max_body * 1.25]),
+                margin=dict(l=10, r=60, t=10, b=10),
+                xaxis=dict(title="Median Harga (Jt Rp)", showgrid=True, gridcolor="#F1F5F9", range=[0, max_body * 1.3]),
+                yaxis=dict(title=None, showgrid=False, tickfont=dict(size=11)),
             )
             st.plotly_chart(fig_body, width="stretch", config={"displayModeBar": False}, key="chart_eda_body")
         else:

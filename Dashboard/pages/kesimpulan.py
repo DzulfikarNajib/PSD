@@ -127,22 +127,28 @@ with r_buyer:
     with section_card("Rekomendasi Untuk Pembeli"):
         st.markdown(
             """
-            - **✔ Bandingkan Harga Serupa**: Bandingkan penawaran dengan median listing sejenis sebelum menawar.
-            - **✔ Perhatikan Tahun & KM**: Mobil usia 3-5 tahun menawarkan kurva depresiasi paling stabil.
-            - **✔ Gunakan Rentang P25-P75**: Jadikan rentang harga wajar sebagai batas maksimal negosiasi.
-            - **✔ Cek Riwayat Perawatan**: Waspadai odometer rendah pada mobil berusia di atas 7 tahun.
-            """
+            <ul style="list-style:none; padding:0; margin:0; font-size:0.88rem; color:#334155; line-height:1.7;">
+                <li>✔ <b>Bandingkan Harga Serupa</b>: Bandingkan penawaran dengan median listing sejenis sebelum menawar.</li>
+                <li>✔ <b>Perhatikan Tahun &amp; KM</b>: Mobil usia 3-5 tahun menawarkan kurva depresiasi paling stabil.</li>
+                <li>✔ <b>Gunakan Rentang P25-P75</b>: Jadikan rentang harga wajar sebagai batas maksimal negosiasi.</li>
+                <li>✔ <b>Cek Riwayat Perawatan</b>: Waspadai odometer rendah pada mobil berusia di atas 7 tahun.</li>
+            </ul>
+            """,
+            unsafe_allow_html=True,
         )
 
 with r_seller:
     with section_card("Rekomendasi Untuk Penjual"):
         st.markdown(
             """
-            - **✔ Pasang Harga Dekat Median**: Mempercepat perputaran unit (turnover rate) di diler.
-            - **✔ Highlight Keunggulan Mobil**: Cantumkan servis berkala resmi untuk justifikasi harga P75.
-            - **✔ Kenali Target Segmen**: Tentukan persona pembeli (ekonomis vs eksekutif) pada iklan.
-            - **✔ Respons Tren Elektrifikasi**: Permintaan Hybrid/EV bekas di Jakarta terus meningkat.
-            """
+            <ul style="list-style:none; padding:0; margin:0; font-size:0.88rem; color:#334155; line-height:1.7;">
+                <li>✔ <b>Pasang Harga Dekat Median</b>: Mempercepat perputaran unit (turnover rate) di diler.</li>
+                <li>✔ <b>Highlight Keunggulan Mobil</b>: Cantumkan servis berkala resmi untuk justifikasi harga P75.</li>
+                <li>✔ <b>Kenali Target Segmen</b>: Tentukan persona pembeli (ekonomis vs eksekutif) pada iklan.</li>
+                <li>✔ <b>Respons Tren Elektrifikasi</b>: Permintaan Hybrid/EV bekas di Jakarta terus meningkat.</li>
+            </ul>
+            """,
+            unsafe_allow_html=True,
         )
 
 with r_limits:
