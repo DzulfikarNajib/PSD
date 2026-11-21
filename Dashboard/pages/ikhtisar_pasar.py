@@ -120,22 +120,16 @@ st.markdown("<div style='height: 26px;'></div>", unsafe_allow_html=True)
 # Baris 2: Pengantar & Call to Action ("Penasaran ada apa saja?")
 # ---------------------------------------------------------------------------
 with st.container(border=True):
-    search_svg = get_lucide_icon("trending-up", size=22, color="#019F90")
     st.markdown(
         f"""
-        <div style="display:flex; align-items:flex-start; gap:0.9rem; margin-bottom:0.85rem;">
-            <div style="display:inline-flex; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; border-radius:10px; background:#E6F7F5; flex-shrink:0; margin-top:0.1rem;">
-                {search_svg}
+        <div style="margin-bottom:0.95rem;">
+            <div style="font-family:'Plus Jakarta Sans',Inter,sans-serif; font-size:1.3rem; font-weight:800; color:#0D1E38; letter-spacing:-0.02em; line-height:1.25;">
+                Penasaran Ada Mobil Apa Saja di Pasar DKI Jakarta?
             </div>
-            <div>
-                <div style="font-family:'Plus Jakarta Sans',Inter,sans-serif; font-size:1.3rem; font-weight:800; color:#0D1E38; letter-spacing:-0.02em; line-height:1.25;">
-                    Penasaran Ada Mobil Apa Saja di Pasar DKI Jakarta?
-                </div>
-                <div style="font-size:0.9rem; color:#475569; margin-top:0.3rem; line-height:1.6;">
-                    Dari <b>{total_listings:,} iklan</b> yang tersebar di 5 kota administrasi DKI Jakarta, separuh pasar berkumpul di kisaran harga
-                    <b>{format_rupiah_compact(p25_price)} hingga {format_rupiah_compact(p75_price)}</b> (median <b>{format_rupiah_compact(median_price)}</b>).
-                    Telusuri lebih dalam wilayah mana yang menyimpan stok terbanyak, merek apa yang paling mendominasi, serta bagaimana usia dan jarak tempuh membentuk harga jualnya.
-                </div>
+            <div style="font-size:0.9rem; color:#475569; margin-top:0.35rem; line-height:1.6;">
+                Dari <b>{total_listings:,} iklan</b> yang tersebar di 5 kota administrasi DKI Jakarta, separuh pasar berkumpul di kisaran harga
+                <b>{format_rupiah_compact(p25_price)} hingga {format_rupiah_compact(p75_price)}</b> (median <b>{format_rupiah_compact(median_price)}</b>).
+                Telusuri lebih dalam wilayah mana yang menyimpan stok terbanyak, merek apa yang paling mendominasi, serta bagaimana usia dan jarak tempuh membentuk harga jualnya.
             </div>
         </div>
         """.replace(",", "."),

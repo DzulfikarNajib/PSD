@@ -246,7 +246,7 @@ with col_pca:
         apply_chart_theme(fig_pca)
         fig_pca.update_traces(marker=dict(size=5, opacity=0.7))
         fig_pca.update_layout(
-            height=340,
+            height=450,
             margin=dict(l=10, r=10, t=10, b=10),
             legend=dict(orientation="h", y=-0.22, x=0.5, xanchor="center", font=dict(size=10)),
             xaxis=dict(title=f"PCA-1 ({exp_var[0]*100:.1f}%)", showgrid=True, gridcolor="#F1F5F9"),

@@ -59,17 +59,55 @@ archive["location_display"] = archive["location_normalized"].fillna("").astype(s
 dki_5 = ["Jakarta Selatan", "Jakarta Utara", "Jakarta Pusat", "Jakarta Barat", "Jakarta Timur"]
 archive = archive[archive["location_display"].isin(dki_5)].copy()
 
+# Helper orientasi poligon searah jarum jam (clockwise) agar D3-geo go.Choropleth mengisi bagian DALAM kota
+def _signed_ring_area(ring: list) -> float:
+    area = 0.0
+    for i in range(len(ring) - 1):
+        area += (ring[i + 1][0] - ring[i][0]) * (ring[i + 1][1] + ring[i][1])
+    return area
+
+
+def _orient_polygon_for_d3(coords: list) -> list:
+    oriented = []
+    for idx, ring in enumerate(coords):
+        area = _signed_ring_area(ring)
+        if idx == 0:
+            # Exterior ring harus clockwise (area > 0) di D3-geo
+            oriented.append(ring[::-1] if area < 0 else ring)
+        else:
+            # Interior hole ring harus counter-clockwise (area < 0)
+            oriented.append(ring[::-1] if area > 0 else ring)
+    return oriented
+
+
+def _ensure_d3_winding(geojson_obj: dict) -> dict:
+    fixed_features = []
+    for feat in geojson_obj.get("features", []):
+        feat_copy = dict(feat)
+        geom = dict(feat.get("geometry", {}))
+        gtype = geom.get("type")
+        if gtype == "Polygon":
+            geom["coordinates"] = _orient_polygon_for_d3(geom.get("coordinates", []))
+        elif gtype == "MultiPolygon":
+            geom["coordinates"] = [_orient_polygon_for_d3(poly) for poly in geom.get("coordinates", [])]
+        feat_copy["geometry"] = geom
+        fixed_features.append(feat_copy)
+    return {"type": "FeatureCollection", "features": fixed_features}
+
+
 # Muat GeoJSON resmi 5 Kota DKI Jakarta (DPMPTSP DKI batas_kota_kab, tanpa Kep. Seribu)
 geojson_path = APP_DIR / "assets" / "dki_kota.geojson"
 if geojson_path.exists():
     raw_geojson = json.loads(geojson_path.read_text(encoding="utf-8"))
-    dki_geojson = {
-        "type": "FeatureCollection",
-        "features": [
-            f for f in raw_geojson.get("features", [])
-            if str(f.get("properties", {}).get("kdpkab", "")) != "3101"
-        ],
-    }
+    dki_geojson = _ensure_d3_winding(
+        {
+            "type": "FeatureCollection",
+            "features": [
+                f for f in raw_geojson.get("features", [])
+                if str(f.get("properties", {}).get("kdpkab", "")) != "3101"
+            ],
+        }
+    )
 else:
     dki_geojson = {"type": "FeatureCollection", "features": []}
 
@@ -80,35 +118,18 @@ if "eda_selected_region" not in st.session_state:
 # PETA SEBARAN IKLAN DI WILAYAH DKI JAKARTA (Klik & Auto-Zoom)
 # ---------------------------------------------------------------------------
 with section_card("Peta Sebaran Iklan Mobil Bekas di Wilayah DKI Jakarta"):
-    st.caption(
-        "Klik langsung wilayah pada peta atau pilih nama kota di bawah untuk melakukan **zoom otomatis** "
-        "dan melihat profil spesifik jumlah iklan, merek, model terpopuler, serta bahan bakar dominan."
-    )
-
-    region_options = ["Semua Wilayah DKI"] + dki_5
-    reg_ctrl_c1, reg_ctrl_c2 = st.columns([3, 1], vertical_alignment="center")
-    with reg_ctrl_c1:
-        chosen_reg_pill = st.radio(
-            "Fokus Wilayah:",
-            region_options,
-            index=region_options.index(st.session_state["eda_selected_region"])
-            if st.session_state["eda_selected_region"] in region_options
-            else 0,
-            horizontal=True,
-            label_visibility="collapsed",
-            key="eda_region_radio",
+    active_region = st.session_state["eda_selected_region"]
+    map_hdr_c1, map_hdr_c2 = st.columns([3.2, 1], vertical_alignment="center")
+    with map_hdr_c1:
+        st.caption(
+            "Klik langsung salah satu wilayah pada peta untuk melakukan **zoom otomatis** "
+            "dan melihat profil spesifik jumlah iklan, merek, model terbanyak, serta bahan bakar dominan."
         )
-        if chosen_reg_pill != st.session_state["eda_selected_region"]:
-            st.session_state["eda_selected_region"] = chosen_reg_pill
-            st.rerun()
-
-    with reg_ctrl_c2:
-        if st.session_state["eda_selected_region"] != "Semua Wilayah DKI":
-            if st.button("Reset Zoom (Semua DKI)", use_container_width=True, key="btn_reset_map_zoom"):
+    with map_hdr_c2:
+        if active_region != "Semua Wilayah DKI":
+            if st.button("Reset Peta (Semua DKI)", use_container_width=True, key="btn_reset_map_zoom"):
                 st.session_state["eda_selected_region"] = "Semua Wilayah DKI"
                 st.rerun()
-
-    active_region = st.session_state["eda_selected_region"]
 
     # Agregasi statistik per wilayah untuk peta
     reg_agg = (
@@ -466,7 +487,7 @@ with row2_c2:
         )
         apply_chart_theme(fig_f_makes)
         fig_f_makes.update_layout(
-            height=245,
+            height=265,
             margin=dict(l=10, r=90, t=10, b=10),
             xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9", range=[0, max_cnt * 1.48]),
             yaxis=dict(title=None, showgrid=False, tickfont=dict(size=12, color="#0D1E38")),

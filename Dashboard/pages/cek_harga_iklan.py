@@ -23,6 +23,7 @@ import pandas as pd
 import streamlit as st
 
 from src.data_loader import load_combined_archive
+from src.market_segments import cluster_market_segments
 from src.modeling import (
     load_model_metadata,
     model_is_validated,
@@ -59,6 +60,30 @@ for col in ("price", "year", "mileage_km", "engine_cc"):
 archive["location_display"] = archive["location_normalized"].fillna("").astype(str).str.title()
 dki_5 = ["Jakarta Selatan", "Jakarta Utara", "Jakarta Pusat", "Jakarta Barat", "Jakarta Timur"]
 archive = archive[archive["location_display"].isin(dki_5)].copy()
+
+
+@st.cache_data(show_spinner=False)
+def _attach_market_segments(df: pd.DataFrame) -> pd.DataFrame:
+    segmented_df, _ = cluster_market_segments(df)
+    return segmented_df
+
+
+archive = _attach_market_segments(archive)
+
+SEGMENT_LABELS = {
+    "Semua Segmen": "Semua Segmen",
+    "Segmen 1": "Segmen 1 - Ekonomis & Komuter (< Rp 150 Jt)",
+    "Segmen 2": "Segmen 2 - Keluarga & Komuter (Rp 200-500 Jt)",
+    "Segmen 3": "Segmen 3 - Eksekutif & SUV Premium (Rp 1-2,5 M)",
+    "Segmen 4": "Segmen 4 - Flagship, Supercar & Koleksi (> Rp 3 M)",
+}
+SEGMENT_LABEL_TO_KEY = {v: k for k, v in SEGMENT_LABELS.items()}
+SEGMENT_PRICE_HINTS = {
+    "Segmen 1": "umumnya di bawah Rp 150 Juta",
+    "Segmen 2": "umumnya di kisaran Rp 150 - 600 Juta",
+    "Segmen 3": "umumnya di kisaran Rp 700 Juta - 2,5 Miliar",
+    "Segmen 4": "umumnya di atas Rp 2,5 - 3 Miliar",
+}
 
 metadata = load_model_metadata()
 has_valid_model = model_is_validated(metadata)
@@ -128,6 +153,7 @@ def _row_to_feature_dict(row: pd.Series) -> dict:
         "body_type": str(row.get("body_type", "MPV")) if pd.notna(row.get("body_type")) and str(row.get("body_type")).strip() else "MPV",
         "color": str(row.get("color", "-")) if pd.notna(row.get("color")) and str(row.get("color")).strip() else "-",
         "location": str(row.get("location_display", "-")) if pd.notna(row.get("location_display")) else "-",
+        "market_segment": str(row.get("market_segment", "-")) if pd.notna(row.get("market_segment")) and str(row.get("market_segment")).strip() else "-",
         "seller_type": str(row.get("seller_type", "Diler / Individu")) if pd.notna(row.get("seller_type")) and str(row.get("seller_type")).strip() else "Penjual Terverifikasi",
         "posted_at": str(row.get("posted_at", "-"))[:10] if pd.notna(row.get("posted_at")) else "-",
         "image_url": str(row.get("image_url", "")).strip() if pd.notna(row.get("image_url")) else "",
@@ -176,18 +202,28 @@ with col_input:
         )
 
         if input_mode == "Cari Mobil Sesuai Budget":
-            # 1. Filter Rentang Anggaran (Budget Range Slider)
+            # 1. Filter Segmen Pasar (Hasil K-Means Clustering) - Paling Atas
+            seg_options_disp = list(SEGMENT_LABELS.values())
+            chosen_seg_disp = st.selectbox(
+                "Segmen Pasar (Hasil K-Means)",
+                seg_options_disp,
+                index=0,
+                key="cek_segment_sel",
+            )
+            chosen_seg_key = SEGMENT_LABEL_TO_KEY.get(chosen_seg_disp, "Semua Segmen")
+
+            # 2. Filter Rentang Anggaran (Budget Range Slider)
             budget_sel = st.slider(
                 "Rentang Budget (Juta Rp)",
                 min_value=30,
-                max_value=2000,
+                max_value=5000,
                 value=st.session_state.get("cek_budget_slider", (80, 450)),
                 step=10,
                 key="cek_budget_slider",
             )
             b_min, b_max = budget_sel[0] * 1_000_000, budget_sel[1] * 1_000_000
 
-            # 2. Filter Wilayah DKI Jakarta & Merek
+            # 3. Filter Wilayah DKI Jakarta & Merek
             c_reg, c_make = st.columns(2)
             with c_reg:
                 reg_list = ["Semua Wilayah"] + dki_5
@@ -201,43 +237,23 @@ with col_input:
                 mk_idx = saved_make_list.index(cur_mk) if cur_mk in saved_make_list else 0
                 saved_make_choice = st.selectbox("Merek", saved_make_list, index=mk_idx, key="cek_make_sel")
 
-            # 3. Filter Tipe Bodi & Kata Kunci Model
-            c_body, c_kw = st.columns([1, 1.15])
-            with c_body:
-                body_types_avail = ["Semua Bodi"] + sorted(
-                    [b for b in archive["body_type"].dropna().unique().tolist() if str(b).strip()]
-                )
-                saved_body_choice = st.selectbox("Tipe Bodi", body_types_avail, index=0, key="cek_body_sel")
-            with c_kw:
-                search_kw = st.text_input(
-                    "Model / Varian",
-                    placeholder="Contoh: Avanza, Brio...",
-                    key="cek_search_kw",
-                )
-
-            # Saring data sesuai kriteria budget, wilayah & spek
+            # Saring data sesuai irisan Segmen K-Means, Budget, Wilayah & Merek
             pool = archive.dropna(subset=["price"]).copy()
+            if chosen_seg_key != "Semua Segmen" and "market_segment" in pool.columns:
+                pool = pool[pool["market_segment"].eq(chosen_seg_key)]
             pool = pool[pool["price"].between(b_min, b_max)]
             if saved_reg_choice != "Semua Wilayah":
                 pool = pool[pool["location_display"].eq(saved_reg_choice)]
             if saved_make_choice != "Semua Merek":
                 pool = pool[pool["make"].eq(saved_make_choice)]
-            if saved_body_choice != "Semua Bodi":
-                pool = pool[pool["body_type"].eq(saved_body_choice)]
-            if search_kw.strip():
-                kw = search_kw.strip().casefold()
-                pool = pool[
-                    pool["model"].fillna("").astype(str).str.casefold().str.contains(kw)
-                    | pool["variant"].fillna("").astype(str).str.casefold().str.contains(kw)
-                ]
 
             st.caption(
-                f"Ditemukan **{len(pool):,}** iklan mobil di **{saved_reg_choice}** "
-                f"(Budget Rp {budget_sel[0]} - {budget_sel[1]} Jt).".replace(",", ".")
+                f"Ditemukan **{len(pool):,}** iklan mobil ({chosen_seg_key} · {saved_reg_choice} · "
+                f"Budget Rp {budget_sel[0]} - {budget_sel[1]} Jt).".replace(",", ".")
             )
 
             if not pool.empty:
-                pool_disp = pool.head(35).copy().reset_index(drop=True)
+                pool_disp = pool.head(50).copy().reset_index(drop=True)
                 pool_disp["option_label"] = (
                     pool_disp["make"].astype(str)
                     + " "
@@ -251,7 +267,7 @@ with col_input:
                 )
 
                 selected_option = st.selectbox(
-                    "Pilih mobil dari daftar hasil pencarian:",
+                    "Pilih mobil dari daftar hasil pencarian (ketik untuk mencari model):",
                     pool_disp["option_label"].tolist(),
                     index=0,
                     key="cek_saved_choice",
@@ -275,20 +291,20 @@ with col_input:
                 quick_diff = ((item_price - peers_med) / peers_med) * 100 if peers_med > 0 else 0.0
 
                 if abs(quick_diff) <= 8.0:
-                    q_badge = '<span style="background:#E6F7F5;color:#019F90;font-weight:700;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:999px;">● Harga Wajar</span>'
+                    q_badge = '<span style="background:#E6F7F5;color:#019F90;font-weight:700;font-size:0.74rem;padding:0.2rem 0.6rem;border-radius:999px;white-space:nowrap;display:inline-block;">● Harga Wajar</span>'
                 elif quick_diff < -8.0:
-                    q_badge = '<span style="background:#ECFDF5;color:#047857;font-weight:700;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:999px;">● Good Deal (-{:.1f}%)</span>'.format(abs(quick_diff))
+                    q_badge = '<span style="background:#ECFDF5;color:#047857;font-weight:700;font-size:0.74rem;padding:0.2rem 0.6rem;border-radius:999px;white-space:nowrap;display:inline-block;">● Good Deal (-{:.1f}%)</span>'.format(abs(quick_diff))
                 else:
-                    q_badge = '<span style="background:#FEF3C7;color:#B45309;font-weight:700;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:999px;">● Di Atas Pasar (+{:.1f}%)</span>'.format(quick_diff)
+                    q_badge = '<span style="background:#FEF3C7;color:#B45309;font-weight:700;font-size:0.74rem;padding:0.2rem 0.6rem;border-radius:999px;white-space:nowrap;display:inline-block;">● Di Atas Pasar (+{:.1f}%)</span>'.format(quick_diff)
 
                 st.markdown(
                     f"""
                     <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:0.7rem 0.85rem; margin:0.35rem 0;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.4rem;">
-                            <div style="font-size:0.82rem; font-weight:700; color:#0D1E38;">{chosen_feat['listing_title']}</div>
-                            <div>{q_badge}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                            <div style="font-size:0.82rem; font-weight:700; color:#0D1E38; line-height:1.35;">{chosen_feat['listing_title']}</div>
+                            <div style="flex-shrink:0;">{q_badge}</div>
                         </div>
-                        <div style="font-size:0.75rem; color:#475569; margin-top:0.25rem;">
+                        <div style="font-size:0.75rem; color:#475569; margin-top:0.3rem;">
                             Harga: <b>{format_rupiah(item_price)}</b> · KM: <b>{format_km(chosen_feat['mileage_km'])}</b> · Lokasi: <b>{chosen_feat['location']}</b>
                         </div>
                     </div>
@@ -296,7 +312,13 @@ with col_input:
                     unsafe_allow_html=True,
                 )
             else:
-                st.info("Tidak ada listing yang sesuai budget dan filter Anda. Coba perluas rentang budget atau pilih 'Semua Wilayah'.")
+                if chosen_seg_key in SEGMENT_PRICE_HINTS:
+                    st.info(
+                        f"Tidak ada mobil **{chosen_seg_key}** pada budget Rp {budget_sel[0]} - {budget_sel[1]} Jt. "
+                        f"Harga {chosen_seg_key} {SEGMENT_PRICE_HINTS[chosen_seg_key]} - silakan geser slider budget."
+                    )
+                else:
+                    st.info("Tidak ada listing yang sesuai kombinasi budget dan filter Anda. Coba perluas rentang budget atau pilih 'Semua Wilayah'.")
 
         else:
             # Input Manual Form (untuk simulasi mobil di luar daftar)
@@ -533,6 +555,7 @@ with col_result:
                     <div class="listing-spec"><span>Jarak Tempuh (KM)</span><b>{format_km(cur_feat.get('mileage_km', 0))}</b></div>
                     <div class="listing-spec"><span>Kapasitas Mesin &amp; BBM</span><b>{cc_val:,} cc · {cur_feat.get('fuel_type', '-')}</b></div>
                     <div class="listing-spec"><span>Tipe Bodi &amp; Warna</span><b>{cur_feat.get('body_type', '-')} · {cur_feat.get('color', '-')}</b></div>
+                    <div class="listing-spec"><span>Segmen Pasar (K-Means)</span><b>{cur_feat.get('market_segment', '-')}</b></div>
                     <div class="listing-spec" style="border-bottom:none;"><span>Lokasi &amp; Penjual</span><b>{cur_feat.get('location', '-')} ({cur_feat.get('seller_type', '-')})</b></div>
                 </div>
                 """.replace(",", "."),

@@ -416,14 +416,14 @@ div[class*="st-key-project_editorial_hero"] {
 .am-hero-compact {
     position: relative;
     overflow: hidden;
-    min-height: 210px;
+    min-height: 280px;
     border-radius: 16px;
     border: 1px solid var(--dashboard-border);
     background-color: #FFFFFF;
     background-repeat: no-repeat;
-    background-position: center right;
+    background-position: right 65%;
     background-size: cover;
-    padding: 2.1rem 2.5rem;
+    padding: 2.4rem 2.6rem;
     margin-bottom: 1.5rem;
     box-shadow: none;
     display: flex;
@@ -621,7 +621,30 @@ h1, h2, h3, h4 {
 .stMetric [data-testid="stMetricValue"] > div { font-size:inherit !important; line-height:inherit; white-space:normal !important; overflow:visible !important; text-overflow:clip !important; overflow-wrap:anywhere; }
 [data-testid="stMetricLabel"] p { font-size: .84rem; font-weight: 500; white-space:normal; line-height:1.2; }
 
-/* Cards & Containers (Anti-Slop Clean Elevation) */
+/* Cards & Containers (Anti-Slop Clean Elevation + Equal-Height Columns) */
+[data-testid="stHorizontalBlock"] {
+    align-items: stretch !important;
+}
+[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] {
+    height: 100% !important;
+}
+[data-testid="stColumn"] [data-testid="stVerticalBlockBorderWrapper"] {
+    height: 100% !important;
+}
+[data-testid="stColumn"] [data-testid="stElementContainer"]:has(.am-insight-card),
+[data-testid="stColumn"] [data-testid="stMarkdownContainer"]:has(.am-insight-card),
+[data-testid="stColumn"] [data-testid="stElementContainer"]:has(.am-kpi-card),
+[data-testid="stColumn"] [data-testid="stMarkdownContainer"]:has(.am-kpi-card) {
+    height: 100% !important;
+}
+[data-testid="stColumn"] .am-insight-card {
+    height: 100% !important;
+    min-height: 112px;
+    margin-bottom: 0 !important;
+}
+[data-testid="stColumn"] .am-kpi-card {
+    height: 100% !important;
+}
 [data-testid="stVerticalBlockBorderWrapper"] {
     background: var(--dashboard-surface) !important;
     border: 1px solid var(--dashboard-border) !important;
