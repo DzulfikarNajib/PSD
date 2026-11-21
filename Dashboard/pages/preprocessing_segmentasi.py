@@ -68,8 +68,8 @@ if archive.empty:
 # BAGIAN 1: PREPROCESSING & KUALITAS DATA
 # ===========================================================================
 st.markdown(
-    "<div style='font-family:\"Plus Jakarta Sans\",Inter,sans-serif;font-size:1.25rem;font-weight:800;color:#0D1E38;margin:0.2rem 0 0.75rem;'>"
-    "1. Pipa Pembersihan & Kualitas Data (Preprocessing)</div>",
+    "<div style='font-family:\"Plus Jakarta Sans\",Inter,sans-serif;font-size:1.22rem;font-weight:800;color:#0D1E38;margin:0.2rem 0 0.75rem;'>"
+    "Pipa Pembersihan & Kualitas Data (Preprocessing)</div>",
     unsafe_allow_html=True,
 )
 
@@ -80,7 +80,10 @@ with col_funnel_tbl:
     with section_card("Audit Tahap Pembersihan Data"):
         disp_funnel = funnel_df.copy()
         disp_funnel["Listing tersisa"] = disp_funnel["Listing tersisa"].map(lambda x: f"{int(x):,}".replace(",", "."))
-        disp_funnel["Baris dihapus"] = disp_funnel["Baris dihapus"].map(lambda x: f"{int(x):,}".replace(",", "."))
+        if "Dibuang pada tahap ini" in disp_funnel.columns:
+            disp_funnel["Dibuang pada tahap ini"] = disp_funnel["Dibuang pada tahap ini"].map(
+                lambda x: f"{int(x):,}".replace(",", ".")
+            )
         st.dataframe(disp_funnel, hide_index=True, width="stretch")
 
         raw_n = audit.get("raw_rows", 10563)
@@ -189,8 +192,8 @@ st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
 # BAGIAN 2: SEGMENTASI PASAR (K-MEANS CLUSTERING)
 # ===========================================================================
 st.markdown(
-    "<div style='font-family:\"Plus Jakarta Sans\",Inter,sans-serif;font-size:1.25rem;font-weight:800;color:#0D1E38;margin:0.2rem 0 0.75rem;'>"
-    "2. Segmentasi Pasar Mobil Bekas (K-Means Clustering)</div>",
+    "<div style='font-family:\"Plus Jakarta Sans\",Inter,sans-serif;font-size:1.22rem;font-weight:800;color:#0D1E38;margin:0.2rem 0 0.75rem;'>"
+    "Segmentasi Pasar Mobil Bekas (K-Means Clustering)</div>",
     unsafe_allow_html=True,
 )
 
@@ -307,8 +310,8 @@ st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
 # BAGIAN 3: EVALUASI MODEL PREDIKSI HARGA (MACHINE LEARNING)
 # ===========================================================================
 st.markdown(
-    "<div style='font-family:\"Plus Jakarta Sans\",Inter,sans-serif;font-size:1.25rem;font-weight:800;color:#0D1E38;margin:0.2rem 0 0.75rem;'>"
-    "3. Evaluasi Model Prediksi Harga (Machine Learning)</div>",
+    "<div style='font-family:\"Plus Jakarta Sans\",Inter,sans-serif;font-size:1.22rem;font-weight:800;color:#0D1E38;margin:0.2rem 0 0.75rem;'>"
+    "Evaluasi Model Prediksi Harga (Machine Learning)</div>",
     unsafe_allow_html=True,
 )
 

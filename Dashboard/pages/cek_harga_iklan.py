@@ -605,15 +605,15 @@ with col_result:
                 f"Anda memiliki ruang negosiasi menuju kisaran <b>{format_rupiah_compact(ref_price or asking_price)}</b> kecuali kondisi mobil sangat istimewa."
             )
 
-        info_svg = get_lucide_icon("info", size=15, color="#019F90")
         st.markdown(
-            f"<div style='font-size:0.83rem; color:#334155; line-height:1.55; background:#F8FAFC; padding:0.65rem 0.9rem; border-radius:8px; border-left:3px solid #019F90; display:flex; align-items:flex-start; gap:0.5rem;'>"
-            f"<span style='flex-shrink:0; margin-top:2px;'>{info_svg}</span><span>{explanation_text}</span></div>",
+            f"<div style='font-size:0.83rem; color:#334155; line-height:1.58; background:#F8FAFC; padding:0.7rem 0.95rem; border-radius:8px; border-left:3px solid #019F90;'>"
+            f"{explanation_text}</div>",
             unsafe_allow_html=True,
         )
 
-    # Tabel Pembanding Serupa
-    if not comparables.empty:
+# Pindahkan Tabel Pembanding Sejenis ke kolom kiri tepat di bawah panel pencarian agar layout seimbang
+if not comparables.empty:
+    with col_input:
         with st.expander(f"Lihat Daftar {min(10, len(comparables))} Listing Pembanding Sejenis", expanded=False):
             disp_c = comparables.head(10).copy()
             disp_c["Harga"] = disp_c["price"].map(format_rupiah)

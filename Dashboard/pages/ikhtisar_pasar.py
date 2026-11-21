@@ -145,8 +145,8 @@ with st.container(border=True):
     hl_cols = st.columns(3, gap="medium")
     with hl_cols[0]:
         insight_card(
-            icon="map-pin",
-            headline="1. Peta Interaktif 5 Wilayah DKI",
+            icon="",
+            headline="Peta Interaktif 5 Wilayah DKI",
             body=(
                 f"Klik wilayah di peta (seperti <b>{top_region}</b>) untuk melakukan zoom otomatis "
                 "dan melihat rincian jumlah iklan, model terlaris, serta bahan bakar dominan di tiap kota."
@@ -155,8 +155,8 @@ with st.container(border=True):
         )
     with hl_cols[1]:
         insight_card(
-            icon="bar-chart-2",
-            headline="2. Eksplorasi Merek, Harga & Depresiasi",
+            icon="",
+            headline="Eksplorasi Merek, Harga & Depresiasi",
             body=(
                 f"Amati distribusi harga pasar, popularitas <b>{total_makes} merek</b>, proporsi bahan bakar, "
                 "serta simulasi pengaruh tahun pembuatan dan jarak tempuh (KM) terhadap harga."
@@ -165,8 +165,8 @@ with st.container(border=True):
         )
     with hl_cols[2]:
         insight_card(
-            icon="search",
-            headline="3. Cek Mobil & Harga Langsung ke OLX",
+            icon="",
+            headline="Cek Mobil & Harga Langsung ke OLX",
             body=(
                 "Saring mobil sesuai budget Anda, lihat <b>foto asli iklan, spesifikasi detail, tautan langsung ke OLX</b>, "
                 "sekaligus uji kewajaran harganya menggunakan model Machine Learning."

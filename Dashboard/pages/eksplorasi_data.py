@@ -59,10 +59,17 @@ archive["location_display"] = archive["location_normalized"].fillna("").astype(s
 dki_5 = ["Jakarta Selatan", "Jakarta Utara", "Jakarta Pusat", "Jakarta Barat", "Jakarta Timur"]
 archive = archive[archive["location_display"].isin(dki_5)].copy()
 
-# Muat GeoJSON 5 Kota DKI Jakarta
-geojson_path = APP_DIR / "assets" / "dki_jakarta_5kota.geojson"
+# Muat GeoJSON resmi 5 Kota DKI Jakarta (DPMPTSP DKI batas_kota_kab, tanpa Kep. Seribu)
+geojson_path = APP_DIR / "assets" / "dki_kota.geojson"
 if geojson_path.exists():
-    dki_geojson = json.loads(geojson_path.read_text(encoding="utf-8"))
+    raw_geojson = json.loads(geojson_path.read_text(encoding="utf-8"))
+    dki_geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            f for f in raw_geojson.get("features", [])
+            if str(f.get("properties", {}).get("kdpkab", "")) != "3101"
+        ],
+    }
 else:
     dki_geojson = {"type": "FeatureCollection", "features": []}
 
@@ -70,9 +77,9 @@ if "eda_selected_region" not in st.session_state:
     st.session_state["eda_selected_region"] = "Semua Wilayah DKI"
 
 # ---------------------------------------------------------------------------
-# 1. PETA SEBARAN IKLAN DI WILAYAH DKI JAKARTA (Klik & Auto-Zoom)
+# PETA SEBARAN IKLAN DI WILAYAH DKI JAKARTA (Klik & Auto-Zoom)
 # ---------------------------------------------------------------------------
-with section_card("1. Peta Sebaran Iklan Mobil Bekas di Wilayah DKI Jakarta"):
+with section_card("Peta Sebaran Iklan Mobil Bekas di Wilayah DKI Jakarta"):
     st.caption(
         "Klik langsung wilayah pada peta atau pilih nama kota di bawah untuk melakukan **zoom otomatis** "
         "dan melihat profil spesifik jumlah iklan, merek, model terpopuler, serta bahan bakar dominan."
@@ -118,15 +125,16 @@ with section_card("1. Peta Sebaran Iklan Mobil Bekas di Wilayah DKI Jakarta"):
         .reset_index()
     )
     reg_agg.columns = ["region", "listing_count", "make_count", "model_count", "median_price", "top_fuel", "top_model"]
+    reg_agg["region_upper"] = reg_agg["region"].str.upper()
     reg_agg["listing_count"] = reg_agg["listing_count"].fillna(0).astype(int)
     reg_agg["median_price_str"] = reg_agg["median_price"].fillna(0).map(format_rupiah_compact)
 
-    # Koordinat titik tengah label wilayah
+    # Koordinat titik tengah label wilayah DKI (disesuaikan poligon resmi DPMPTSP)
     centers = {
-        "Jakarta Utara": (-6.125, 106.885),
-        "Jakarta Barat": (-6.168, 106.750),
-        "Jakarta Pusat": (-6.180, 106.835),
-        "Jakarta Timur": (-6.245, 106.905),
+        "Jakarta Utara": (-6.128, 106.890),
+        "Jakarta Barat": (-6.168, 106.752),
+        "Jakarta Pusat": (-6.182, 106.835),
+        "Jakarta Timur": (-6.250, 106.905),
         "Jakarta Selatan": (-6.275, 106.810),
     }
     reg_agg["lat"] = reg_agg["region"].map(lambda r: centers.get(r, (-6.2, 106.84))[0])
@@ -141,7 +149,7 @@ with section_card("1. Peta Sebaran Iklan Mobil Bekas di Wilayah DKI Jakarta"):
                 "type": "FeatureCollection",
                 "features": [
                     f for f in dki_geojson.get("features", [])
-                    if f.get("properties", {}).get("region") == active_region
+                    if str(f.get("properties", {}).get("wadmkk", "")).upper() == active_region.upper()
                 ],
             }
             plot_reg_df = reg_agg[reg_agg["region"].eq(active_region)].copy()
@@ -151,32 +159,38 @@ with section_card("1. Peta Sebaran Iklan Mobil Bekas di Wilayah DKI Jakarta"):
 
         fig_map = go.Figure()
 
-        # Choropleth SVG (100% bebas WebGL, mendukung zoom/pan & klik)
+        # Choropleth SVG menggunakan batas resmi DPMPTSP DKI (tajam, akurat, 100% bebas WebGL)
         fig_map.add_trace(
             go.Choropleth(
                 geojson=active_geojson,
-                locations=plot_reg_df["region"],
+                locations=plot_reg_df["region_upper"],
                 z=plot_reg_df["listing_count"],
-                featureidkey="properties.region",
+                featureidkey="properties.wadmkk",
                 colorscale=[
-                    [0.0, "#CCFBF1"],
-                    [0.35, "#38D9A9"],
+                    [0.0, "#D9F2EE"],
+                    [0.35, "#72C8BC"],
                     [0.7, "#019F90"],
-                    [1.0, "#0D1E38"],
+                    [1.0, "#006B61"],
                 ],
-                zmin=int(reg_agg["listing_count"].min() * 0.8),
+                zmin=0,
                 zmax=int(reg_agg["listing_count"].max()),
                 marker_line_color="#FFFFFF",
-                marker_line_width=2.5,
+                marker_line_width=2.0,
                 showscale=True,
                 colorbar=dict(
-                    title=dict(text="Iklan", font=dict(size=11, color="#475569")),
-                    thickness=12,
-                    len=0.75,
+                    title=dict(text="Jumlah Iklan", font=dict(size=10, color="#475569")),
+                    orientation="h",
+                    thickness=10,
+                    len=0.55,
+                    x=0.5,
+                    xanchor="center",
+                    y=-0.04,
+                    yanchor="top",
                     tickfont=dict(size=10, color="#475569"),
                 ),
                 customdata=np.stack(
                     [
+                        plot_reg_df["region"],
                         plot_reg_df["make_count"],
                         plot_reg_df["model_count"],
                         plot_reg_df["top_model"],
@@ -186,45 +200,50 @@ with section_card("1. Peta Sebaran Iklan Mobil Bekas di Wilayah DKI Jakarta"):
                     axis=-1,
                 ),
                 hovertemplate=(
-                    "<b>%{location}</b><br>"
+                    "<b>%{customdata[0]}</b><br>"
                     "Jumlah Iklan: <b>%{z:,} unit</b><br>"
-                    "Variasi: <b>%{customdata[0]} Merek · %{customdata[1]} Model</b><br>"
-                    "Model Terbanyak: <b>%{customdata[2]}</b><br>"
-                    "BBM Dominan: <b>%{customdata[3]}</b><br>"
-                    "Median Harga: <b>%{customdata[4]}</b><extra></extra>"
+                    "Variasi: <b>%{customdata[1]} Merek · %{customdata[2]} Model</b><br>"
+                    "Model Terbanyak: <b>%{customdata[3]}</b><br>"
+                    "BBM Dominan: <b>%{customdata[4]}</b><br>"
+                    "Median Harga: <b>%{customdata[5]}</b><extra></extra>"
                 ),
             )
         )
 
-        # Label nama kota & jumlah iklan di atas poligon peta
-        fig_map.add_trace(
-            go.Scattergeo(
-                lat=plot_reg_df["lat"],
-                lon=plot_reg_df["lon"],
-                text=[
-                    f"<b>{r}</b><br>{c:,} iklan".replace(",", ".")
-                    for r, c in zip(plot_reg_df["region"], plot_reg_df["listing_count"])
-                ],
-                mode="markers+text",
-                marker=dict(size=8, color="#F59E0B", line=dict(width=1.5, color="#FFFFFF")),
-                textposition="top center",
-                textfont=dict(family="Plus Jakarta Sans, Inter, sans-serif", size=11, color="#0D1E38"),
-                hoverinfo="skip",
-                showlegend=False,
-            )
-        )
+        # Label kota & jumlah iklan dengan kontras adaptif (putih pada poligon gelap, navy pada terang)
+        dark_mask = plot_reg_df["listing_count"] >= (reg_agg["listing_count"].max() * 0.55)
+        for subset_df, txt_color in [
+            (plot_reg_df[~dark_mask], "#0D1E38"),
+            (plot_reg_df[dark_mask], "#FFFFFF"),
+        ]:
+            if not subset_df.empty:
+                fig_map.add_trace(
+                    go.Scattergeo(
+                        lat=subset_df["lat"],
+                        lon=subset_df["lon"],
+                        text=[
+                            f"<b>{r}</b><br>{c:,} iklan".replace(",", ".")
+                            for r, c in zip(subset_df["region"], subset_df["listing_count"])
+                        ],
+                        mode="text",
+                        textposition="middle center",
+                        textfont=dict(family="Plus Jakarta Sans, Inter, sans-serif", size=11, color=txt_color),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    )
+                )
 
         fig_map.update_geos(
             fitbounds="locations",
             visible=False,
             projection_type="mercator",
-            bgcolor="#F8FAFC",
+            bgcolor="#FFFFFF",
         )
         fig_map.update_layout(
-            height=380,
-            margin=dict(l=0, r=0, t=6, b=6),
-            paper_bgcolor="#F8FAFC",
-            plot_bgcolor="#F8FAFC",
+            height=410,
+            margin=dict(l=0, r=0, t=4, b=28),
+            paper_bgcolor="#FFFFFF",
+            plot_bgcolor="#FFFFFF",
             dragmode="pan",
         )
 
@@ -234,14 +253,14 @@ with section_card("1. Peta Sebaran Iklan Mobil Bekas di Wilayah DKI Jakarta"):
             key="chart_dki_choropleth_map",
             on_select="rerun",
             selection_mode="points",
-            config={"scrollZoom": True, "displayModeBar": True},
+            config={"scrollZoom": True, "displayModeBar": True, "displaylogo": False},
         )
 
         # Tangkap klik wilayah dari peta
         if map_event and hasattr(map_event, "selection") and map_event.selection:
             pts = map_event.selection.get("points", [])
             if pts:
-                clicked_loc = pts[0].get("location")
+                clicked_loc = str(pts[0].get("location", "")).title()
                 if clicked_loc in dki_5 and clicked_loc != st.session_state["eda_selected_region"]:
                     st.session_state["eda_selected_region"] = clicked_loc
                     st.rerun()
@@ -351,7 +370,7 @@ row2_c1, row2_c2 = st.columns(2, gap="medium")
 
 # 2. Grafik Sebaran Harga
 with row2_c1:
-    with section_card(f"2. Sebaran Harga Iklan ({scope_label})"):
+    with section_card(f"Sebaran Harga Iklan ({scope_label})"):
         priced_f = filtered[filtered["price"].gt(0)].dropna(subset=["price"]).copy()
 
         mode_scope = st.radio(
@@ -419,7 +438,7 @@ with row2_c1:
 
 # 3. Grafik Top Merek (Klik langsung ke Cek Mobil dan Harga)
 with row2_c2:
-    with section_card(f"3. Top Merek Terpopuler ({scope_label})"):
+    with section_card(f"Top Merek Terpopuler ({scope_label})"):
         top_makes_df = (
             filtered.groupby("make")
             .agg(count=("listing_id", "count"), median_price=("price", "median"))
@@ -515,7 +534,7 @@ row3_c1, row3_c2 = st.columns(2, gap="medium")
 
 # 4. Grafik Proporsi Bahan Bakar
 with row3_c1:
-    with section_card(f"4. Proporsi Bahan Bakar ({scope_label})"):
+    with section_card(f"Proporsi Bahan Bakar ({scope_label})"):
         fuel_df = (
             filtered.groupby("fuel_type")
             .agg(count=("listing_id", "count"), median_price=("price", "median"))
@@ -593,7 +612,7 @@ with row3_c1:
 
 # 5. Grafik Tahun vs Harga & Jarak Tempuh vs Harga (1 Card dengan Pemilih Variabel)
 with row3_c2:
-    with section_card(f"5. Pengaruh Usia & Jarak Tempuh terhadap Harga ({scope_label})"):
+    with section_card(f"Pengaruh Usia & Jarak Tempuh terhadap Harga ({scope_label})"):
         var_choice = st.radio(
             "Pilih Variabel Pembanding:",
             ["Tahun Pembuatan vs Harga", "Jarak Tempuh (KM) vs Harga"],

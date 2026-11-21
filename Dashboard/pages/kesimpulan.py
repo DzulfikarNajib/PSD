@@ -1,11 +1,9 @@
-"""Kesimpulan & Rekomendasi - sintesis temuan data science pasar mobil bekas DKI Jakarta.
+"""Kesimpulan & Rekomendasi - sintesis temuan berbasis data dan panduan strategi pembelian mobil bekas DKI Jakarta.
 
 Menampilkan:
-- 4 Kartu Temuan Kunci Pasar (dihitung dari data aktual)
-- Ringkasan Karakteristik 4 Segmen K-Means
-- Rangkuman Evaluasi Model Terbaik (Random Forest)
-- Rekomendasi Praktis untuk Pembeli & Penjual
-- Keterbatasan Metodologi & Model
+- 4 Temuan Kunci Pasar yang dihitung langsung dari 6.301 iklan & metadata model ML
+- Matriks Panduan Strategi Beli Berdasarkan Rentang Budget (dihitung otomatis dari data)
+- Panduan Negosiasi Harga & Catatan Keterbatasan Data
 """
 
 from __future__ import annotations
@@ -17,13 +15,12 @@ APP_DIR = Path(__file__).resolve().parent.parent
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
-import numpy as np
 import pandas as pd
 import streamlit as st
 
 from src.data_loader import load_combined_archive
 from src.market_segments import cluster_market_segments
-from src.modeling import load_model_metadata
+from src.modeling import get_feature_importance, load_model_metadata
 from src.styles import apply_theme
 from src.ui import format_km, format_rupiah_compact
 from src.ui_components import (
@@ -37,7 +34,7 @@ apply_theme()
 page_header(
     icon="check-circle",
     title="Kesimpulan & Rekomendasi",
-    subtitle="Ringkasan temuan dan saran berdasarkan hasil analisis sains data pasar mobil bekas DKI Jakarta.",
+    subtitle="Sintesis temuan kuantitatif dan panduan keputusan berbasis data pasar mobil bekas DKI Jakarta.",
 )
 
 archive = load_combined_archive()
@@ -46,30 +43,31 @@ if archive.empty:
     st.warning("Data arsip tidak dapat dimuat.", icon=":material/warning:")
     st.stop()
 
-# Konversi kolom numerik
 for col in ("price", "year", "mileage_km", "engine_cc"):
     if col in archive:
         archive[col] = pd.to_numeric(archive[col], errors="coerce")
+
+archive["location_display"] = archive["location_normalized"].fillna("").astype(str).str.title()
+dki_5 = ["Jakarta Selatan", "Jakarta Utara", "Jakarta Pusat", "Jakarta Barat", "Jakarta Timur"]
+archive = archive[archive["location_display"].isin(dki_5)].copy()
 
 # ---------------------------------------------------------------------------
 # Perhitungan Statistik Aktual
 # ---------------------------------------------------------------------------
 total_listings = len(archive)
 priced = archive[archive["price"].gt(0)].dropna(subset=["price"])
-median_price = priced["price"].median() if not priced.empty else 0
-p25_price = priced["price"].quantile(0.25) if not priced.empty else 0
-p75_price = priced["price"].quantile(0.75) if not priced.empty else 0
 
 top_make = archive["make"].value_counts().index[0] if not archive["make"].empty else "Toyota"
 top_make_count = int(archive["make"].value_counts().iloc[0]) if not archive["make"].empty else 0
-top_make_pct = (top_make_count / total_listings * 100) if total_listings else 0
+top_make_pct = (top_make_count / total_listings * 100) if total_listings else 0.0
 
-top_loc = archive["location_normalized"].value_counts().index[0] if not archive["location_normalized"].empty else "jakarta selatan"
-top_loc_count = int(archive["location_normalized"].value_counts().iloc[0]) if not archive["location_normalized"].empty else 0
-top_loc_pct = (top_loc_count / total_listings * 100) if total_listings else 0
+top_loc = archive["location_display"].value_counts().index[0] if not archive["location_display"].empty else "Jakarta Selatan"
+top_loc_count = int(archive["location_display"].value_counts().iloc[0]) if not archive["location_display"].empty else 0
+top_loc_pct = (top_loc_count / total_listings * 100) if total_listings else 0.0
 
-bensin_pct = (archive["fuel_type"].eq("Bensin").sum() / total_listings * 100) if total_listings else 0
-eco_pct = (archive["fuel_type"].isin(["Hybrid", "Listrik"]).sum() / total_listings * 100) if total_listings else 0
+med_2022_plus = float(priced[priced["year"].ge(2022)]["price"].median()) if priced["year"].ge(2022).any() else 0.0
+med_2018_2021 = float(priced[priced["year"].between(2018, 2021)]["price"].median()) if priced["year"].between(2018, 2021).any() else 0.0
+dep_pct = ((med_2022_plus - med_2018_2021) / med_2022_plus * 100) if med_2022_plus > 0 else 0.0
 
 metadata = load_model_metadata()
 best_model_name = metadata.get("best_model", "Random Forest Regressor")
@@ -77,119 +75,139 @@ rf_metrics = metadata.get("models", {}).get(best_model_name, {})
 best_mae = rf_metrics.get("MAE", 170552662)
 best_r2 = rf_metrics.get("R2", 0.8938)
 
-# ---------------------------------------------------------------------------
-# Bagian 1: Empat Temuan Kunci Pasar (Grid 4 Kolom per Master Reference)
-# ---------------------------------------------------------------------------
-with st.container(border=True):
-    st.markdown("<div class='am-section-title'>Temuan Kunci Pasar Mobil Bekas DKI Jakarta</div>", unsafe_allow_html=True)
-    k_col1, k_col2, k_col3, k_col4 = st.columns(4, gap="small")
+imp_df = get_feature_importance().head(2)
+top_feat_1 = f"{imp_df.iloc[0]['feature']} ({imp_df.iloc[0]['importance']*100:.1f}%)" if len(imp_df) > 0 else "Kapasitas Mesin"
+top_feat_2 = f"{imp_df.iloc[1]['feature']} ({imp_df.iloc[1]['importance']*100:.1f}%)" if len(imp_df) > 1 else "Kilometer"
 
-    with k_col1:
+_, seg_summary = cluster_market_segments(archive)
+seg2_row = seg_summary[seg_summary["market_segment"].eq("Segmen 2")]
+seg2_pct = (float(seg2_row["listings"].iloc[0]) / float(seg_summary["listings"].sum()) * 100) if (not seg2_row.empty and seg_summary["listings"].sum() > 0) else 55.8
+
+# ---------------------------------------------------------------------------
+# Bagian 1: 4 Temuan Kunci Kuantitatif
+# ---------------------------------------------------------------------------
+with section_card("Temuan Kunci Pasar Mobil Bekas DKI Jakarta"):
+    k_cols = st.columns(4, gap="small")
+
+    with k_cols[0]:
         insight_card(
-            icon="trophy",
-            headline=f"Dominasi {top_make}",
-            body=f"Pasar didominasi mobil Jepang dengan pangsa pasar <b>{top_make_pct:.1f}% ({top_make_count:,} unit)</b>.".replace(",", "."),
+            icon="",
+            headline="Konsentrasi Stok & Likuiditas",
+            body=(
+                f"<b>{top_loc}</b> menampung <b>{top_loc_pct:.1f}% ({top_loc_count:,} unit)</b> stok DKI, "
+                f"dengan <b>{top_make} ({top_make_pct:.1f}%)</b> sebagai merek paling likuid."
+            ).replace(",", "."),
             variant="info",
         )
 
-    with k_col2:
+    with k_cols[1]:
         insight_card(
-            icon="car",
-            headline="SUV & MPV Terpopuler",
-            body="Segmen MPV dan Compact SUV keluarga menjadi tipe kendaraan paling diminati di pasar ibu kota.",
-            variant="default",
-        )
-
-    with k_col3:
-        insight_card(
-            icon="trending-up",
-            headline="Faktor Penentu Harga",
-            body="Harga dipengaruhi paling kuat oleh kombinasi tahun pembuatan, jarak tempuh (KM), dan kapasitas mesin.",
+            icon="",
+            headline="Kurva Depresiasi Usia Nyata",
+            body=(
+                f"Mobil keluaran <b>2018-2021</b> (median {format_rupiah_compact(med_2018_2021)}) "
+                f"tercatat <b>{dep_pct:.0f}% lebih hemat</b> dibanding tahun 2022+ ({format_rupiah_compact(med_2022_plus)})."
+            ),
             variant="success",
         )
 
-    with k_col4:
+    with k_cols[2]:
         insight_card(
-            icon="target",
-            headline="Model Terbaik: RF",
-            body=f"Random Forest menghasilkan akurasi tertinggi dengan <b>R\u00b2 = {best_r2:.4f}</b> dan MAE {format_rupiah_compact(best_mae)}.",
+            icon="",
+            headline="Penggerak Utama Harga (ML)",
+            body=(
+                f"Model <b>{best_model_name}</b> (R² = <b>{best_r2:.4f}</b>) menemukan dua penentu harga terkuat: "
+                f"<b>{top_feat_1}</b> dan <b>{top_feat_2}</b>."
+            ),
+            variant="info",
+        )
+
+    with k_cols[3]:
+        insight_card(
+            icon="",
+            headline="Dominasi Segmen Menengah",
+            body=(
+                f"Hasil klasterisasi K-Means menunjukkan <b>Segmen 2 (Keluarga & Komuter)</b> "
+                f"menguasai <b>{seg2_pct:.1f}%</b> total pasar mobil bekas DKI Jakarta."
+            ),
             variant="warning",
         )
 
-st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Bagian 2: Rekomendasi Pembeli, Penjual & Limitasi (Master Reference 3-Kolom)
+# Bagian 2: Matriks Panduan Strategi Beli Berdasarkan Rentang Budget
 # ---------------------------------------------------------------------------
-r_buyer, r_seller, r_limits = st.columns([1.1, 1.1, 1], gap="medium")
+with section_card("Panduan Strategi Beli Berdasarkan Rentang Budget (Data Aktual)"):
+    st.caption(
+        "Gunakan tabel di bawah untuk langsung memetakan ekspektasi tahun produksi, jarak tempuh wajar, "
+        "merek dengan pilihan terbanyak, serta kota tujuan pencarian sesuai anggaran Anda."
+    )
 
-with r_buyer:
-    with section_card("Rekomendasi Untuk Pembeli"):
-        st.markdown(
-            """
-            <ul style="list-style:none; padding:0; margin:0; font-size:0.88rem; color:#334155; line-height:1.7;">
-                <li>✔ <b>Bandingkan Harga Serupa</b>: Bandingkan penawaran dengan median listing sejenis sebelum menawar.</li>
-                <li>✔ <b>Perhatikan Tahun &amp; KM</b>: Mobil usia 3-5 tahun menawarkan kurva depresiasi paling stabil.</li>
-                <li>✔ <b>Gunakan Rentang P25-P75</b>: Jadikan rentang harga wajar sebagai batas maksimal negosiasi.</li>
-                <li>✔ <b>Cek Riwayat Perawatan</b>: Waspadai odometer rendah pada mobil berusia di atas 7 tahun.</li>
-            </ul>
-            """,
-            unsafe_allow_html=True,
+    budget_tiers = [
+        ("Ekonomis (< Rp 150 Jt)", 0, 150_000_000),
+        ("Menengah (Rp 150 - 350 Jt)", 150_000_000, 350_000_000),
+        ("Menengah Atas (Rp 350 - 750 Jt)", 350_000_000, 750_000_000),
+        ("Premium & Koleksi (> Rp 750 Jt)", 750_000_000, 100_000_000_000),
+    ]
+
+    tier_rows = []
+    for label, b_lo, b_hi in budget_tiers:
+        sub = priced[priced["price"].gt(b_lo) & priced["price"].le(b_hi)]
+        if sub.empty:
+            continue
+        med_yr = int(sub["year"].median()) if sub["year"].notna().any() else 0
+        med_km_val = float(sub["mileage_km"].median()) if sub["mileage_km"].notna().any() else 0.0
+        top_brands_3 = ", ".join(sub["make"].dropna().value_counts().head(3).index.tolist())
+        top_city = sub["location_display"].value_counts().index[0] if not sub["location_display"].empty else "-"
+        tier_rows.append(
+            {
+                "Kategori Budget": label,
+                "Stok Tersedia": f"{len(sub):,} unit".replace(",", "."),
+                "Tahun Tipikal": f"~{med_yr}" if med_yr else "-",
+                "Median Odometer": format_km(med_km_val),
+                "3 Merek Pilihan Terbanyak": top_brands_3,
+                "Wilayah Stok Terbanyak": top_city,
+            }
         )
 
-with r_seller:
-    with section_card("Rekomendasi Untuk Penjual"):
-        st.markdown(
-            """
-            <ul style="list-style:none; padding:0; margin:0; font-size:0.88rem; color:#334155; line-height:1.7;">
-                <li>✔ <b>Pasang Harga Dekat Median</b>: Mempercepat perputaran unit (turnover rate) di diler.</li>
-                <li>✔ <b>Highlight Keunggulan Mobil</b>: Cantumkan servis berkala resmi untuk justifikasi harga P75.</li>
-                <li>✔ <b>Kenali Target Segmen</b>: Tentukan persona pembeli (ekonomis vs eksekutif) pada iklan.</li>
-                <li>✔ <b>Respons Tren Elektrifikasi</b>: Permintaan Hybrid/EV bekas di Jakarta terus meningkat.</li>
-            </ul>
-            """,
-            unsafe_allow_html=True,
-        )
+    st.dataframe(pd.DataFrame(tier_rows), hide_index=True, width="stretch")
 
-with r_limits:
-    with section_card("Limitasi Analisis"):
+    cta_c1, _ = st.columns([1.3, 2.7])
+    with cta_c1:
+        if st.button("Terapkan Budget Anda di Cek Mobil dan Harga", type="primary", use_container_width=True, key="btn_kesimpulan_to_cek"):
+            st.switch_page("pages/cek_harga_iklan.py")
+
+st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Bagian 3: Strategi Negosiasi & Keterbatasan Data (2 Kolom Ringkas)
+# ---------------------------------------------------------------------------
+col_strat, col_lim = st.columns([1.2, 1], gap="medium")
+
+with col_strat:
+    with section_card("Strategi Negosiasi & Penetapan Harga"):
         st.markdown(
-            """
-            <div style="font-size:0.8rem; color:#475569; line-height:1.5;">
-                <p style="margin-bottom:0.4rem;"><b>1. Harga Iklan vs Transaksi</b><br>
-                Data berasal dari harga penawaran daring (OLX), bukan harga riil transaksi final (negosiasi 3-8%).</p>
-                <p style="margin-bottom:0.4rem;"><b>2. Cakupan 5 Wilayah DKI</b><br>
-                Hanya mencakup Jakarta Selatan, Utara, Pusat, Barat, dan Timur (tanpa Bodetabek).</p>
-                <p style="margin-bottom:0;"><b>3. Sifat Model Estimasi</b><br>
-                Model regresi bersifat statistik acuan dan tidak merekam kondisi fisik riil (cat, ban, modifikasi).</p>
+            f"""
+            <div style="font-size:0.86rem; color:#334155; line-height:1.65;">
+                <p style="margin-bottom:0.55rem;"><b>Untuk Pembeli (Patokan Nego P25 - Median):</b><br>
+                Gunakan angka <b>Median Pembanding</b> di halaman <i>Cek Mobil dan Harga</i> sebagai batas atas negosiasi. Jika harga iklan melampaui P75 (+8% di atas pasar), minta potongan harga kecuali unit memiliki riwayat servis resmi lengkap dan odometer rendah.</p>
+                <p style="margin-bottom:0;"><b>Untuk Penjual &amp; Diler (Percepatan Turnover):</b><br>
+                Memasang harga penawaran mendekati estimasi <b>Random Forest</b> (MAE {format_rupiah_compact(best_mae)}) dan mencantumkan angka odometer secara transparan mempercepat peluang transaksi dibanding harga spekulatif di atas P75.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------------------------
-# Bagian 3: Ringkasan Metodologi & K-Means
-# ---------------------------------------------------------------------------
-with st.expander("Detail Metodologi Sains Data & Segmentasi Pasar (K-Means)", expanded=False):
-    col_exp1, col_exp2 = st.columns(2)
-    with col_exp1:
+with col_lim:
+    with section_card("Batasan Data & Metodologi"):
         st.markdown(
             """
-            **Ringkasan 4 Segmen K-Means:**
-            - **Segmen 1 (Ekonomis)**: Harga < Rp 150 Jt, usia rata-rata 2010, kilometer tinggi (> 100.000 km).
-            - **Segmen 2 (Keluarga & Komuter)**: Harga Rp 200-500 Jt, tahun 2018-2023, segmen terbesar (56% pasar).
-            - **Segmen 3 (Eksekutif)**: Harga Rp 1-2,5 Miliar, didominasi SUV premium dan sedan Eropa.
-            - **Segmen 4 (Koleksi / Ultra-Luxury)**: Harga > Rp 3 Miliar, mobil hobi dan supercar simpanan.
-            """
-        )
-    with col_exp2:
-        st.markdown(
-            f"""
-            **Integritas Model Regresi:**
-            - Data latih: 5.040 observasi, data uji holdout independen: 1.261 observasi (split 80/20).
-            - Evaluasi 6 kandidat model regresi memilih **{best_model_name}** sebagai model utama.
-            - MAE pada data uji sebesar **{format_rupiah_compact(best_mae)}** dan nilai determinasi **R² = {best_r2:.4f}**.
-            """
+            <div style="font-size:0.84rem; color:#475569; line-height:1.6;">
+                <p style="margin-bottom:0.45rem;"><b>1. Harga Penawaran vs Transaksi Final:</b> Data berasal dari harga iklan daring (OLX), bukan harga deal akhir setelah negosiasi lapangan (umumnya turun 3-8%).</p>
+                <p style="margin-bottom:0.45rem;"><b>2. Khusus 5 Kota DKI Jakarta:</b> Analisis tidak mencakup wilayah penyangga Bodetabek sehingga profil harga segmen premium lebih tinggi dibanding rata-rata nasional.</p>
+                <p style="margin-bottom:0;"><b>3. Variabel Fisik Non-Tabular:</b> Estimasi AI tidak melihat kondisi cat, riwayat tabrak/banjir, atau status pajak kendaraan. Inspeksi fisik tetap wajib sebelum transaksi.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )

@@ -321,9 +321,9 @@ def section_card(title: str = "", key: str = ""):
 # ---------------------------------------------------------------------------
 
 def insight_card(icon: str, headline: str, body: str, variant: str = "default") -> None:
-    """Render a single insight card with a Lucide SVG icon.
+    """Render a clean insight card with left accent border (no decorative icons).
 
-    icon:    Lucide icon slug (e.g. 'trophy', 'map-pin', 'zap').
+    icon:    Kept for backwards-compatible signature; omitted visually.
     variant: 'default' | 'warning' | 'success' | 'info'
     """
     variant_classes = {
@@ -335,19 +335,9 @@ def insight_card(icon: str, headline: str, body: str, variant: str = "default") 
     css_class = variant_classes.get(variant, "am-insight-card")
     body_html = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", body)
 
-    icon_color_map = {
-        "default": "#475569",
-        "warning": "#D97706",
-        "success": "#059669",
-        "info": TEAL,
-    }
-    icon_color = icon_color_map.get(variant, "#475569")
-    icon_svg = get_lucide_icon(icon, size=18, color=icon_color) if icon else ""
-
     st.markdown(
         f"""
         <div class="{css_class}">
-            <div class="am-insight-icon">{icon_svg}</div>
             <div>
                 <div class="am-insight-headline">{headline}</div>
                 <div class="am-insight-body">{body_html}</div>
