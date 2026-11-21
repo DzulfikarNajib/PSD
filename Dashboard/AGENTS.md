@@ -26,19 +26,18 @@
 
 ## Design System - Chronicle / Shadcn UI Style
 
-### Color Palette (Emerald Green Monochromatic)
+### Color Palette (AutoMatch Teal & Midnight Navy)
 
 ```
 Background page:  #F8FAFC
 Surface (card):   #FFFFFF
 Border:           #E2E8F0
-Text primary:     #0F172A
+Text primary:     #0D1E38
 Text muted:       #475569 / #64748B
-Accent green:     #059669  (primary)
-                  #047857  (dark)
-                  #10B981  (medium)
-                  #34D399  (light)
-                  #A7F3D0 / #ECFDF5  (lighter / soft)
+Accent teal:      #019F90  (primary brand)
+Navy dark:        #0D1E38  (primary dark)
+Accent hover:     #008276
+Accent soft:      #E6F7F5  (active pills / soft badges)
 Amber (median):   #F59E0B  (keep for annotation lines only)
 ```
 
@@ -53,9 +52,9 @@ Amber (median):   #F59E0B  (keep for annotation lines only)
 ### Sidebar Rules
 
 - Background: `#F8FAFC`, right border `1px solid #E2E8F0`
-- Brand icon: `background: #ECFDF5`, SVG stroke `#059669`
+- Brand icon: `background: #E6F7F5`, SVG stroke `#019F90`
 - Inactive links: color `#64748B`
-- Active pill: background `#E2E8F0`, color `#0F172A`, font-weight `700`
+- Active pill: background `#E6F7F5`, color `#019F90`, font-weight `700`, `border-left: 4px solid #019F90`
 - No institutional footer (IPB / STA1381) - it is hidden via `.am-sidebar-footer { display:none }`.
 
 ### Icons - Mandatory Lucide SVG
@@ -75,10 +74,10 @@ KPI value:  1.75rem, weight 700, #0F172A
 
 ### Chart Colors (Plotly)
 
-Always use this emerald green palette - no teal (`#008B8B`), no old navy (`#0B2A5B`):
+Always use the AutoMatch Teal & Navy palette:
 
 ```python
-CHART_COLORS = ["#059669", "#10B981", "#0D9488", "#047857", "#34D399", "#6EE7B7", "#0F766E", "#065F46"]
+CHART_COLORS = ["#019F90", "#0D1E38", "#00B8A9", "#007A6E", "#38D9A9", "#63E6BE", "#0F766E", "#155E75"]
 ```
 
 Amber `#F59E0B` is allowed **only** for median/reference lines.
@@ -87,7 +86,7 @@ Amber `#F59E0B` is allowed **only** for median/reference lines.
 
 ## Token-Saving Rules
 
-1. **Read `AGENTS.md` first** — do not scan `data/` or `assets/` unless the user explicitly asks.
+1. **Read `AGENTS.md` first** - do not scan `data/` or `assets/` unless the user explicitly asks.
 2. Edit only the files relevant to the request. For color changes: `src/ui_components.py` + affected `pages/*.py`. For global style: `src/styles.py` only.
 3. Run `pytest tests/ -q --tb=short` before any `git push`. All 37 tests must pass.
 4. Git write ops (`add`, `commit`, `push`) require `BypassSandbox: true` on Windows.

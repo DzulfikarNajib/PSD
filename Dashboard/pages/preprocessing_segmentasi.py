@@ -92,7 +92,7 @@ with tab_prep:
                 y=funnel_df["Tahap"],
                 orientation="h",
                 marker=dict(
-                    color=["#047857", "#059669", "#10B981", "#34D399", "#6EE7B7"],
+                    color=["#0D1E38", "#007A6E", "#019F90", "#00B8A9", "#38D9A9"],
                     cornerradius=4,
                 ),
                 text=[f"{v:,}".replace(",", ".") for v in funnel_df["Listing tersisa"]],
@@ -153,7 +153,7 @@ with tab_prep:
                 x=miss_df["Kosong (%)"],
                 y=miss_df["Fitur"],
                 orientation="h",
-                marker=dict(color="#059669", cornerradius=4),
+                marker=dict(color="#019F90", cornerradius=4),
                 text=[f"{v:.1f}%" for v in miss_df["Kosong (%)"]],
                 textposition="outside",
                 cliponaxis=False,
@@ -203,15 +203,16 @@ with tab_seg:
     # 1. Visualisasi PCA 2D
     with col_pca:
         with section_card("Visualisasi Segmentasi Pasar dengan PCA 2D"):
-            # Sampling untuk fluid rendering WebGL
-            plot_pca = pca_df.sample(min(2500, len(pca_df)), random_state=42) if len(pca_df) > 2500 else pca_df
+            # Sampling untuk fluid vector SVG rendering (tanpa WebGL)
+            plot_pca = pca_df.sample(min(1000, len(pca_df)), random_state=42) if len(pca_df) > 1000 else pca_df
             
             fig_pca = px.scatter(
                 plot_pca,
                 x="pca_1",
                 y="pca_2",
                 color="market_segment",
-                color_discrete_sequence=["#059669", "#10B981", "#34D399", "#047857"],
+                color_discrete_sequence=["#019F90", "#0D1E38", "#00B8A9", "#007A6E"],
+                render_mode="svg",
                 labels={
                     "pca_1": f"Principal Component 1 ({exp_var[0]*100:.1f}% varians)",
                     "pca_2": f"Principal Component 2 ({exp_var[1]*100:.1f}% varians)",

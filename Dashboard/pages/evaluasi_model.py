@@ -74,7 +74,7 @@ with ctrl_col:
 with badge_col:
     if selected_model_view == best_model_name:
         st.markdown(
-            '<div style="text-align:right;"><span style="display:inline-flex;align-items:center;gap:0.4rem;background:#059669;color:#FFFFFF;border-radius:999px;padding:0.38rem 1rem;font-size:0.82rem;font-weight:700;letter-spacing:0.01em;box-shadow:0 2px 6px rgba(5,150,105,0.3);">Model Terbaik Terpilih</span></div>',
+            '<div style="text-align:right;"><span style="display:inline-flex;align-items:center;gap:0.4rem;background:#019F90;color:#FFFFFF;border-radius:999px;padding:0.38rem 1rem;font-size:0.82rem;font-weight:700;letter-spacing:0.01em;box-shadow:0 2px 6px rgba(1,159,144,0.3);">Model Terbaik Terpilih</span></div>',
             unsafe_allow_html=True,
         )
     else:
@@ -139,7 +139,7 @@ with col_scatter:
                 x=act_m,
                 y=pred_m,
                 mode="markers",
-                marker=dict(color="#059669", size=5, opacity=0.55),
+                marker=dict(color="#019F90", size=5, opacity=0.55),
                 name="Data Uji",
                 hovertemplate="Aktual: Rp %{x:.2f} M<br>Prediksi: Rp %{y:.2f} M<extra></extra>",
             ))
@@ -148,7 +148,7 @@ with col_scatter:
                 x=[0, max_val],
                 y=[0, max_val],
                 mode="lines",
-                line=dict(color="#047857", dash="dash", width=2),
+                line=dict(color="#0D1E38", dash="dash", width=2),
                 name="Ideal (y = x)",
             ))
             apply_chart_theme(fig_avp)
@@ -177,7 +177,7 @@ with col_residual:
                 x=pred_jt,
                 y=res_jt,
                 mode="markers",
-                marker=dict(color="#10B981", size=5, opacity=0.5),
+                marker=dict(color="#00B8A9", size=5, opacity=0.5),
                 name="Residual",
                 hovertemplate="Prediksi: Rp %{x:.0f} Jt<br>Galat: Rp %{y:.0f} Jt<extra></extra>",
             ))
@@ -212,7 +212,7 @@ with col_imp:
                 x=plot_imp["importance"],
                 y=plot_imp["feature"],
                 orientation="h",
-                marker=dict(color="#059669", cornerradius=4),
+                marker=dict(color="#019F90", cornerradius=4),
                 text=[f"{v:.3f}" for v in plot_imp["importance"]],
                 textposition="outside",
                 cliponaxis=False,

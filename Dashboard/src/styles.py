@@ -6,27 +6,27 @@ import streamlit as st
 COLORS = {
     "background": "#F8FAFC",
     "surface": "#FFFFFF",
-    "navy": "#0B2A5B",
-    "navy_dark": "#071B3A",
-    "text": "#0F172A",
+    "navy": "#0D1E38",
+    "navy_dark": "#071224",
+    "text": "#0D1E38",
     "muted": "#475569",
-    "accent": "#059669",
-    "accent_hover": "#047857",
-    "accent_light": "#ECFDF5",
+    "accent": "#019F90",
+    "accent_hover": "#008276",
+    "accent_light": "#E6F7F5",
     "border": "#E2E8F0",
     "grid": "#F1F5F9",
     "warning": "#F59E0B",
-    "under_background": "#ECFDF5",
-    "under_text": "#047857",
+    "under_background": "#E6F7F5",
+    "under_text": "#008276",
     "under_border": "#A7F3D0",
-    "fair_background": "#ECFDF5",
-    "fair_text": "#059669",
-    "fair_border": "#A7F3D0",
+    "fair_background": "#E6F7F5",
+    "fair_text": "#019F90",
+    "fair_border": "#99F6E4",
     "over_background": "#FEF2F2",
     "over_text": "#B91C1C",
     "over_border": "#FECACA",
 }
-CHART_PALETTE = (COLORS["accent"], "#10B981", "#0D9488", "#047857", "#34D399", "#6EE7B7")
+CHART_PALETTE = (COLORS["accent"], COLORS["navy"], "#00B8A9", "#007A6E", "#38D9A9", "#63E6BE")
 
 CSS = """
 <style>
@@ -35,20 +35,20 @@ CSS = """
     --dashboard-bg: #F8FAFC;
     --dashboard-soft: #FFFFFF;
     --dashboard-surface: #FFFFFF;
-    --dashboard-text: #0F172A;
-    --dashboard-navy: #0B2A5B;
-    --dashboard-navy-dark: #071B3A;
-    --dashboard-accent: #059669;
-    --dashboard-accent-hover: #047857;
-    --dashboard-accent-light: #ECFDF5;
+    --dashboard-text: #0D1E38;
+    --dashboard-navy: #0D1E38;
+    --dashboard-navy-dark: #071224;
+    --dashboard-accent: #019F90;
+    --dashboard-accent-hover: #008276;
+    --dashboard-accent-light: #E6F7F5;
     --dashboard-muted: #475569;
     --dashboard-border: #E2E8F0;
-    --status-under-background: #ECFDF5;
-    --status-under-text: #047857;
+    --status-under-background: #E6F7F5;
+    --status-under-text: #008276;
     --status-under-border: #A7F3D0;
-    --status-fair-background: #ECFDF5;
-    --status-fair-text: #059669;
-    --status-fair-border: #A7F3D0;
+    --status-fair-background: #E6F7F5;
+    --status-fair-text: #019F90;
+    --status-fair-border: #99F6E4;
     --status-over-background: #FEF2F2;
     --status-over-text: #B91C1C;
     --status-over-border: #FECACA;
@@ -252,20 +252,21 @@ div[class*="st-key-project_editorial_hero"] {
     background: transparent !important;
 }
 [data-testid="stSidebar"] [data-testid="stPageLink"] a:hover {
-    background: #E2E8F0 !important;
-    color: #0F172A !important;
+    background: #F1F5F9 !important;
+    color: #019F90 !important;
 }
-/* Active pill - light highlight, dark text */
+/* Active pill - prominent mint highlight with teal accent border */
 [data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] {
-    background: #E2E8F0 !important;
-    color: #0F172A !important;
+    background: #E6F7F5 !important;
+    color: #019F90 !important;
     font-weight: 700 !important;
-    box-shadow: none !important;
-    border: none !important;
+    border-left: 4px solid #019F90 !important;
+    border-radius: 4px 8px 8px 4px !important;
+    box-shadow: 0 1px 3px rgba(1, 159, 144, 0.08) !important;
 }
 [data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] span,
 [data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] p {
-    color: #0F172A !important;
+    color: #019F90 !important;
     font-weight: 700 !important;
 }
 [data-testid="stSidebar"] [data-testid="stPageLink"] a:not([aria-current="page"]) span,
@@ -275,9 +276,13 @@ div[class*="st-key-project_editorial_hero"] {
 }
 [data-testid="stSidebar"] [data-testid="stPageLink"] a:hover:not([aria-current="page"]) span,
 [data-testid="stSidebar"] [data-testid="stPageLink"] a:hover:not([aria-current="page"]) p {
-    color: #0F172A !important;
+    color: #019F90 !important;
 }
-[data-testid="stSidebar"] [data-testid="stPageLink"] a svg {
+[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] svg {
+    color: #019F90 !important;
+    stroke: #019F90 !important;
+}
+[data-testid="stSidebar"] [data-testid="stPageLink"] a:not([aria-current="page"]) svg {
     color: #64748B !important;
 }
 [data-testid="stSidebar"] p,
@@ -301,8 +306,8 @@ div[class*="st-key-project_editorial_hero"] {
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 8px;
-    background: #ECFDF5;
-    color: #059669;
+    background: #E6F7F5;
+    color: #019F90;
     flex-shrink: 0;
 }
 .am-sidebar-brand-title {

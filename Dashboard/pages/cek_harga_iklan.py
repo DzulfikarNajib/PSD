@@ -127,31 +127,46 @@ with col_input:
     with section_card("Pilih Listing / Spesifikasi"):
         input_mode = st.radio(
             "Metode Input",
-            ["Pilih Listing Tersimpan", "Input Manual"],
+            ["Cari Mobil Sesuai Budget", "Input Spesifikasi Manual"],
             horizontal=True,
             label_visibility="collapsed",
             key="cek_input_mode",
         )
 
-        if input_mode == "Pilih Listing Tersimpan":
-            search_kw = st.text_input(
-                "Cari Listing (Model / Varian)",
-                placeholder="Contoh: Avanza, Brio, Innova...",
-                key="cek_search_kw",
+        if input_mode == "Cari Mobil Sesuai Budget":
+            # 1. Filter Rentang Anggaran (Budget Range Slider)
+            budget_sel = st.slider(
+                "Rentang Budget (Juta Rp)",
+                min_value=30,
+                max_value=1500,
+                value=(80, 350),
+                step=10,
+                key="cek_budget_slider",
             )
-            c_make, c_yr = st.columns(2)
+            b_min, b_max = budget_sel[0] * 1_000_000, budget_sel[1] * 1_000_000
+
+            # 2. Filter Kategori Merek & Tipe Bodi
+            c_make, c_body = st.columns(2)
             with c_make:
                 saved_make_list = ["Semua Merek"] + sorted(archive["make"].dropna().unique().tolist())
                 saved_make_choice = st.selectbox("Merek", saved_make_list, index=0, key="cek_make_sel")
-            with c_yr:
-                saved_year_min = int(archive["year"].min()) if archive["year"].notna().any() else 2000
-                saved_year_max = int(archive["year"].max()) if archive["year"].notna().any() else 2026
-                saved_yr_sel = st.slider("Tahun Min", min_value=saved_year_min, max_value=saved_year_max, value=2015, key="cek_yr_sel")
+            with c_body:
+                body_types_avail = ["Semua Bodi"] + sorted([b for b in archive["body_type"].dropna().unique().tolist() if b.strip()])
+                saved_body_choice = st.selectbox("Tipe Bodi", body_types_avail, index=0, key="cek_body_sel")
 
+            search_kw = st.text_input(
+                "Kata Kunci Model / Varian (Opsional)",
+                placeholder="Contoh: Avanza, Brio, Civic...",
+                key="cek_search_kw",
+            )
+
+            # Saring data sesuai kriteria budget & spek
             pool = archive.dropna(subset=["price"]).copy()
-            pool = pool[pool["year"].ge(saved_yr_sel)]
+            pool = pool[pool["price"].between(b_min, b_max)]
             if saved_make_choice != "Semua Merek":
                 pool = pool[pool["make"].eq(saved_make_choice)]
+            if saved_body_choice != "Semua Bodi":
+                pool = pool[pool["body_type"].eq(saved_body_choice)]
             if search_kw.strip():
                 kw = search_kw.strip().casefold()
                 pool = pool[
@@ -159,10 +174,10 @@ with col_input:
                     | pool["variant"].fillna("").astype(str).str.casefold().str.contains(kw)
                 ]
 
-            st.caption(f"Tersedia **{len(pool):,}** listing cocok.")
+            st.caption(f"Ditemukan **{len(pool):,}** mobil dalam rentang budget Rp {budget_sel[0]} - {budget_sel[1]} Juta.")
 
             if not pool.empty:
-                pool_disp = pool.head(30).copy().reset_index(drop=True)
+                pool_disp = pool.head(25).copy().reset_index(drop=True)
                 pool_disp["option_label"] = (
                     pool_disp["make"].astype(str) + " " +
                     pool_disp["model"].astype(str) + " (" +
@@ -172,15 +187,52 @@ with col_input:
                 )
 
                 selected_option = st.selectbox(
-                    "Pilih mobil dari arsip:",
+                    "Pilih mobil untuk dianalisis kewajarannya:",
                     pool_disp["option_label"].tolist(),
                     index=0,
                     key="cek_saved_choice",
                 )
 
                 chosen_row = pool_disp[pool_disp["option_label"].eq(selected_option)].iloc[0]
+                item_price = float(chosen_row.get("price", 0))
 
-                if st.button("Analisis Listing Ini", type="primary", use_container_width=True, key="btn_apply_saved"):
+                # Estimasi status instan untuk preview
+                item_make = chosen_row.get("make", "")
+                item_model = chosen_row.get("model", "")
+                peers_sample = archive[
+                    archive["make"].fillna("").str.casefold().eq(str(item_make).casefold())
+                    & archive["model"].fillna("").str.casefold().eq(str(item_model).casefold())
+                ]
+                peers_med = float(peers_sample["price"].median()) if not peers_sample.empty else item_price
+                
+                if peers_med > 0:
+                    quick_diff = ((item_price - peers_med) / peers_med) * 100
+                else:
+                    quick_diff = 0.0
+
+                if abs(quick_diff) <= 8.0:
+                    q_badge = '<span style="background:#E6F7F5;color:#019F90;font-weight:700;font-size:0.76rem;padding:0.2rem 0.6rem;border-radius:999px;">● Harga Wajar</span>'
+                elif quick_diff < -8.0:
+                    q_badge = '<span style="background:#ECFDF5;color:#047857;font-weight:700;font-size:0.76rem;padding:0.2rem 0.6rem;border-radius:999px;">● Good Deal (-{:.1f}%)</span>'.format(abs(quick_diff))
+                else:
+                    q_badge = '<span style="background:#FEF3C7;color:#B45309;font-weight:700;font-size:0.76rem;padding:0.2rem 0.6rem;border-radius:999px;">● Di Atas Pasar (+{:.1f}%)</span>'.format(quick_diff)
+
+                st.markdown(
+                    f"""
+                    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:0.65rem 0.85rem; margin:0.4rem 0 0.6rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:0.8rem; font-weight:700; color:#0D1E38;">{chosen_row.get('make', '')} {chosen_row.get('model', '')} ({int(chosen_row.get('year', 2020))})</div>
+                            <div>{q_badge}</div>
+                        </div>
+                        <div style="font-size:0.74rem; color:#475569; margin-top:0.25rem;">
+                            Harga: <b>{format_rupiah(item_price)}</b> · KM: <b>{format_km(chosen_row.get('mileage_km', 0))}</b> · Transmisi: <b>{chosen_row.get('transmission', '-')}</b>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                if st.button("Tinjau Detail di Barometer AI", type="primary", use_container_width=True, key="btn_apply_saved"):
                     st.session_state["check_selected_features"] = {
                         "make": str(chosen_row.get("make", "Toyota")),
                         "model": str(chosen_row.get("model", "Avanza")),
@@ -195,7 +247,7 @@ with col_input:
                     }
                     st.rerun()
             else:
-                st.info("Tidak ada listing yang sesuai kata kunci.")
+                st.info("Tidak ada listing yang sesuai budget dan kriteria Anda.")
 
         else:
             # Input Manual Form
@@ -373,7 +425,7 @@ with col_result:
                     f"""
                     <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:0.65rem 0.85rem; margin-bottom:0.55rem;">
                         <div style="font-size:0.72rem; color:#475569; font-weight:600; text-transform:uppercase;">Estimasi Model Machine Learning</div>
-                        <div style="font-size:1.15rem; font-weight:800; color:#059669; margin:0.1rem 0;">{format_rupiah(ml_estimate)}</div>
+                        <div style="font-size:1.15rem; font-weight:800; color:#019F90; margin:0.1rem 0;">{format_rupiah(ml_estimate)}</div>
                         <div style="font-size:0.76rem; color:#475569;">
                             Selisih AI: <b>{diff_sign}{format_rupiah(est_diff_rp)} ({diff_sign}{est_diff_pct:.1f}%)</b>
                         </div>

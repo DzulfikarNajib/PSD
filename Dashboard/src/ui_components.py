@@ -19,18 +19,18 @@ ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 # Design tokens (mirror src/styles.py COLORS for Plotly use)
 # ---------------------------------------------------------------------------
 
-NAVY = "#0B2A5B"
-TEAL = "#059669"
-TEAL_DARK = "#047857"
-TEAL_LIGHT = "#ECFDF5"
-TEAL_100 = "#D1FAE5"
+NAVY = "#0D1E38"
+TEAL = "#019F90"
+TEAL_DARK = "#008276"
+TEAL_LIGHT = "#E6F7F5"
+TEAL_100 = "#CCFBF1"
 MUTED = "#475569"
-TEXT = "#0F172A"
+TEXT = "#0D1E38"
 BORDER = "#E2E8F0"
 BG = "#F8FAFC"
 WHITE = "#FFFFFF"
 
-CHART_COLORS = ["#059669", "#10B981", "#0D9488", "#047857", "#34D399", "#6EE7B7", "#0F766E", "#065F46"]
+CHART_COLORS = ["#019F90", "#0D1E38", "#00B8A9", "#007A6E", "#38D9A9", "#63E6BE", "#0F766E", "#155E75"]
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +224,7 @@ def page_header(icon: str, title: str, subtitle: str) -> None:
         svg = get_lucide_icon(icon, size=20, color=TEAL)
         icon_html = (
             f'<span style="display:inline-flex;align-items:center;justify-content:center;'
-            f'width:2.2rem;height:2.2rem;border-radius:8px;background:#ECFDF5;flex-shrink:0;">'
+            f'width:2.2rem;height:2.2rem;border-radius:8px;background:#E6F7F5;flex-shrink:0;">'
             f'{svg}</span>'
         )
     st.markdown(
