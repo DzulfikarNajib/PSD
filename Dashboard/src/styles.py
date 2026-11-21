@@ -220,28 +220,31 @@ div[class*="st-key-project_editorial_hero"] {
 [data-testid="stSidebar"] > div:first-child,
 [data-testid="stSidebarContent"],
 [data-testid="stSidebarUserContent"] {
-    padding-top: 1.25rem !important;
+    padding-top: 0.35rem !important;
     padding-left: 0.85rem !important;
     padding-right: 0.85rem !important;
 }
 [data-testid="stSidebarHeader"] {
-    display: none !important;
-    height: 0 !important;
-    padding: 0 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    height: 2.2rem !important;
+    min-height: 2.2rem !important;
+    padding: 0.25rem 0.25rem 0 !important;
     margin: 0 !important;
 }
 [data-testid="stSidebarNav"] {
     display: none !important;
 }
 [data-testid="stSidebar"] [data-testid="stPageLink"] {
-    margin: 0.1rem 0 !important;
+    margin: 0.15rem 0 !important;
 }
 [data-testid="stSidebar"] [data-testid="stPageLink"] a {
     display: flex !important;
     align-items: center !important;
     gap: 0.6rem !important;
     border-radius: 8px !important;
-    padding: 0.5rem 0.75rem !important;
+    padding: 0.52rem 0.75rem !important;
     color: #64748B !important;
     font-family: "Plus Jakarta Sans", Inter, sans-serif !important;
     font-size: 0.875rem !important;
@@ -255,8 +258,9 @@ div[class*="st-key-project_editorial_hero"] {
     background: #F1F5F9 !important;
     color: #019F90 !important;
 }
-/* Active pill - prominent mint highlight with teal accent border */
-[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] {
+/* Active pill - prominent mint highlight with teal accent border (works on root / and subpaths) */
+[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"],
+[data-testid="stSidebar"] div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a {
     background: #E6F7F5 !important;
     color: #019F90 !important;
     font-weight: 700 !important;
@@ -265,7 +269,9 @@ div[class*="st-key-project_editorial_hero"] {
     box-shadow: 0 1px 3px rgba(1, 159, 144, 0.08) !important;
 }
 [data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] span,
-[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] p {
+[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] p,
+[data-testid="stSidebar"] div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a span,
+[data-testid="stSidebar"] div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a p {
     color: #019F90 !important;
     font-weight: 700 !important;
 }
@@ -278,7 +284,8 @@ div[class*="st-key-project_editorial_hero"] {
 [data-testid="stSidebar"] [data-testid="stPageLink"] a:hover:not([aria-current="page"]) p {
     color: #019F90 !important;
 }
-[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] svg {
+[data-testid="stSidebar"] [data-testid="stPageLink"] a[aria-current="page"] svg,
+[data-testid="stSidebar"] div[class*="st-key-nav_active_"] [data-testid="stPageLink"] a svg {
     color: #019F90 !important;
     stroke: #019F90 !important;
 }
@@ -409,16 +416,16 @@ div[class*="st-key-project_editorial_hero"] {
 .am-hero-compact {
     position: relative;
     overflow: hidden;
-    min-height: 155px;
+    min-height: 210px;
     border-radius: 16px;
     border: 1px solid var(--dashboard-border);
     background-color: #FFFFFF;
     background-repeat: no-repeat;
     background-position: center right;
     background-size: cover;
-    padding: 1.6rem 2.2rem;
-    margin-bottom: 1.2rem;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    padding: 2.1rem 2.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: none;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -426,41 +433,42 @@ div[class*="st-key-project_editorial_hero"] {
 .am-hero-compact-content {
     position: relative;
     z-index: 2;
-    max-width: 580px;
+    max-width: 600px;
 }
 .am-hero-compact-title {
     font-family: "Plus Jakarta Sans", Inter, sans-serif;
-    font-size: 1.85rem;
+    font-size: 2.15rem;
     font-weight: 800;
     color: var(--dashboard-navy);
     letter-spacing: -0.025em;
     line-height: 1.15;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
 }
 .am-hero-compact-subtitle {
     font-family: "Plus Jakarta Sans", Inter, sans-serif;
-    font-size: 1.02rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    color: var(--dashboard-text);
-    margin-bottom: 0.3rem;
+    color: var(--dashboard-accent);
+    margin-bottom: 0.45rem;
 }
 .am-hero-compact-desc {
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     color: var(--dashboard-muted);
-    line-height: 1.45;
+    line-height: 1.55;
 }
 
 /* KPI Cards - Chronicle / Shadcn flat style */
 .am-kpi-card {
     background: #FFFFFF;
     border: 1px solid var(--dashboard-border);
-    border-radius: 10px;
-    padding: 1.1rem 1.2rem 1rem;
+    border-radius: 12px;
+    padding: 1.15rem 1.25rem;
     box-shadow: none;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    min-height: 90px;
+    justify-content: space-between;
+    gap: 0.4rem;
+    min-height: 108px;
 }
 .am-kpi-label {
     display: inline-flex;

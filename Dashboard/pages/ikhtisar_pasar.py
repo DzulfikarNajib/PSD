@@ -1,7 +1,8 @@
-"""Ikhtisar Pasar - ringkasan pasar mobil bekas DKI Jakarta.
+"""Beranda - halaman pembuka dashboard analisis pasar mobil bekas DKI Jakarta.
 
-Dashboard ringkasan pasar dengan KPI utama, distribusi 5 wilayah,
-komposisi bahan bakar, top merek, dan insight cards terhitung otomatis.
+Menampilkan Hero Banner, 4 KPI utama (Jumlah Iklan, Jumlah Merek, Jumlah Model,
+dan Jenis Bahan Bakar), serta pengantar interaktif untuk menuju halaman
+Eksplorasi Data atau langsung ke Cek Mobil dan Harga.
 """
 
 from __future__ import annotations
@@ -13,22 +14,17 @@ APP_DIR = Path(__file__).resolve().parent.parent
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
-import numpy as np
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 from src.data_loader import load_combined_archive
 from src.styles import apply_theme
 from src.ui import format_rupiah_compact
 from src.ui_components import (
-    apply_chart_theme,
+    get_lucide_icon,
     hero_banner,
     insight_card,
     kpi_card,
-    page_header,
-    section_card,
 )
 
 apply_theme()
@@ -36,7 +32,10 @@ apply_theme()
 hero_banner(
     title="AutoMatch",
     subtitle="Analisis Pasar Mobil Bekas di DKI Jakarta",
-    description="Memahami karakteristik, menemukan pola, dan memprediksi harga mobil bekas dengan pendekatan data science.",
+    description=(
+        "Platform analitik berbasis sains data untuk memetakan sebaran pasar, "
+        "memahami pola harga kendaraan, dan mengevaluasi kewajaran harga iklan mobil bekas secara objektif."
+    ),
 )
 
 archive = load_combined_archive()
@@ -50,225 +49,136 @@ for col in ("price", "year", "mileage_km", "engine_cc"):
     if col in archive:
         archive[col] = pd.to_numeric(archive[col], errors="coerce")
 
-# Normalisasi lokasi
+# Normalisasi lokasi 5 wilayah DKI Jakarta
 archive["location_display"] = archive["location_normalized"].fillna("").astype(str).str.title()
-loc_mapping = {
-    "Jakarta Selatan": "Jakarta Selatan",
-    "Jakarta Utara": "Jakarta Utara",
-    "Jakarta Pusat": "Jakarta Pusat",
-    "Jakarta Barat": "Jakarta Barat",
-    "Jakarta Timur": "Jakarta Timur",
-}
-archive["location_display"] = archive["location_display"].map(lambda x: loc_mapping.get(x, x))
-# Filter hanya 5 wilayah DKI
 dki_5 = ["Jakarta Selatan", "Jakarta Utara", "Jakarta Pusat", "Jakarta Barat", "Jakarta Timur"]
 archive = archive[archive["location_display"].isin(dki_5)].copy()
 
 priced = archive[archive["price"].gt(0)].dropna(subset=["price"])
 
-# Hitung KPI Utama
+# Hitung 4 KPI Utama sesuai spesifikasi Beranda
 total_listings = int(archive["listing_id"].nunique() if "listing_id" in archive else len(archive))
-total_makes = int(archive["make"].dropna().nunique()) if "make" in archive else 0
+total_makes = int(archive["make"].dropna().replace("", pd.NA).dropna().nunique()) if "make" in archive else 0
+total_models = int(archive["model"].dropna().replace("", pd.NA).dropna().nunique()) if "model" in archive else 0
+
+fuel_series = archive["fuel_type"].dropna().replace("", pd.NA).dropna()
+fuel_counts = fuel_series.value_counts()
+total_fuels = int(len(fuel_counts))
+fuel_names_list = fuel_counts.index.tolist()
+fuel_summary_text = " · ".join(fuel_names_list[:4]) if fuel_names_list else "-"
+
 median_price = float(priced["price"].median()) if not priced.empty else 0.0
-
-year_min = int(archive["year"].min()) if archive["year"].notna().any() else 1986
-year_max = int(archive["year"].max()) if archive["year"].notna().any() else 2026
-year_span = f"{year_min} - {year_max}"
+p25_price = float(priced["price"].quantile(0.25)) if not priced.empty else 0.0
+p75_price = float(priced["price"].quantile(0.75)) if not priced.empty else 0.0
+top_region = archive["location_display"].value_counts().index[0] if not archive["location_display"].empty else "Jakarta Selatan"
+top_make = archive["make"].value_counts().index[0] if not archive["make"].empty else "Toyota"
 
 # ---------------------------------------------------------------------------
-# Baris 1: KPI Metrics
+# Baris 1: 4 Kartu KPI Mandiri (Iklan Tersedia, Merek, Model, Jenis Bahan Bakar)
+# ---------------------------------------------------------------------------
+kpi_cols = st.columns(4, gap="medium")
+
+with kpi_cols[0]:
+    kpi_card(
+        label="Iklan Tersedia",
+        value=f"{total_listings:,}".replace(",", "."),
+        icon="car",
+        subtext="Unit terverifikasi di 5 kota DKI Jakarta",
+        help_text="Jumlah iklan mobil bekas unik yang dianalisis di wilayah DKI Jakarta.",
+    )
+
+with kpi_cols[1]:
+    kpi_card(
+        label="Total Merek",
+        value=f"{total_makes:,}".replace(",", "."),
+        icon="tag",
+        subtext=f"Didominasi oleh {top_make} & pabrikan utama",
+        help_text="Banyaknya merek kendaraan roda empat yang tersedia di pasar.",
+    )
+
+with kpi_cols[2]:
+    kpi_card(
+        label="Variasi Model",
+        value=f"{total_models:,}".replace(",", "."),
+        icon="layers",
+        subtext="Dari City Car harian hingga SUV eksekutif",
+        help_text="Jumlah model unik kendaraan lintas tipe bodi dan segmen.",
+    )
+
+with kpi_cols[3]:
+    kpi_card(
+        label="Jenis Bahan Bakar",
+        value=f"{total_fuels} Jenis",
+        icon="zap",
+        subtext=fuel_summary_text,
+        help_text="Kategori sistem bahan bakar dan penggerak kendaraan di pasar.",
+    )
+
+st.markdown("<div style='height: 26px;'></div>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Baris 2: Pengantar & Call to Action ("Penasaran ada apa saja?")
 # ---------------------------------------------------------------------------
 with st.container(border=True):
-    st.markdown("<div class='am-section-title'>Ringkasan Metrik Pasar Mobil DKI Jakarta</div>", unsafe_allow_html=True)
-    kpi_cols = st.columns(4, gap="small")
-    with kpi_cols[0]:
-        kpi_card(
-            label="Listing Unik",
-            value=f"{total_listings:,}".replace(",", "."),
-            icon="car",
-            help_text="Jumlah iklan mobil bekas unik terverifikasi di wilayah DKI Jakarta.",
-        )
-    with kpi_cols[1]:
-        kpi_card(
-            label="Merek",
-            value=f"{total_makes:,}".replace(",", "."),
-            icon="tag",
-            help_text="Variasi merek kendaraan yang tercatat di arsip pasar.",
-        )
-    with kpi_cols[2]:
-        kpi_card(
-            label="Median Harga Iklan",
-            value=format_rupiah_compact(median_price),
-            icon="banknote",
-            help_text="Nilai tengah harga penawaran iklan (robust terhadap outlier supercar).",
-        )
-    with kpi_cols[3]:
-        kpi_card(
-            label="Rentang Tahun",
-            value=year_span,
-            icon="calendar",
-            help_text="Rentang tahun pembuatan kendaraan yang tersedia di pasar.",
-        )
+    search_svg = get_lucide_icon("trending-up", size=22, color="#019F90")
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:flex-start; gap:0.9rem; margin-bottom:0.85rem;">
+            <div style="display:inline-flex; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; border-radius:10px; background:#E6F7F5; flex-shrink:0; margin-top:0.1rem;">
+                {search_svg}
+            </div>
+            <div>
+                <div style="font-family:'Plus Jakarta Sans',Inter,sans-serif; font-size:1.3rem; font-weight:800; color:#0D1E38; letter-spacing:-0.02em; line-height:1.25;">
+                    Penasaran Ada Mobil Apa Saja di Pasar DKI Jakarta?
+                </div>
+                <div style="font-size:0.9rem; color:#475569; margin-top:0.3rem; line-height:1.6;">
+                    Dari <b>{total_listings:,} iklan</b> yang tersebar di 5 kota administrasi DKI Jakarta, separuh pasar berkumpul di kisaran harga
+                    <b>{format_rupiah_compact(p25_price)} hingga {format_rupiah_compact(p75_price)}</b> (median <b>{format_rupiah_compact(median_price)}</b>).
+                    Telusuri lebih dalam wilayah mana yang menyimpan stok terbanyak, merek apa yang paling mendominasi, serta bagaimana usia dan jarak tempuh membentuk harga jualnya.
+                </div>
+            </div>
+        </div>
+        """.replace(",", "."),
+        unsafe_allow_html=True,
+    )
 
-st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------------------------
-# Baris 2: Tiga Chart Berdampingan (Top 5 Merek, Wilayah, Bahan Bakar)
-# ---------------------------------------------------------------------------
-col_brand, col_region, col_fuel = st.columns([1.1, 1, 1], gap="medium")
-
-# 1. Top 5 Merek
-with col_brand:
-    with section_card("Top 5 Merek Terpopuler"):
-        top_makes = archive["make"].value_counts().head(5).reset_index()
-        top_makes.columns = ["make", "count"]
-        top_makes = top_makes.sort_values("count", ascending=True)
-        max_brand = float(top_makes["count"].max()) if not top_makes.empty else 1000.0
-
-        fig_brand = go.Figure(go.Bar(
-            x=top_makes["count"],
-            y=top_makes["make"],
-            orientation="h",
-            marker=dict(color="#019F90", cornerradius=4),
-            textposition="inside",
-            insidetextanchor="end",
-            textfont=dict(color="#FFFFFF", size=11, family="Inter, sans-serif"),
-            hovertemplate="Merek: <b>%{y}</b><br>Listing: <b>%{x:,} unit</b><extra></extra>",
-        ))
-        apply_chart_theme(fig_brand)
-        fig_brand.update_layout(
-            height=280,
-            margin=dict(l=10, r=16, t=10, b=10),
-            xaxis=dict(title=None, showgrid=True, gridcolor="#F1F5F9", range=[0, max_brand * 1.18]),
-            yaxis=dict(title=None, showgrid=False, tickfont=dict(size=12, color="#0F172A")),
-        )
-        st.plotly_chart(fig_brand, width="stretch", config={"displayModeBar": False}, key="chart_top_makes")
-
-# 2. Distribusi Wilayah Jakarta (Donut)
-with col_region:
-    with section_card("Distribusi Wilayah Jakarta"):
-        region_counts = archive["location_display"].value_counts().reset_index()
-        region_counts.columns = ["region", "count"]
-        
-        region_colors = ["#019F90", "#0D1E38", "#00B8A9", "#007A6E", "#38D9A9"]
-        fig_region = go.Figure(go.Pie(
-            labels=region_counts["region"],
-            values=region_counts["count"],
-            hole=0.55,
-            marker=dict(colors=region_colors, line=dict(color="#FFFFFF", width=2)),
-            textinfo="percent",
-            textposition="inside",
-            insidetextorientation="horizontal",
-            textfont=dict(size=11, color="#FFFFFF", family="Inter, sans-serif"),
-            hovertemplate="Wilayah: <b>%{label}</b><br>Listing: <b>%{value:,} unit (%{percent})</b><extra></extra>",
-        ))
-        apply_chart_theme(fig_region)
-        fig_region.update_layout(
-            height=280,
-            margin=dict(l=15, r=15, t=15, b=15),
-            showlegend=True,
-            legend=dict(
-                orientation="v",
-                x=1.02,
-                y=0.5,
-                xanchor="left",
-                yanchor="middle",
-                font=dict(size=10, color="#475569"),
-            ),
-        )
-        st.plotly_chart(fig_region, width="stretch", config={"displayModeBar": False}, key="chart_region_donut")
-
-# 3. Komposisi Bahan Bakar (Donut)
-with col_fuel:
-    with section_card("Komposisi Bahan Bakar"):
-        fuel_counts = archive["fuel_type"].value_counts().reset_index()
-        fuel_counts.columns = ["fuel", "count"]
-
-        fuel_colors = ["#019F90", "#0D1E38", "#00B8A9", "#007A6E"]
-        fig_fuel = go.Figure(go.Pie(
-            labels=fuel_counts["fuel"],
-            values=fuel_counts["count"],
-            hole=0.55,
-            marker=dict(colors=fuel_colors, line=dict(color="#FFFFFF", width=2)),
-            textinfo="percent",
-            textposition="inside",
-            insidetextorientation="horizontal",
-            textfont=dict(size=11, color="#FFFFFF", family="Inter, sans-serif"),
-            hovertemplate="Bahan Bakar: <b>%{label}</b><br>Listing: <b>%{value:,} unit (%{percent})</b><extra></extra>",
-        ))
-        apply_chart_theme(fig_fuel)
-        fig_fuel.update_layout(
-            height=280,
-            margin=dict(l=15, r=15, t=15, b=15),
-            showlegend=True,
-            legend=dict(
-                orientation="v",
-                x=1.02,
-                y=0.5,
-                xanchor="left",
-                yanchor="middle",
-                font=dict(size=10, color="#475569"),
-            ),
-        )
-        st.plotly_chart(fig_fuel, width="stretch", config={"displayModeBar": False}, key="chart_fuel_donut")
-
-st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------------------------
-# Baris 3: Insight Otomatis Berdasarkan Data Aktual
-# ---------------------------------------------------------------------------
-# Perhitungan insight otomatis
-top_brand_name = archive["make"].value_counts().index[0] if not archive["make"].empty else "-"
-top_brand_count = int(archive["make"].value_counts().iloc[0]) if not archive["make"].empty else 0
-top_brand_pct = (top_brand_count / total_listings * 100) if total_listings else 0
-
-top_loc_name = archive["location_display"].value_counts().index[0] if not archive["location_display"].empty else "-"
-top_loc_count = int(archive["location_display"].value_counts().iloc[0]) if not archive["location_display"].empty else 0
-top_loc_pct = (top_loc_count / total_listings * 100) if total_listings else 0
-
-fuel_bensin_count = int(archive["fuel_type"].eq("Bensin").sum())
-fuel_bensin_pct = (fuel_bensin_count / total_listings * 100) if total_listings else 0
-fuel_eco_count = int(archive["fuel_type"].isin(["Hybrid", "Listrik"]).sum())
-fuel_eco_pct = (fuel_eco_count / total_listings * 100) if total_listings else 0
-
-p25_price = priced["price"].quantile(0.25)
-p75_price = priced["price"].quantile(0.75)
-
-with st.container(border=True):
-    st.markdown("<div class='am-section-title'>Ringkasan Kondisi Pasar DKI Jakarta</div>", unsafe_allow_html=True)
-    insight_cols = st.columns(3, gap="medium")
-    with insight_cols[0]:
-        insight_card(
-            icon="trophy",
-            headline=f"Dominasi {top_brand_name} & Segmen Premium",
-            body=(
-                f"<b>{top_brand_name}</b> memimpin pasar dengan <b>{top_brand_count:,} listing ({top_brand_pct:.1f}%)</b>, "
-                f"diikuti oleh <b>Mercedes-Benz (823 unit)</b> dan <b>BMW (466 unit)</b> yang menunjukkan tingginya "
-                f"perputaran mobil segmen eksekutif dan premium di DKI Jakarta."
-            ).replace(",", "."),
-            variant="info",
-        )
-
-    with insight_cols[1]:
+    hl_cols = st.columns(3, gap="medium")
+    with hl_cols[0]:
         insight_card(
             icon="map-pin",
-            headline=f"Sentra Pasar: {top_loc_name}",
+            headline="1. Peta Interaktif 5 Wilayah DKI",
             body=(
-                f"<b>{top_loc_name}</b> merupakan pusat listing mobil bekas terbesar di ibu kota dengan "
-                f"<b>{top_loc_count:,} iklan ({top_loc_pct:.1f}%)</b>, disusul oleh Jakarta Utara dan Jakarta Pusat "
-                f"sebagai wilayah diler mobil seken terpadat."
-            ).replace(",", "."),
+                f"Klik wilayah di peta (seperti <b>{top_region}</b>) untuk melakukan zoom otomatis "
+                "dan melihat rincian jumlah iklan, model terlaris, serta bahan bakar dominan di tiap kota."
+            ),
+            variant="info",
+        )
+    with hl_cols[1]:
+        insight_card(
+            icon="bar-chart-2",
+            headline="2. Eksplorasi Merek, Harga & Depresiasi",
+            body=(
+                f"Amati distribusi harga pasar, popularitas <b>{total_makes} merek</b>, proporsi bahan bakar, "
+                "serta simulasi pengaruh tahun pembuatan dan jarak tempuh (KM) terhadap harga."
+            ),
             variant="success",
         )
-
-    with insight_cols[2]:
+    with hl_cols[2]:
         insight_card(
-            icon="zap",
-            headline=f"Tren Elektrifikasi & Rentang Harga",
+            icon="search",
+            headline="3. Cek Mobil & Harga Langsung ke OLX",
             body=(
-                f"Meskipun <b>Bensin mendominasi ({fuel_bensin_pct:.1f}%)</b>, segmen <b>Hybrid dan Listrik</b> "
-                f"sudah mencapai <b>{fuel_eco_count:,} listing ({fuel_eco_pct:.1f}%)</b>. "
-                f"Mayoritas 50% pasar (P25–P75) berada di kisaran harga <b>{format_rupiah_compact(p25_price)} s/d {format_rupiah_compact(p75_price)}</b>."
-            ).replace(",", "."),
+                "Saring mobil sesuai budget Anda, lihat <b>foto asli iklan, spesifikasi detail, tautan langsung ke OLX</b>, "
+                "sekaligus uji kewajaran harganya menggunakan model Machine Learning."
+            ),
             variant="warning",
         )
+
+    st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+    cta_c1, cta_c2, _ = st.columns([1.2, 1.2, 1.6], gap="small")
+    with cta_c1:
+        if st.button("Lanjut ke Eksplorasi Data Pasar", type="primary", use_container_width=True, key="btn_home_to_eda"):
+            st.switch_page("pages/eksplorasi_data.py")
+    with cta_c2:
+        if st.button("Langsung ke Cek Mobil dan Harga", use_container_width=True, key="btn_home_to_cek"):
+            st.switch_page("pages/cek_harga_iklan.py")

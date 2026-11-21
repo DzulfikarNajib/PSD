@@ -36,12 +36,12 @@ st.set_page_config(
 )
 apply_theme()
 
-# 6 pages per Master Reference Design (AutoMatch Redesign Blueprint)
-p_ikhtisar = st.Page(
+# 5 main pages in sidebar + keep evaluasi_model registered for direct access
+p_beranda = st.Page(
     "pages/ikhtisar_pasar.py",
-    title="Ikhtisar Pasar",
-    url_path="ikhtisar-pasar",
-    icon=":material/dashboard:",
+    title="Beranda",
+    url_path="beranda",
+    icon=":material/home:",
     default=True,
 )
 p_eksplorasi = st.Page(
@@ -52,20 +52,14 @@ p_eksplorasi = st.Page(
 )
 p_preproc = st.Page(
     "pages/preprocessing_segmentasi.py",
-    title="Preprocessing & Segmentasi",
-    url_path="preprocessing-segmentasi",
+    title="Data & Model",
+    url_path="data-dan-model",
     icon=":material/tune:",
-)
-p_evaluasi = st.Page(
-    "pages/evaluasi_model.py",
-    title="Evaluasi Model",
-    url_path="evaluasi-model",
-    icon=":material/query_stats:",
 )
 p_cek_harga = st.Page(
     "pages/cek_harga_iklan.py",
-    title="Cek Harga Iklan",
-    url_path="cek-harga-iklan",
+    title="Cek Mobil dan Harga",
+    url_path="cek-mobil-dan-harga",
     icon=":material/search_check:",
 )
 p_kesimpulan = st.Page(
@@ -75,7 +69,7 @@ p_kesimpulan = st.Page(
     icon=":material/fact_check:",
 )
 
-pages_list = [p_ikhtisar, p_eksplorasi, p_preproc, p_evaluasi, p_cek_harga, p_kesimpulan]
+pages_list = [p_beranda, p_eksplorasi, p_preproc, p_cek_harga, p_kesimpulan]
 
 active_page = st.navigation(
     pages_list,
@@ -90,8 +84,16 @@ if icon_path.exists():
 else:
     brand_icon_html = '<div class="am-sidebar-brand-icon">AM</div>'
 
+nav_items = [
+    (p_beranda, "Beranda", ":material/home:", "beranda"),
+    (p_eksplorasi, "Eksplorasi Data", ":material/bar_chart:", "eksplorasi"),
+    (p_preproc, "Data & Model", ":material/tune:", "data_model"),
+    (p_cek_harga, "Cek Mobil dan Harga", ":material/search_check:", "cek_harga"),
+    (p_kesimpulan, "Kesimpulan & Rekomendasi", ":material/fact_check:", "kesimpulan"),
+]
+
 with st.sidebar:
-    # 1. Branding at the very top of sidebar (tight top spacing)
+    # 1. Branding at the top of sidebar
     st.markdown(
         f"""
         <div class="am-sidebar-brand">
@@ -105,13 +107,13 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    # 2. Clean native Streamlit page links (zero iframe, 100% transparent, active pill on click)
-    st.page_link(p_ikhtisar, label="Ikhtisar Pasar", icon=":material/dashboard:")
-    st.page_link(p_eksplorasi, label="Eksplorasi Data", icon=":material/bar_chart:")
-    st.page_link(p_preproc, label="Preprocessing & Segmentasi", icon=":material/tune:")
-    st.page_link(p_evaluasi, label="Evaluasi Model", icon=":material/query_stats:")
-    st.page_link(p_cek_harga, label="Cek Harga Iklan", icon=":material/search_check:")
-    st.page_link(p_kesimpulan, label="Kesimpulan & Rekomendasi", icon=":material/fact_check:")
+    # 2. Clean native Streamlit page links with guaranteed active highlight on all pages (including Beranda /)
+    for page_obj, label_text, icon_name, slug in nav_items:
+        if active_page == page_obj:
+            with st.container(key=f"nav_active_{slug}"):
+                st.page_link(page_obj, label=label_text, icon=icon_name)
+        else:
+            st.page_link(page_obj, label=label_text, icon=icon_name)
 
 # Top utility header above page content (matching master reference design)
 st.markdown(

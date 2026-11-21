@@ -7,6 +7,7 @@ mutations happen here. Data is computed by the caller and passed in.
 from __future__ import annotations
 
 import base64
+import contextlib
 from pathlib import Path
 import re
 import streamlit as st
@@ -251,24 +252,33 @@ def kpi_card(
     icon: str = "",
     help_text: str = "",
     variant: str = "default",
+    subtext: str = "",
 ) -> None:
-    """Render a Chronicle-style flat KPI card.
+    """Render a Chronicle-style flat KPI card with thematic Lucide icon badge.
 
     icon:    Lucide icon slug (e.g. 'car', 'banknote'). Empty string to omit.
-    variant: Unused legacy param kept for backwards-compat; styling is now flat.
+    subtext: Optional secondary caption below the main value.
     """
-    icon_html = ""
+    icon_badge_html = ""
     if icon:
-        svg = get_lucide_icon(icon, size=14, color="#64748B")
-        icon_html = f'<span style="margin-right:0.3rem;display:inline-flex;align-items:center;">{svg}</span>'
+        svg = get_lucide_icon(icon, size=18, color=TEAL)
+        icon_badge_html = (
+            f'<span style="display:inline-flex;align-items:center;justify-content:center;'
+            f'width:2.1rem;height:2.1rem;border-radius:8px;background:#E6F7F5;flex-shrink:0;">{svg}</span>'
+        )
 
     title_attr = f'title="{help_text}"' if help_text else ""
+    sub_html = f'<div style="font-size:0.75rem;color:#64748B;margin-top:0.2rem;line-height:1.35;">{subtext}</div>' if subtext else ""
 
     st.markdown(
         f"""
         <div class="am-kpi-card" {title_attr}>
-            <div class="am-kpi-label">{icon_html}{label}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+                <div class="am-kpi-label">{label}</div>
+                {icon_badge_html}
+            </div>
             <div class="am-kpi-value">{value}</div>
+            {sub_html}
         </div>
         """,
         unsafe_allow_html=True,
@@ -289,6 +299,7 @@ def kpi_row(cards: list[dict]) -> None:
                 icon=card.get("icon", ""),
                 help_text=card.get("help", ""),
                 variant=card.get("variant", "default"),
+                subtext=card.get("subtext", ""),
             )
 
 
@@ -296,16 +307,13 @@ def kpi_row(cards: list[dict]) -> None:
 # Section card
 # ---------------------------------------------------------------------------
 
-def section_card(title: str = "", key: str = "") -> "contextlib._GeneratorContextManager":
-    """Return a bordered container to wrap a chart or section.
-
-    Usage:
-        with section_card("Judul"):
-            st.plotly_chart(fig)
-    """
-    if title:
-        st.markdown(f"<div class='am-section-title'>{title}</div>", unsafe_allow_html=True)
-    return st.container(border=True, key=key if key else None)
+@contextlib.contextmanager
+def section_card(title: str = "", key: str = ""):
+    """Return a bordered container that wraps both the section title and content inside one card."""
+    with st.container(border=True, key=key if key else None):
+        if title:
+            st.markdown(f"<div class='am-section-title'>{title}</div>", unsafe_allow_html=True)
+        yield
 
 
 # ---------------------------------------------------------------------------

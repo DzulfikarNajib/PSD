@@ -11,12 +11,12 @@
 | `app.py` | Streamlit entry point. Sets page config, applies theme, renders sidebar brand + `st.page_link` nav, and runs the active page. |
 | `src/styles.py` | All CSS injected via `apply_theme()`. Sidebar, cards, KPI, tabs, buttons, responsive rules. Edit here for global visual changes. |
 | `src/ui_components.py` | Reusable components: `kpi_card()`, `page_header()`, `insight_card()`, `section_card()`, `price_deviation_barometer()`, `get_lucide_icon()`. Design tokens (`NAVY`, `TEAL`, `CHART_COLORS`) live here too. |
-| `pages/ikhtisar_pasar.py` | Page 1 — Market overview: hero banner, 4 KPIs, brand/region/fuel charts, insight cards. |
-| `pages/eksplorasi_data.py` | Page 2 — Data exploration: price histogram, top makes, body-type, year vs price, km vs price, region bar. |
-| `pages/preprocessing_segmentasi.py` | Page 3 — Preprocessing funnel + K-Means segmentation PCA scatter. |
-| `pages/evaluasi_model.py` | Page 4 — Model evaluation: MAE/RMSE/R² KPIs, Actual vs Predicted, Residual plot, Feature Importance. |
-| `pages/cek_harga_iklan.py` | Page 5 — Price checker: form input → ML estimate → gauge barometer → comparable listings. |
-| `pages/kesimpulan.py` | Page 6 — Conclusions & recommendations: insight cards + recommendation list. |
+| `pages/ikhtisar_pasar.py` | Page 1 - Beranda: hero banner, 4 KPIs (Iklan, Merek, Model, Jenis BBM), teaser & CTA ke Eksplorasi Data / Cek Mobil dan Harga. |
+| `pages/eksplorasi_data.py` | Page 2 - Eksplorasi Data: peta interaktif 5 wilayah DKI (auto-zoom & profil wilayah), sebaran harga, top merek, proporsi BBM, tahun/KM vs harga. |
+| `pages/preprocessing_segmentasi.py` | Page 3 - Data & Model: alur terpadu 1 halaman untuk preprocessing funnel, segmentasi K-Means PCA 2D, dan evaluasi model Random Forest. |
+| `pages/evaluasi_model.py` | Legacy/standalone model evaluation module kept for test compatibility. |
+| `pages/cek_harga_iklan.py` | Page 4 - Cek Mobil dan Harga: cari mobil sesuai budget & wilayah, foto iklan OLX, spesifikasi lengkap, link langsung ke OLX, & barometer harga AI. |
+| `pages/kesimpulan.py` | Page 5 - Kesimpulan & Rekomendasi: insight cards + recommendation list. |
 | `src/data_loader.py` | Loads & caches `data/archive.parquet` and model metadata JSON. |
 | `src/model_utils.py` | ML prediction helpers: `predict_price()`, `get_feature_importance()`, `cluster_market_segments()`. |
 | `tests/` | 37 pytest tests. Run `.\.venv\Scripts\python.exe -m pytest tests/ -q --tb=short` before every push. |
